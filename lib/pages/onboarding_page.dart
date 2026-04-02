@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/styles.dart';
 import '../home_page.dart';
 import '../data/settings_repository.dart';
@@ -203,33 +204,22 @@ class OnboardingPage extends StatelessWidget {
       width: 120,
       height: 120,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppStyles.kSurfaceLowest,
-            AppStyles.kSurfaceHigh,
-          ],
-        ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppStyles.kOnSurface.withValues(alpha: 0.05),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 40,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: const Center(
-        child: Icon(
-          Icons.waves,
-          color: AppStyles.kPrimary,
-          size: 64,
-          weight: 100,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: SvgPicture.asset(
+          'assets/logo_moula.svg',
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
         ),
       ),
     );
