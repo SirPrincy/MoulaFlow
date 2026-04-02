@@ -504,77 +504,16 @@ class _HomePageState extends State<HomePage> {
       )
     );
 
-    final drawerContent = AppDrawerContent(
+    final sideMenu = AppSideMenu(
       currentRoute: '/',
       isCollapsed: _isSidebarCollapsed,
-      onHomeTap: () {
-        if (context.isMobileScreen) Navigator.pop(context);
-      },
-      onTransactionsTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const TransactionsPage()),
-        );
-        _loadData();
-      },
-      onSettingsTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => SettingsPage(themeNotifier: widget.themeNotifier)),
-        );
-        _loadData();
-      },
-      onAPayerTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const BillsToPayPage()),
-        );
-        _loadData();
-      },
-      onDettesTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.debt, title: 'Dettes')),
-        );
-        _loadData();
-      },
-      onEpargneTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne')),
-        );
-        _loadData();
-      },
-      onProjetTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.project, title: 'Projets')),
-        );
-        _loadData();
-      },
-      onRecurringTap: () async {
-        if (context.isMobileScreen) Navigator.pop(context);
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const RecurringPaymentsPage()),
-        );
-        _loadData();
-      },
+      themeNotifier: widget.themeNotifier,
+      onDataChange: _loadData,
     );
 
     if (context.isMobileScreen) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Moula Flow',
-            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
-          ),
+        appBar: AppMenuBar(
           actions: [
             if (!_isEditMode)
               TextButton.icon(
@@ -590,7 +529,7 @@ class _HomePageState extends State<HomePage> {
               ),
           ],
         ),
-        drawer: Drawer(child: drawerContent),
+        drawer: Drawer(child: sideMenu),
         body: mainContent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: FloatingActionButton.extended(
@@ -616,18 +555,14 @@ class _HomePageState extends State<HomePage> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             width: _isSidebarCollapsed ? 80 : 280,
-            child: drawerContent,
+            child: sideMenu,
           ),
           Expanded(
             child: Scaffold(
-              appBar: AppBar(
+              appBar: AppMenuBar(
                 leading: IconButton(
                   icon: Icon(_isSidebarCollapsed ? Icons.menu_open : Icons.menu),
                   onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
-                ),
-                title: const Text(
-                  'Moula Flow',
-                  style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
                 ),
                 actions: [
                   if (!_isEditMode)

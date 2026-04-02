@@ -225,8 +225,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final displayedTxs = _filteredTransactions;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Transactions', style: TextStyle(fontWeight: FontWeight.w800)),
+      appBar: AppMenuBar(
+        title: 'Transactions',
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
