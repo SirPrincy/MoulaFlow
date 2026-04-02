@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # ÉTAPE 1 : Test (toujours)
+  # ÉTAPE 1 : Test
   test:
     runs-on: ubuntu-latest
     steps:
@@ -24,10 +24,10 @@ jobs:
       - name: Run unit tests
         run: flutter test
 
-  # ÉTAPE 2 : Build (à chaque push sur main, pas sur PR)
+  # ÉTAPE 2 : Build
   build:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     strategy:
       matrix:
         include:
@@ -51,6 +51,14 @@ jobs:
         with:
           channel: 'stable'
 
+      # --- AJOUT ICI : Dépendances pour Linux ---
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      # ------------------------------------------
+
       - name: Build ${{ matrix.platform }}
         run: ${{ matrix.cmd }}
 
@@ -60,7 +68,7 @@ jobs:
           name: ${{ matrix.platform }}-build
           path: ${{ matrix.file }}
 
-  # ÉTAPE 3 : Release (uniquement sur tag v*)
+  # ÉTAPE 3 : Release
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
