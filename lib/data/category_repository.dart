@@ -7,11 +7,18 @@ class CategoryRepository {
   Future<List<TransactionCategory>> loadCategories() async {
     final prefs = await SharedPreferences.getInstance();
     final String? catsData = prefs.getString(StorageKeys.categories);
+    final defaultCategories = _getDefaultCategories();
+
     if (catsData != null) {
       final List<dynamic> jsonList = jsonDecode(catsData);
-      return jsonList.map((json) => TransactionCategory.fromJson(json)).toList();
+      final savedCategories = jsonList.map((json) => TransactionCategory.fromJson(json)).toList();
+      final mergedCategories = _mergeWithDefaults(savedCategories, defaultCategories);
+
+      if (_categoriesChanged(savedCategories, mergedCategories)) {
+        await saveCategories(mergedCategories);
+      }
+      return mergedCategories;
     } else {
-      final defaultCategories = _getDefaultCategories();
       await saveCategories(defaultCategories);
       return defaultCategories;
     }
@@ -20,6 +27,41 @@ class CategoryRepository {
   Future<void> saveCategories(List<TransactionCategory> categories) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(StorageKeys.categories, jsonEncode(categories.map((c) => c.toJson()).toList()));
+  }
+
+  List<TransactionCategory> _mergeWithDefaults(
+    List<TransactionCategory> saved,
+    List<TransactionCategory> defaults,
+  ) {
+    final merged = List<TransactionCategory>.from(saved);
+
+    for (final defaultCategory in defaults) {
+      final index = merged.indexWhere((c) => c.id == defaultCategory.id);
+      if (index == -1) {
+        merged.add(defaultCategory);
+      } else {
+        final existing = merged[index];
+        final mergedSubcategories = List<TransactionCategory>.from(existing.subcategories);
+        for (final defaultSub in defaultCategory.subcategories) {
+          final exists = mergedSubcategories.any((s) => s.id == defaultSub.id);
+          if (!exists) {
+            mergedSubcategories.add(defaultSub);
+          }
+        }
+        merged[index] = TransactionCategory(
+          id: existing.id,
+          name: existing.name,
+          subcategories: mergedSubcategories,
+        );
+      }
+    }
+
+    return merged;
+  }
+
+  bool _categoriesChanged(List<TransactionCategory> before, List<TransactionCategory> after) {
+    return jsonEncode(before.map((c) => c.toJson()).toList()) !=
+        jsonEncode(after.map((c) => c.toJson()).toList());
   }
 
   List<TransactionCategory> _getDefaultCategories() {
@@ -52,6 +94,8 @@ class CategoryRepository {
         TransactionCategory(id: 'cat_sante_medecin', name: 'Médecin'),
         TransactionCategory(id: 'cat_sante_pharma', name: 'Pharmacie'),
         TransactionCategory(id: 'cat_sante_dentiste', name: 'Dentiste / Opticien'),
+        TransactionCategory(id: 'cat_sante_hospital', name: 'Hôpital & Analyses'),
+        TransactionCategory(id: 'cat_sante_mutuelle', name: 'Mutuelle'),
       ]),
       TransactionCategory(id: 'cat_shopping', name: 'Shopping', subcategories: [
         TransactionCategory(id: 'cat_shopping_vetements', name: 'Vêtements & Accessoires'),
@@ -67,6 +111,43 @@ class CategoryRepository {
         TransactionCategory(id: 'cat_revenus_salaire', name: 'Salaire'),
         TransactionCategory(id: 'cat_revenus_primes', name: 'Primes & Bonus'),
         TransactionCategory(id: 'cat_revenus_rembourse', name: 'Remboursements'),
+        TransactionCategory(id: 'cat_revenus_freelance', name: 'Freelance'),
+        TransactionCategory(id: 'cat_revenus_invest', name: 'Investissements'),
+      ]),
+      TransactionCategory(id: 'cat_education', name: 'Éducation', subcategories: [
+        TransactionCategory(id: 'cat_education_scolarite', name: 'Scolarité'),
+        TransactionCategory(id: 'cat_education_livres', name: 'Livres & Matériel'),
+        TransactionCategory(id: 'cat_education_formation', name: 'Formations en ligne'),
+      ]),
+      TransactionCategory(id: 'cat_famille', name: 'Famille & Enfants', subcategories: [
+        TransactionCategory(id: 'cat_famille_garde', name: 'Garde d\'enfants'),
+        TransactionCategory(id: 'cat_famille_ecole', name: 'Frais scolaires'),
+        TransactionCategory(id: 'cat_famille_besoins', name: 'Besoins du quotidien'),
+      ]),
+      TransactionCategory(id: 'cat_animaux', name: 'Animaux', subcategories: [
+        TransactionCategory(id: 'cat_animaux_nourriture', name: 'Nourriture'),
+        TransactionCategory(id: 'cat_animaux_veto', name: 'Vétérinaire'),
+        TransactionCategory(id: 'cat_animaux_accessoires', name: 'Accessoires'),
+      ]),
+      TransactionCategory(id: 'cat_assurances', name: 'Assurances', subcategories: [
+        TransactionCategory(id: 'cat_assurances_auto', name: 'Auto'),
+        TransactionCategory(id: 'cat_assurances_habitation', name: 'Habitation'),
+        TransactionCategory(id: 'cat_assurances_sante', name: 'Santé'),
+      ]),
+      TransactionCategory(id: 'cat_pro', name: 'Pro / Business', subcategories: [
+        TransactionCategory(id: 'cat_pro_fournitures', name: 'Fournitures'),
+        TransactionCategory(id: 'cat_pro_logiciels', name: 'Logiciels & SaaS'),
+        TransactionCategory(id: 'cat_pro_deplacements', name: 'Déplacements pro'),
+      ]),
+      TransactionCategory(id: 'cat_epargne', name: 'Épargne & Placements', subcategories: [
+        TransactionCategory(id: 'cat_epargne_livret', name: 'Livret'),
+        TransactionCategory(id: 'cat_epargne_invest', name: 'Investissements'),
+        TransactionCategory(id: 'cat_epargne_retraite', name: 'Retraite'),
+      ]),
+      TransactionCategory(id: 'cat_abonnements', name: 'Abonnements', subcategories: [
+        TransactionCategory(id: 'cat_abonnements_streaming', name: 'Streaming'),
+        TransactionCategory(id: 'cat_abonnements_mobile', name: 'Téléphone & Internet'),
+        TransactionCategory(id: 'cat_abonnements_apps', name: 'Apps & Cloud'),
       ]),
       TransactionCategory(id: 'cat_divers', name: 'Divers'),
     ];
