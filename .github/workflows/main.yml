@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # ÉTAPE 1 : Tests unitaires
+  # ÉTAPE 1 : Tests
   test:
     runs-on: ubuntu-latest
     steps:
@@ -24,15 +24,14 @@ jobs:
       - name: Run unit tests
         run: flutter test
 
-  # ÉTAPE 2 : Compilation Multi-plateforme
+  # ÉTAPE 2 : Build Multi-plateforme
   build:
     needs: test
-    # On compile si c'est un push sur main OU si c'est un tag de version
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
-      fail-fast: false # Empêche qu'une erreur sur un OS n'arrête les autres
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -51,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Configuration Java (obligatoire pour Android)
+      # Configuration Java pour Android
       - name: Setup Java
         if: matrix.platform == 'android'
         uses: actions/setup-java@v4
@@ -61,34 +60,43 @@ jobs:
           cache: 'gradle'
 
       # Configuration Flutter
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      # Dépendances système pour Linux
+      # --- CORRECTIF ANDROID : Forcer le chemin du SDK ---
+      - name: Configure Android SDK Path
+        if: matrix.platform == 'android'
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
+      # --------------------------------------------------
+
+      # Dépendances Linux
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
-      # Récupération des packages Flutter (nécessaire pour chaque job)
-      - name: Install Flutter dependencies
+      # Installation des packages Flutter
+      - name: Install dependencies
         run: flutter pub get
 
-      # Exécution du build selon la plateforme
+      # Build de l'application
       - name: Build ${{ matrix.platform }}
         run: ${{ matrix.cmd }}
 
-      # Sauvegarde de l'exécutable
+      # Upload des fichiers générés
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: ${{ matrix.file }}
 
-  # ÉTAPE 3 : Création de la Release (uniquement sur tags v*)
+  # ÉTAPE 3 : Release
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -102,7 +110,7 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
