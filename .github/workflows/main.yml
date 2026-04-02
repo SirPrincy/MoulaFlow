@@ -8,7 +8,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # ÉTAPE 1 : Tests
   test:
     runs-on: ubuntu-latest
     steps:
@@ -17,14 +16,11 @@ jobs:
         with:
           channel: 'stable'
           cache: true
-      
       - name: Install dependencies
         run: flutter pub get
-
       - name: Run unit tests
         run: flutter test
 
-  # ÉTAPE 2 : Build Multi-plateforme
   build:
     needs: test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
@@ -50,7 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Configuration Java pour Android
       - name: Setup Java
         if: matrix.platform == 'android'
         uses: actions/setup-java@v4
@@ -59,44 +54,45 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      # Configuration Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      # --- CORRECTIF ANDROID : Forcer le chemin du SDK ---
-      - name: Configure Android SDK Path
+      # --- LE FIX RADICAL POUR ANDROID ---
+      - name: Hard-fix Flutter Path for Android
         if: matrix.platform == 'android'
         run: |
+          # Créer le dossier local.properties proprement
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
-      # --------------------------------------------------
+          
+          # Forcer le lien symbolique dans /usr/bin pour satisfaire Gradle
+          sudo ln -sf $FLUTTER_ROOT/bin/flutter /usr/bin/flutter
+          
+          # Ajouter au PATH de GitHub Actions explicitement
+          echo "$FLUTTER_ROOT/bin" >> $GITHUB_PATH
+      # ----------------------------------
 
-      # Dépendances Linux
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
-      # Installation des packages Flutter
       - name: Install dependencies
         run: flutter pub get
 
-      # Build de l'application
       - name: Build ${{ matrix.platform }}
         run: ${{ matrix.cmd }}
 
-      # Upload des fichiers générés
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: ${{ matrix.file }}
 
-  # ÉTAPE 3 : Release
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -109,7 +105,6 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
