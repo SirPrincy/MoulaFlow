@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import 'pages/onboarding_page.dart';
 import 'data/settings_repository.dart';
+import 'utils/styles.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settingsRepo = SettingsRepository();
   final isDark = await settingsRepo.loadIsDarkMode();
+  final onboardingSeen = await settingsRepo.loadOnboardingSeen();
   
-  runApp(MoulaFlowApp(isDarkInitial: isDark));
+  runApp(MoulaFlowApp(
+    isDarkInitial: isDark,
+    onboardingSeenInitial: onboardingSeen,
+  ));
 }
 
 class MoulaFlowApp extends StatefulWidget {
   final bool isDarkInitial;
-  const MoulaFlowApp({super.key, required this.isDarkInitial});
+  final bool onboardingSeenInitial;
+  const MoulaFlowApp({
+    super.key, 
+    required this.isDarkInitial, 
+    required this.onboardingSeenInitial,
+  });
 
   @override
   State<MoulaFlowApp> createState() => _MoulaFlowAppState();
@@ -52,10 +64,10 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
             colorScheme: const ColorScheme.light(
-              primary: Colors.black,
-              secondary: Colors.black54,
-              surface: Colors.white,
-              onSurface: Colors.black,
+              primary: AppStyles.kPrimary,
+              secondary: AppStyles.kPrimary,
+              surface: AppStyles.kSurface,
+              onSurface: AppStyles.kOnSurface,
             ),
             appBarTheme: const AppBarTheme(
               backgroundColor: Colors.white,
@@ -102,22 +114,42 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             ),
             useMaterial3: true,
-            textTheme: const TextTheme(
-              displayLarge: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -1.5),
-              headlineMedium: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
-              titleLarge: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2),
-              bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            textTheme: GoogleFonts.workSansTextTheme().copyWith(
+              displayLarge: GoogleFonts.newsreader(
+                fontWeight: FontWeight.w900, 
+                letterSpacing: -1.5,
+                color: AppStyles.kOnSurface,
+              ),
+              headlineMedium: GoogleFonts.newsreader(
+                fontWeight: FontWeight.w800, 
+                letterSpacing: -0.5,
+                color: AppStyles.kOnSurface,
+              ),
+              titleLarge: GoogleFonts.newsreader(
+                fontWeight: FontWeight.w700, 
+                letterSpacing: -0.2,
+                color: AppStyles.kOnSurface,
+              ),
+              bodyLarge: GoogleFonts.workSans(
+                fontSize: 16, 
+                fontWeight: FontWeight.w500,
+                color: AppStyles.kOnSurface,
+              ),
+              bodyMedium: GoogleFonts.workSans(
+                fontSize: 14, 
+                fontWeight: FontWeight.w500,
+                color: AppStyles.kOnSurfaceVariant,
+              ),
             ),
           ),
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             scaffoldBackgroundColor: const Color(0xFF121212),
             colorScheme: const ColorScheme.dark(
-              primary: Colors.white,
-              secondary: Colors.white70,
-              surface: Color(0xFF1E1E1E),
-              onSurface: Colors.white,
+              primary: AppStyles.kPrimary,
+              secondary: AppStyles.kPrimary,
+              surface: AppStyles.kSurface,
+              onSurface: AppStyles.kOnSurface,
             ),
             appBarTheme: const AppBarTheme(
               backgroundColor: Color(0xFF121212),
@@ -164,15 +196,37 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             ),
             useMaterial3: true,
-            textTheme: const TextTheme(
-              displayLarge: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -1.5, color: Colors.white),
-              headlineMedium: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Colors.white),
-              titleLarge: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.2, color: Colors.white),
-              bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
-              bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white70),
+            textTheme: GoogleFonts.workSansTextTheme().copyWith(
+              displayLarge: GoogleFonts.newsreader(
+                fontWeight: FontWeight.w900, 
+                letterSpacing: -1.5,
+                color: AppStyles.kOnSurface,
+              ),
+              headlineMedium: GoogleFonts.newsreader(
+                fontWeight: FontWeight.w800, 
+                letterSpacing: -0.5,
+                color: AppStyles.kOnSurface,
+              ),
+              titleLarge: GoogleFonts.newsreader(
+                fontWeight: FontWeight.w700, 
+                letterSpacing: -0.2,
+                color: AppStyles.kOnSurface,
+              ),
+              bodyLarge: GoogleFonts.workSans(
+                fontSize: 16, 
+                fontWeight: FontWeight.w500,
+                color: AppStyles.kOnSurface,
+              ),
+              bodyMedium: GoogleFonts.workSans(
+                fontSize: 14, 
+                fontWeight: FontWeight.w500,
+                color: AppStyles.kOnSurfaceVariant,
+              ),
             ),
           ),
-          home: HomePage(themeNotifier: _themeNotifier),
+          home: widget.onboardingSeenInitial 
+            ? HomePage(themeNotifier: _themeNotifier)
+            : OnboardingPage(themeNotifier: _themeNotifier),
         );
       },
     );

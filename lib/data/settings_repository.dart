@@ -12,6 +12,16 @@ class SettingsRepository {
     await prefs.setBool(StorageKeys.isDarkMode, isDark);
   }
 
+  Future<bool> loadOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(StorageKeys.onboardingSeen) ?? false;
+  }
+
+  Future<void> saveOnboardingSeen(bool seen) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(StorageKeys.onboardingSeen, seen);
+  }
+
   Future<void> clearAllDataExceptTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool(StorageKeys.isDarkMode);
