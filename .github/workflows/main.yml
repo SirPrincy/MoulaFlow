@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # ÉTAPE 1 : Test
+  # ÉTAPE 1 : Tests unitaires
   test:
     runs-on: ubuntu-latest
     steps:
@@ -24,14 +24,15 @@ jobs:
       - name: Run unit tests
         run: flutter test
 
- # ÉTAPE 2 : Build
+  # ÉTAPE 2 : Compilation Multi-plateforme
   build:
     needs: test
+    # On compile si c'est un push sur main OU si c'est un tag de version
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45 # On donne assez de temps, surtout pour Windows
+    timeout-minutes: 45
     strategy:
-      fail-fast: false # TRÈS IMPORTANT : empêche un échec Linux de tuer le build Windows
+      fail-fast: false # Empêche qu'une erreur sur un OS n'arrête les autres
       matrix:
         include:
           - os: ubuntu-latest
@@ -40,7 +41,6 @@ jobs:
             file: moula-flow-linux.tar.gz
           - os: windows-latest
             platform: windows
-            # Utilisation de 7z pour Windows (plus robuste sur CI)
             cmd: flutter build windows --release && 7z a -tzip moula-flow-windows.zip .\build\windows\x64\runner\Release\*
             file: moula-flow-windows.zip
           - os: ubuntu-latest
@@ -48,10 +48,10 @@ jobs:
             cmd: flutter build apk --release && cp build/app/outputs/flutter-apk/app-release.apk moula-flow.apk
             file: moula-flow.apk
 
-steps:
+    steps:
       - uses: actions/checkout@v4
 
-      # 1. Configuration de Java (Essentiel pour Android)
+      # Configuration Java (obligatoire pour Android)
       - name: Setup Java
         if: matrix.platform == 'android'
         uses: actions/setup-java@v4
@@ -60,38 +60,41 @@ steps:
           java-version: '17'
           cache: 'gradle'
 
-      # 2. Configuration de Flutter
+      # Configuration Flutter
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      # 3. Dépendances Linux
+      # Dépendances système pour Linux
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
-      # 4. Récupération des packages (Indispensable car nouveau Job)
-      - name: Install dependencies
+      # Récupération des packages Flutter (nécessaire pour chaque job)
+      - name: Install Flutter dependencies
         run: flutter pub get
 
-      # 5. Build final
+      # Exécution du build selon la plateforme
       - name: Build ${{ matrix.platform }}
         run: ${{ matrix.cmd }}
 
+      # Sauvegarde de l'exécutable
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: ${{ matrix.file }}
-          
-  # ÉTAPE 3 : Release
+
+  # ÉTAPE 3 : Création de la Release (uniquement sur tags v*)
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -99,9 +102,10 @@ steps:
           path: artifacts
           merge-multiple: true
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
