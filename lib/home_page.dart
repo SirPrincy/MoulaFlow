@@ -3,6 +3,8 @@ import 'responsive_layout.dart';
 import 'models.dart';
 import 'widgets/transaction_form.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/app_side_menu.dart';
+import 'widgets/app_menu_bar.dart';
 import 'transactions_page.dart';
 import 'utils/styles.dart';
 import 'settings_page.dart';
