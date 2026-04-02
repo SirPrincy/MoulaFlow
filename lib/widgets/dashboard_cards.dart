@@ -1,0 +1,796 @@
+import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'package:fl_chart/fl_chart.dart';
+import '../models.dart';
+import '../data/dashboard_repository.dart';
+import '../utils/styles.dart';
+
+/// Base class for all dashboard widget cards.
+abstract class DashboardCard extends StatelessWidget {
+  final VoidCallback? onToggle;
+  final bool isEditMode;
+
+  const DashboardCard({super.key, this.onToggle, this.isEditMode = false});
+
+  Widget buildHeader(BuildContext context, String title, {Widget? trailing}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              letterSpacing: 1.2,
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget buildContainer(BuildContext context, {required Widget child}) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+/// 1. Solde Total & Wallets — Dashboard card
+class BalanceSummaryCard extends StatelessWidget {
+  final double totalBalance;
+  final List<Wallet> wallets;
+  final Set<String> selectedWalletIds;
+  final Function(String?) onWalletTap;
+  final Function(Wallet?) onEditWallet;
+  final double Function(String) getWalletBalance;
+  final bool isEditMode;
+
+  const BalanceSummaryCard({
+    super.key,
+    required this.totalBalance,
+    required this.wallets,
+    required this.selectedWalletIds,
+    required this.onWalletTap,
+    required this.onEditWallet,
+    required this.getWalletBalance,
+    this.isEditMode = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'PATRIMOINE GLOBAL',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                  letterSpacing: 1.4,
+                ),
+              ),
+              Icon(Icons.lock_outline, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Total Balance
+          Text(
+            formatAmount(totalBalance),
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.5,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Wallet cards
+          SizedBox(
+            height: 110,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: wallets.length + 1,
+              itemBuilder: (context, index) {
+                if (index == wallets.length) {
+                  return _buildAddItem(context, theme, isDark);
+                }
+                final wallet = wallets[index];
+                return _buildWalletItem(context, wallet, theme, isDark);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddItem(BuildContext context, ThemeData theme, bool isDark) {
+    return GestureDetector(
+      onTap: () => onEditWallet(null),
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+          border: Border.all(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+            width: 1.5,
+            strokeAlign: BorderSide.strokeAlignInside,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.add,
+            size: 22,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalletItem(BuildContext context, Wallet wallet, ThemeData theme, bool isDark) {
+    final isSelected = selectedWalletIds.contains(wallet.id);
+    final activeText = isDark ? Colors.black : Colors.white;
+    final activeBg = isDark ? Colors.white : Colors.black;
+
+    IconData typeIcon;
+    Color? accentColor;
+    switch (wallet.type) {
+      case WalletType.savings: typeIcon = Icons.savings; accentColor = Colors.teal; break;
+      case WalletType.debt: 
+        typeIcon = wallet.isCredit ? Icons.arrow_downward : Icons.arrow_upward;
+        accentColor = wallet.isCredit ? Colors.green : Colors.red;
+        break;
+      case WalletType.project: typeIcon = Icons.rocket_launch; break;
+      case WalletType.cash: typeIcon = Icons.payments; break;
+      case WalletType.bank: typeIcon = Icons.account_balance; break;
+      case WalletType.mobileMoney: typeIcon = Icons.phone_android; break;
+      default: typeIcon = Icons.layers;
+    }
+
+    return GestureDetector(
+      onTap: () => onWalletTap(wallet.id),
+      onLongPress: () => onEditWallet(wallet),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 130,
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : theme.colorScheme.onSurface.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+          border: Border.all(
+            color: isSelected
+                ? (accentColor?.withValues(alpha: 0.8) ?? activeBg)
+                : (accentColor?.withValues(alpha: 0.2) ?? theme.colorScheme.onSurface.withValues(alpha: 0.08)),
+            width: isSelected ? 2 : 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    wallet.name,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? activeText.withValues(alpha: 0.6)
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(
+                  typeIcon,
+                  size: 12,
+                  color: isSelected
+                      ? activeText.withValues(alpha: 0.4)
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
+              ],
+            ),
+            Text(
+              formatAmount(getWalletBalance(wallet.id)),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: isSelected ? activeText : theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+/// Compact wallet filter bar — used in the Transactions page
+// ---------------------------------------------------------------------------
+class WalletFilterBar extends StatelessWidget {
+  final double totalBalance;
+  final List<Wallet> wallets;
+  final Set<String> selectedWalletIds;
+  final Function(String?) onWalletTap;
+  final double Function(String) getWalletBalance;
+
+  const WalletFilterBar({
+    super.key,
+    required this.totalBalance,
+    required this.wallets,
+    required this.selectedWalletIds,
+    required this.onWalletTap,
+    required this.getWalletBalance,
+  });
+
+  static IconData _typeIcon(WalletType t) {
+    switch (t) {
+      case WalletType.savings: return Icons.savings;
+      case WalletType.debt: return Icons.receipt_long;
+      case WalletType.project: return Icons.rocket_launch;
+      default: return Icons.layers;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final allSelected = selectedWalletIds.isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'SOLDE TOTAL',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.3,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    formatAmount(totalBalance),
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 40,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _WalletChip(
+                  label: 'Tous',
+                  icon: Icons.apps,
+                  isSelected: allSelected,
+                  isDark: isDark,
+                  onTap: () => onWalletTap(null),
+                  theme: theme,
+                ),
+              ),
+              ...wallets.map((w) {
+                final isSelected = selectedWalletIds.contains(w.id);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _WalletChip(
+                    label: w.name,
+                    icon: _typeIcon(w.type),
+                    sublabel: formatAmount(getWalletBalance(w.id)),
+                    isSelected: isSelected,
+                    isDark: isDark,
+                    onTap: () => onWalletTap(w.id),
+                    theme: theme,
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Divider(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.07)),
+      ],
+    );
+  }
+}
+
+class _WalletChip extends StatelessWidget {
+  final String label;
+  final String? sublabel;
+  final IconData icon;
+  final bool isSelected;
+  final bool isDark;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  const _WalletChip({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.isDark,
+    required this.onTap,
+    required this.theme,
+    this.sublabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeBg = isDark ? Colors.white : Colors.black;
+    final activeText = isDark ? Colors.black : Colors.white;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+          border: Border.all(
+            color: isSelected ? activeBg : theme.colorScheme.onSurface.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: isSelected ? activeText.withValues(alpha: 0.7) : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? activeText : theme.colorScheme.onSurface,
+              ),
+            ),
+            if (sublabel != null) ...[
+              const SizedBox(width: 6),
+              Text(
+                sublabel!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected
+                      ? activeText.withValues(alpha: 0.6)
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+/// 2. Flux Mensuel (Income vs Expense)
+class FlowCard extends DashboardCard {
+  final double income;
+  final double expenses;
+
+  const FlowCard({super.key, required this.income, required this.expenses});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = income + expenses;
+    final inPercent = total == 0 ? 0.0 : (income / total);
+    
+    return buildContainer(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildHeader(context, 'Flux Mensuel'),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildFlowStat('Revenus', income, Colors.green),
+              _buildFlowStat('Dépenses', expenses, Colors.red),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: inPercent,
+              minHeight: 8,
+              backgroundColor: Colors.red.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation(Colors.green),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlowStat(String label, double amount, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+        const SizedBox(height: 4),
+        Text(formatAmount(amount), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+      ],
+    );
+  }
+}
+
+/// 2.5 Evolution du Patrimoine (7 Days Trend)
+class WealthTrendCard extends DashboardCard {
+  final List<double> history;
+
+  const WealthTrendCard({super.key, required this.history});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Find min and max for scaling
+    double minVal = history.isEmpty ? 0 : history.reduce(math.min);
+    double maxVal = history.isEmpty ? 100 : history.reduce(math.max);
+    
+    // Add some padding to the range
+    final range = maxVal - minVal;
+    minVal = (minVal - range * 0.1).floorToDouble();
+    maxVal = (maxVal + range * 0.1).ceilToDouble();
+    if (minVal == maxVal) maxVal += 10;
+
+    return buildContainer(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildHeader(context, 'Évolution (7 jours)'),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 140,
+            child: LineChart(
+              LineChartData(
+                gridData: const FlGridData(show: false),
+                titlesData: const FlTitlesData(show: false),
+                borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: (history.length - 1).toDouble(),
+                minY: minVal,
+                maxY: maxVal,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                    isCurved: true,
+                    color: theme.colorScheme.primary,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary.withValues(alpha: 0.3),
+                          theme.colorScheme.primary.withValues(alpha: 0.0),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Derniers 7 jours', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+              Text(
+                formatAmount(history.last),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 3. Top Catégories Chart
+class CategoryChartCard extends DashboardCard {
+  final Map<String, double> categorySpending;
+  final CategoryChartStyle style;
+  final Function(CategoryChartStyle)? onStyleChange;
+
+  const CategoryChartCard({
+    super.key, 
+    required this.categorySpending, 
+    this.style = CategoryChartStyle.donut,
+    this.onStyleChange,
+    super.isEditMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sortedEntries = categorySpending.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final topEntries = sortedEntries.take(4).toList();
+
+    return buildContainer(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildHeader(
+            context, 
+            'Top Dépenses',
+            trailing: isEditMode ? _buildStyleToggle() : null,
+          ),
+          SizedBox(
+            height: 180,
+            child: _buildChart(topEntries),
+          ),
+          const SizedBox(height: 16),
+          ...topEntries.map((e) {
+            final color = Colors.primaries[sortedEntries.indexOf(e) % Colors.primaries.length].withValues(alpha: 0.7);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6.0),
+              child: Row(
+                children: [
+                  Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12))),
+                  Text(formatAmount(e.value), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStyleToggle() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _styleIcon(CategoryChartStyle.donut, Icons.pie_chart_outline),
+        _styleIcon(CategoryChartStyle.halfDonut, Icons.timelapse),
+        _styleIcon(CategoryChartStyle.bar, Icons.bar_chart),
+      ],
+    );
+  }
+
+  Widget _styleIcon(CategoryChartStyle s, IconData icon) {
+    final active = style == s;
+    return GestureDetector(
+      onTap: () => onStyleChange?.call(s),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        margin: const EdgeInsets.only(left: 4),
+        decoration: BoxDecoration(
+          color: active ? Colors.blue.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Icon(icon, size: 14, color: active ? Colors.blue : Colors.grey),
+      ),
+    );
+  }
+
+  Widget _buildChart(List<MapEntry<String, double>> entries) {
+    if (entries.isEmpty) return const Center(child: Text('No data'));
+
+    switch (style) {
+      case CategoryChartStyle.bar:
+        return BarChart(
+          BarChartData(
+            barGroups: entries.asMap().entries.map((entry) {
+              return BarChartGroupData(
+                x: entry.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: entry.value.value.abs(),
+                    color: Colors.primaries[entry.key % Colors.primaries.length].withValues(alpha: 0.7),
+                    width: 16,
+                    borderRadius: BorderRadius.circular(4),
+                  )
+                ],
+              );
+            }).toList(),
+            gridData: const FlGridData(show: false),
+            borderData: FlBorderData(show: false),
+            titlesData: const FlTitlesData(show: false),
+          ),
+        );
+      case CategoryChartStyle.halfDonut:
+        return PieChart(
+          PieChartData(
+            startDegreeOffset: 180,
+            sectionsSpace: 4,
+            centerSpaceRadius: 40,
+            sections: entries.asMap().entries.map((entry) {
+              return PieChartSectionData(
+                color: Colors.primaries[entry.key % Colors.primaries.length].withValues(alpha: 0.7),
+                value: entry.value.value.abs(),
+                title: '',
+                radius: 12,
+              );
+            }).toList(),
+          ),
+        );
+      case CategoryChartStyle.donut:
+        return PieChart(
+          PieChartData(
+            sectionsSpace: 4,
+            centerSpaceRadius: 40,
+            sections: entries.asMap().entries.map((entry) {
+              return PieChartSectionData(
+                color: Colors.primaries[entry.key % Colors.primaries.length].withValues(alpha: 0.7),
+                value: entry.value.value.abs(),
+                title: '',
+                radius: 12,
+              );
+            }).toList(),
+          ),
+        );
+    }
+  }
+}
+
+/// 4. Dernières Transactions
+class RecentTransactionsCard extends DashboardCard {
+  final List<Transaction> transactions;
+  final String Function(String?) getCategoryName;
+  final String Function(Transaction) getWalletCaption;
+  final VoidCallback onTap;
+
+  const RecentTransactionsCard({
+    super.key,
+    required this.transactions,
+    required this.getCategoryName,
+    required this.getWalletCaption,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lastFive = transactions.take(5).toList();
+
+    return buildContainer(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildHeader(
+            context, 
+            'Opérations Récentes', 
+            trailing: InkWell(
+              onTap: onTap, 
+              child: Row(
+                children: [
+                  Text('VOIR TOUT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward, size: 12),
+                ],
+              ),
+            ),
+          ),
+          if (lastFive.isEmpty)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('Aucune opération.')))
+          else
+            ...lastFive.map((tx) => Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.05), shape: BoxShape.circle),
+                    child: Icon(_getIconForType(tx.type), size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(tx.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1),
+                        Text(getCategoryName(tx.categoryId), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    formatAmount(tx.amount),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tx.type == TransactionType.income ? Colors.green : null),
+                  ),
+                ],
+              ),
+            )),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForType(TransactionType type) {
+    switch (type) {
+      case TransactionType.income: return Icons.arrow_downward;
+      case TransactionType.expense: return Icons.arrow_upward;
+      case TransactionType.transfer: return Icons.swap_horiz;
+    }
+  }
+}

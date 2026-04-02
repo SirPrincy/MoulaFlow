@@ -1,0 +1,80 @@
+name: Moula Flow CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ÉTAPE 1 : Test (toujours)
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run unit tests
+        run: flutter test
+
+  # ÉTAPE 2 : Build (à chaque push sur main, pas sur PR)
+  build:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            cmd: flutter build linux --release && tar -czf moula-flow-linux.tar.gz -C build/linux/x64/release/bundle .
+            file: moula-flow-linux.tar.gz
+          - os: windows-latest
+            platform: windows
+            cmd: flutter build windows --release && compress-archive build/windows/x64/runner/Release/* moula-flow-windows.zip
+            file: moula-flow-windows.zip
+          - os: ubuntu-latest
+            platform: android
+            cmd: flutter build apk --release && cp build/app/outputs/flutter-apk/app-release.apk moula-flow.apk
+            file: moula-flow.apk
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Build ${{ matrix.platform }}
+        run: ${{ matrix.cmd }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: ${{ matrix.file }}
+
+  # ÉTAPE 3 : Release (uniquement sur tag v*)
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
