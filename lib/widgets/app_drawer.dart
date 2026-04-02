@@ -116,7 +116,7 @@ class AppDrawerContent extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: isCollapsed ? 4 : 16),
           decoration: BoxDecoration(
             color: isActive ? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)) : Colors.transparent,
             borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
