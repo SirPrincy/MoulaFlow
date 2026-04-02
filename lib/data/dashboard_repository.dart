@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'storage_keys.dart';
 
 enum DashboardWidgetType {
   balance,    // Fixed: Total + Wallets
@@ -66,11 +67,9 @@ class DashboardConfig {
 }
 
 class DashboardRepository {
-  static const String _key = 'dashboard_config';
-
   Future<DashboardConfig> loadConfig() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_key);
+    final jsonStr = prefs.getString(StorageKeys.dashboardConfig);
     if (jsonStr == null) return DashboardConfig.defaultConfig();
     try {
       return DashboardConfig.fromJson(json.decode(jsonStr));
@@ -81,6 +80,6 @@ class DashboardRepository {
 
   Future<void> saveConfig(DashboardConfig config) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, json.encode(config.toJson()));
+    await prefs.setString(StorageKeys.dashboardConfig, json.encode(config.toJson()));
   }
 }
