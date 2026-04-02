@@ -48,6 +48,17 @@ Plus de détails disponibles dans le dossier `docs/` :
 ## Build 🏗️
 Testé via `flutter build linux` et `flutter build apk`. 🎉
 
+## Android : mise à jour & données 📱
+
+Les données sont stockées localement via `SharedPreferences` (mode hors ligne), donc **une mise à jour classique de l'application conserve normalement les données**.
+
+Les données peuvent en revanche être perdues dans ces cas :
+- désinstallation complète de l'app ;
+- nettoyage manuel du stockage de l'application par l'utilisateur ;
+- usage de la fonctionnalité **"Réinitialiser les données"** (Zone de Danger).
+
+Conseil : avant une version majeure, prévoir un export/sauvegarde (fonction non incluse pour le moment).
+
 ## License 📜
 Ce projet est sous licence **MIT**.  
 Copyright (c) 2026 SirPrincy
