@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/styles.dart';
+import '../widgets/app_logo.dart';
 import '../home_page.dart';
 import '../data/settings_repository.dart';
 
@@ -79,7 +79,7 @@ class OnboardingPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Brand Identity Component
-                          _buildLogo(),
+                          const AppLogo(size: 120, borderRadius: 24, withShadow: true),
                           const SizedBox(height: 48),
                           // Editorial Headline
                           Text(
@@ -199,31 +199,6 @@ class OnboardingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLogo() {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 40,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: SvgPicture.asset(
-          'assets/logo_moula.svg',
-          width: 120,
-          height: 120,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
 
   Widget _buildFooterLink(String label) {
     return Text(
