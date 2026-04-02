@@ -1,6 +1,6 @@
 # Moula Flow 🦇 (v0.02)
 
-This project is **100% vibe coded**.
+This project is **100% vibe coded** with Flutter.
 
 Moula Flow est une application minimaliste de suivi de finances personnelles développée avec **Flutter**. Elle fonctionne **100% hors ligne** avec `SharedPreferences`.
 
