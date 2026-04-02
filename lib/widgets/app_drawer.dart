@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/styles.dart';
+import 'app_logo.dart';
 
 class AppDrawerContent extends StatelessWidget {
   final String currentRoute;
@@ -43,14 +44,7 @@ class AppDrawerContent extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white : Colors.black,
-                      borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius), // Keeps it distinct
-                    ),
-                    child: Icon(Icons.account_balance_wallet, color: isDark ? Colors.black : Colors.white, size: 24),
-                  ),
+                  const AppLogo(size: 48),
                   const SizedBox(height: 16),
                   const Text(
                     'Moula Flow',
@@ -70,7 +64,7 @@ class AppDrawerContent extends StatelessWidget {
             ),
           ] else ...[
              const SizedBox(height: 64),
-             Center(child: Icon(Icons.account_balance_wallet, color: theme.colorScheme.onSurface, size: 28)),
+             const Center(child: AppLogo(size: 40)),
              const SizedBox(height: 32),
           ],
           
