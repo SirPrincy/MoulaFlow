@@ -56,6 +56,20 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: _themeNotifier,
       builder: (context, currentMode, child) {
+        const lightColorScheme = ColorScheme.light(
+          primary: Color(0xFF5B5FC7),
+          secondary: Color(0xFF5B5FC7),
+          surface: Color(0xFFFFFFFF),
+          onSurface: Color(0xFF1A1A1A),
+        );
+
+        const darkColorScheme = ColorScheme.dark(
+          primary: AppStyles.kPrimary,
+          secondary: AppStyles.kPrimary,
+          surface: AppStyles.kSurface,
+          onSurface: AppStyles.kOnSurface,
+        );
+
         return MaterialApp(
           title: 'Moula Flow',
           debugShowCheckedModeBanner: false,
@@ -63,12 +77,7 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
           theme: ThemeData(
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
-            colorScheme: const ColorScheme.light(
-              primary: AppStyles.kPrimary,
-              secondary: AppStyles.kPrimary,
-              surface: AppStyles.kSurface,
-              onSurface: AppStyles.kOnSurface,
-            ),
+            colorScheme: lightColorScheme,
             appBarTheme: const AppBarTheme(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
@@ -118,39 +127,34 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
               displayLarge: GoogleFonts.newsreader(
                 fontWeight: FontWeight.w900, 
                 letterSpacing: -1.5,
-                color: AppStyles.kOnSurface,
+                color: lightColorScheme.onSurface,
               ),
               headlineMedium: GoogleFonts.newsreader(
                 fontWeight: FontWeight.w800, 
                 letterSpacing: -0.5,
-                color: AppStyles.kOnSurface,
+                color: lightColorScheme.onSurface,
               ),
               titleLarge: GoogleFonts.newsreader(
                 fontWeight: FontWeight.w700, 
                 letterSpacing: -0.2,
-                color: AppStyles.kOnSurface,
+                color: lightColorScheme.onSurface,
               ),
               bodyLarge: GoogleFonts.workSans(
                 fontSize: 16, 
                 fontWeight: FontWeight.w500,
-                color: AppStyles.kOnSurface,
+                color: lightColorScheme.onSurface,
               ),
               bodyMedium: GoogleFonts.workSans(
                 fontSize: 14, 
                 fontWeight: FontWeight.w500,
-                color: AppStyles.kOnSurfaceVariant,
+                color: lightColorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             scaffoldBackgroundColor: const Color(0xFF121212),
-            colorScheme: const ColorScheme.dark(
-              primary: AppStyles.kPrimary,
-              secondary: AppStyles.kPrimary,
-              surface: AppStyles.kSurface,
-              onSurface: AppStyles.kOnSurface,
-            ),
+            colorScheme: darkColorScheme,
             appBarTheme: const AppBarTheme(
               backgroundColor: Color(0xFF121212),
               foregroundColor: Colors.white,
@@ -200,22 +204,22 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
               displayLarge: GoogleFonts.newsreader(
                 fontWeight: FontWeight.w900, 
                 letterSpacing: -1.5,
-                color: AppStyles.kOnSurface,
+                color: darkColorScheme.onSurface,
               ),
               headlineMedium: GoogleFonts.newsreader(
                 fontWeight: FontWeight.w800, 
                 letterSpacing: -0.5,
-                color: AppStyles.kOnSurface,
+                color: darkColorScheme.onSurface,
               ),
               titleLarge: GoogleFonts.newsreader(
                 fontWeight: FontWeight.w700, 
                 letterSpacing: -0.2,
-                color: AppStyles.kOnSurface,
+                color: darkColorScheme.onSurface,
               ),
               bodyLarge: GoogleFonts.workSans(
                 fontSize: 16, 
                 fontWeight: FontWeight.w500,
-                color: AppStyles.kOnSurface,
+                color: darkColorScheme.onSurface,
               ),
               bodyMedium: GoogleFonts.workSans(
                 fontSize: 14, 
