@@ -1,3 +1,5 @@
+![Moula Flow logo](assets/logo_moula.svg)
+
 # Moula Flow 🦇 (v0.02)
 
 This project is **100% vibe coded** with Flutter.
