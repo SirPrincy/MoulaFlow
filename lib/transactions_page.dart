@@ -21,7 +21,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
   String _searchQuery = '';
-  
+
   final _transactionRepo = TransactionRepository();
   final _walletRepo = WalletRepository();
   final _categoryRepo = CategoryRepository();
@@ -46,20 +46,28 @@ class _TransactionsPageState extends State<TransactionsPage> {
     await _walletRepo.saveWallets(_wallets);
   }
 
-  double get _totalBalance => _balanceService.computeTotalBalance(_wallets, _transactions, _selectedWalletIds);
-  double _getWalletBalance(String walletId) => _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
+  double get _totalBalance => _balanceService.computeTotalBalance(
+    _wallets,
+    _transactions,
+    _selectedWalletIds,
+  );
+  double _getWalletBalance(String walletId) =>
+      _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
 
   List<Transaction> get _filteredTransactions {
-    final filtered = _balanceService.filterTransactionsByWalletSelection(_transactions, _selectedWalletIds);
+    final filtered = _balanceService.filterTransactionsByWalletSelection(
+      _transactions,
+      _selectedWalletIds,
+    );
     final sorted = List<Transaction>.from(filtered);
     sorted.sort((a, b) => b.date.compareTo(a.date));
-    
+
     if (_searchQuery.isEmpty) return sorted;
-    
+
     final q = _searchQuery.toLowerCase();
     return sorted.where((tx) {
-      return tx.description.toLowerCase().contains(q) || 
-             tx.tags.any((t) => t.toLowerCase().contains(q));
+      return tx.description.toLowerCase().contains(q) ||
+          tx.tags.any((t) => t.toLowerCase().contains(q));
     }).toList();
   }
 
@@ -89,16 +97,22 @@ class _TransactionsPageState extends State<TransactionsPage> {
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.kDefaultRadius)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppStyles.kDefaultRadius),
+        ),
       ),
       builder: (context) {
-        return TransactionForm(wallets: _wallets, categories: _categories, editingTx: editingTx);
+        return TransactionForm(
+          wallets: _wallets,
+          categories: _categories,
+          editingTx: editingTx,
+        );
       },
     ).then((result) {
       if (result != null && result is Map) {
         final action = result['action'];
         final tx = result['tx'];
-        
+
         setState(() {
           if (action == 'save') {
             if (editingTx != null) {
@@ -119,16 +133,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
   void _showWalletDialog({Wallet? wallet}) {
     final theme = Theme.of(context);
     final nameController = TextEditingController(text: wallet?.name ?? '');
-    final initialBalanceController = TextEditingController(text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00');
+    final initialBalanceController = TextEditingController(
+      text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00',
+    );
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: theme.colorScheme.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
-          title: Text(wallet == null ? 'Nouveau Wallet' : 'Modifier Wallet', 
-            style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+          ),
+          title: Text(
+            wallet == null ? 'Nouveau Wallet' : 'Modifier Wallet',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -137,7 +160,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
                   labelText: 'Nom du Wallet',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppStyles.kDefaultRadius,
+                    ),
+                  ),
                 ),
                 autofocus: true,
               ),
@@ -145,10 +172,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
               TextField(
                 controller: initialBalanceController,
                 style: TextStyle(color: theme.colorScheme.onSurface),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Solde initial',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -161,21 +192,39 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: theme.colorScheme.surface,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      title: Text('Supprimer ce Wallet ?', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
-                      content: Text('Toutes les transactions et transferts liés seront définitivement supprimés.', style: TextStyle(color: theme.colorScheme.onSurface)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      title: Text(
+                        'Supprimer ce Wallet ?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      content: Text(
+                        'Toutes les transactions et transferts liés seront définitivement supprimés.',
+                        style: TextStyle(color: theme.colorScheme.onSurface),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: Text('Annuler', style: TextStyle(color: theme.colorScheme.onSurface)),
+                          child: Text(
+                            'Annuler',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
                         ),
                         TextButton(
                           onPressed: () {
                             setState(() {
-                              _transactions.removeWhere((tx) =>
-                                  tx.walletId == wallet.id ||
-                                  tx.fromWalletId == wallet.id ||
-                                  tx.toWalletId == wallet.id);
+                              _transactions.removeWhere(
+                                (tx) =>
+                                    tx.walletId == wallet.id ||
+                                    tx.fromWalletId == wallet.id ||
+                                    tx.toWalletId == wallet.id,
+                              );
                               _wallets.remove(wallet);
                               _selectedWalletIds.remove(wallet.id);
                             });
@@ -183,25 +232,40 @@ class _TransactionsPageState extends State<TransactionsPage> {
                             Navigator.pop(ctx);
                             Navigator.pop(context);
                           },
-                          child: const Text('Supprimer', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Supprimer',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   );
                 },
-                child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                child: const Text(
+                  'Supprimer',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             TextButton(
               onPressed: () {
                 if (nameController.text.trim().isNotEmpty) {
-                  final initialBalance = double.tryParse(initialBalanceController.text.replaceAll(',', '.')) ?? 0.0;
+                  final initialBalance =
+                      double.tryParse(
+                        initialBalanceController.text.replaceAll(',', '.'),
+                      ) ??
+                      0.0;
                   setState(() {
                     if (wallet == null) {
-                      _wallets.add(Wallet(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: nameController.text.trim(),
-                        initialBalance: initialBalance,
-                      ));
+                      _wallets.add(
+                        Wallet(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: nameController.text.trim(),
+                          initialBalance: initialBalance,
+                        ),
+                      );
                     } else {
                       wallet.name = nameController.text.trim();
                       wallet.initialBalance = initialBalance;
@@ -211,7 +275,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   Navigator.pop(context);
                 }
               },
-              child: Text('Valider', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Valider',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -238,7 +308,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 prefixIcon: const Icon(Icons.search, size: 20),
                 filled: true,
                 fillColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+                  borderSide: BorderSide.none,
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
@@ -254,45 +327,59 @@ class _TransactionsPageState extends State<TransactionsPage> {
               wallets: _wallets,
               selectedWalletIds: _selectedWalletIds,
               onWalletTap: (id) => setState(() {
-                if (id == null) { _selectedWalletIds.clear(); }
-                else if (_selectedWalletIds.contains(id)) { _selectedWalletIds.remove(id); }
-                else { _selectedWalletIds.add(id); }
+                if (id == null) {
+                  _selectedWalletIds.clear();
+                } else if (_selectedWalletIds.contains(id)) {
+                  _selectedWalletIds.remove(id);
+                } else {
+                  _selectedWalletIds.add(id);
+                }
               }),
               getWalletBalance: _getWalletBalance,
             ),
             Expanded(
               child: displayedTxs.isEmpty
-                ? Center(
-                    child: Text(
-                      _searchQuery.isEmpty ? 'Aucune transaction.' : 'Aucun résultat.',
-                      style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: displayedTxs.length,
-                    itemBuilder: (context, index) {
-                      final tx = displayedTxs[index];
-                      final walletCaption = tx.type == TransactionType.transfer
-                          ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
-                          : _getWalletName(tx.walletId);
+                  ? Center(
+                      child: Text(
+                        _searchQuery.isEmpty
+                            ? 'Aucune transaction.'
+                            : 'Aucun résultat.',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: displayedTxs.length,
+                      itemBuilder: (context, index) {
+                        final tx = displayedTxs[index];
+                        final walletCaption =
+                            tx.type == TransactionType.transfer
+                            ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
+                            : _getWalletName(tx.walletId);
 
-                      return TransactionTile(
-                        tx: tx,
-                        categoryName: _getCategoryName(tx.categoryId),
-                        walletCaption: walletCaption,
-                        isDetailed: true,
-                        onTap: () => _showTransactionModal(editingTx: tx),
-                        onDismissed: () {
-                          setState(() {
-                             _transactions.remove(tx);
-                          });
-                          _saveData();
-                        },
-                        confirmDismiss: (_) => showDeleteConfirmDialog(context, 'Voulez-vous supprimer cette transaction ?'),
-                      );
-                    },
-                  ),
+                        return TransactionTile(
+                          tx: tx,
+                          categoryName: _getCategoryName(tx.categoryId),
+                          walletCaption: walletCaption,
+                          isDetailed: true,
+                          onTap: () => _showTransactionModal(editingTx: tx),
+                          onDismissed: () {
+                            setState(() {
+                              _transactions.remove(tx);
+                            });
+                            _saveData();
+                          },
+                          confirmDismiss: (_) => showDeleteConfirmDialog(
+                            context,
+                            'Voulez-vous supprimer cette transaction ?',
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
