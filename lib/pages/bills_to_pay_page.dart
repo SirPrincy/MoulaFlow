@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
-import '../widgets.dart';
 import '../responsive_layout.dart';
 import '../data/transaction_repository.dart';
 import '../data/wallet_repository.dart';
@@ -21,7 +20,7 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
   List<RecurringPayment> _plannedPayments = [];
-  
+
   final _transactionRepo = TransactionRepository();
   final _walletRepo = WalletRepository();
   final _categoryRepo = CategoryRepository();
@@ -71,7 +70,9 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.kDefaultRadius)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppStyles.kDefaultRadius),
+        ),
       ),
       builder: (context) {
         return RecurringPaymentForm(
@@ -110,25 +111,38 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
 
     setState(() {
       _transactions.insert(0, newTx);
-      
+
       // 2. Handle nextDueDate or deactivate
       if (p.frequency == RecurrenceFrequency.once) {
         p.isActive = false;
       } else {
         switch (p.frequency) {
-          case RecurrenceFrequency.daily: p.nextDueDate = p.nextDueDate.add(const Duration(days: 1)); break;
-          case RecurrenceFrequency.weekly: p.nextDueDate = p.nextDueDate.add(const Duration(days: 7)); break;
-          case RecurrenceFrequency.monthly: 
-            p.nextDueDate = DateTime(p.nextDueDate.year, p.nextDueDate.month + 1, p.nextDueDate.day);
+          case RecurrenceFrequency.daily:
+            p.nextDueDate = p.nextDueDate.add(const Duration(days: 1));
             break;
-          case RecurrenceFrequency.yearly: 
-            p.nextDueDate = DateTime(p.nextDueDate.year + 1, p.nextDueDate.month, p.nextDueDate.day);
+          case RecurrenceFrequency.weekly:
+            p.nextDueDate = p.nextDueDate.add(const Duration(days: 7));
             break;
-          default: break;
+          case RecurrenceFrequency.monthly:
+            p.nextDueDate = DateTime(
+              p.nextDueDate.year,
+              p.nextDueDate.month + 1,
+              p.nextDueDate.day,
+            );
+            break;
+          case RecurrenceFrequency.yearly:
+            p.nextDueDate = DateTime(
+              p.nextDueDate.year + 1,
+              p.nextDueDate.month,
+              p.nextDueDate.day,
+            );
+            break;
+          default:
+            break;
         }
       }
     });
-    
+
     _transactionRepo.saveTransactions(_transactions);
     _savePlanned();
 
@@ -148,7 +162,10 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('À payer', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'À payer',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
       ),
       body: ResponsiveCenter(
         maxWidth: 800,
@@ -158,7 +175,11 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  Icon(Icons.receipt_outlined, size: 48, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.receipt_outlined,
+                    size: 48,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'Gérez vos factures et dépenses planifiées.',
@@ -171,107 +192,158 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
             const Divider(),
             Expanded(
               child: activePayments.isEmpty
-                ? Center(
-                    child: Text(
-                      'Rien à payer pour le moment.',
-                      style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                  ? Center(
+                      child: Text(
+                        'Rien à payer pour le moment.',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: activePayments.length,
+                      itemBuilder: (context, index) {
+                        final p = activePayments[index];
+                        final nextDateStr =
+                            '${p.nextDueDate.day}/${p.nextDueDate.month}/${p.nextDueDate.year}';
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppStyles.kDefaultRadius,
+                            ),
+                            side: BorderSide(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.08,
+                              ),
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            title: Row(
+                              children: [
+                                Text(
+                                  p.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (p.frequency != RecurrenceFrequency.once)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      p.frequency.name.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Échéance: $nextDateStr • ${_getWalletName(p.walletId)}',
+                                ),
+                                Text(
+                                  _getCategoryName(p.categoryId),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  formatAmount(
+                                    p.type == TransactionType.expense
+                                        ? -p.amount
+                                        : p.amount,
+                                  ),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    color: p.type == TransactionType.income
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton.filledTonal(
+                                  onPressed: () => _validatePayment(p),
+                                  icon: const Icon(Icons.check),
+                                  tooltip: 'Valider le paiement',
+                                ),
+                              ],
+                            ),
+                            onTap: () => _showAddPlannedModal(editing: p),
+                            onLongPress: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Supprimer ?'),
+                                  content: const Text(
+                                    'Voulez-vous supprimer cette facture ?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('Annuler'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _plannedPayments.remove(p);
+                                        });
+                                        _savePlanned();
+                                        Navigator.pop(ctx);
+                                      },
+                                      child: const Text(
+                                        'Supprimer',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: activePayments.length,
-                    itemBuilder: (context, index) {
-                      final p = activePayments[index];
-                      final nextDateStr = '${p.nextDueDate.day}/${p.nextDueDate.month}/${p.nextDueDate.year}';
-                      
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-                          side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.08)),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          title: Row(
-                            children: [
-                              Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 8),
-                              if (p.frequency != RecurrenceFrequency.once)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    p.frequency.name.toUpperCase(),
-                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text('Échéance: $nextDateStr • ${_getWalletName(p.walletId)}'),
-                              Text(_getCategoryName(p.categoryId), style: TextStyle(fontSize: 12, color: theme.colorScheme.primary.withValues(alpha: 0.7))),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                formatAmount(p.type == TransactionType.expense ? -p.amount : p.amount),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16,
-                                  color: p.type == TransactionType.income ? Colors.green : Colors.red,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton.filledTonal(
-                                onPressed: () => _validatePayment(p),
-                                icon: const Icon(Icons.check),
-                                tooltip: 'Valider le paiement',
-                              ),
-                            ],
-                          ),
-                          onTap: () => _showAddPlannedModal(editing: p),
-                          onLongPress: () {
-                             showDialog(
-                               context: context,
-                               builder: (ctx) => AlertDialog(
-                                 title: const Text('Supprimer ?'),
-                                 content: const Text('Voulez-vous supprimer cette facture ?'),
-                                 actions: [
-                                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
-                                   TextButton(
-                                     onPressed: () {
-                                       setState(() {
-                                         _plannedPayments.remove(p);
-                                       });
-                                       _savePlanned();
-                                       Navigator.pop(ctx);
-                                     },
-                                     child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-                                   ),
-                                 ],
-                               ),
-                             );
-                          },
-                        ),
-                      );
-                    },
-                  ),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddPlannedModal(),
-        label: const Text('Planifier', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Planifier',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         icon: const Icon(Icons.add),
       ),
     );

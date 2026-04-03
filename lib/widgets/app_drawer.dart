@@ -34,7 +34,7 @@ class AppDrawerContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Container(
       color: theme.colorScheme.surface,
       child: Column(
@@ -50,7 +50,11 @@ class AppDrawerContent extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text(
                     'Moula Flow',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -1),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 24,
+                      letterSpacing: -1,
+                    ),
                   ),
                   Text(
                     'Minimalist Finance',
@@ -65,42 +69,115 @@ class AppDrawerContent extends StatelessWidget {
               ),
             ),
           ] else ...[
-             const SizedBox(height: 64),
-             const Center(child: AppLogo(size: 40)),
-             const SizedBox(height: 32),
+            const SizedBox(height: 64),
+            const Center(child: AppLogo(size: 40)),
+            const SizedBox(height: 32),
           ],
-          
+
           Expanded(
             child: ListView(
               padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 8 : 16),
               children: [
-                _buildNavItem(context, Icons.dashboard_outlined, Icons.dashboard, 'Tableau de bord', '/', onHomeTap),
-                _buildNavItem(context, Icons.receipt_long_outlined, Icons.receipt_long, 'Transactions', '/transactions', onTransactionsTap),
+                _buildNavItem(
+                  context,
+                  Icons.dashboard_outlined,
+                  Icons.dashboard,
+                  'Tableau de bord',
+                  '/',
+                  onHomeTap,
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.receipt_long_outlined,
+                  Icons.receipt_long,
+                  'Transactions',
+                  '/transactions',
+                  onTransactionsTap,
+                ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   child: Divider(height: 1),
                 ),
-                _buildNavItem(context, Icons.receipt_outlined, Icons.receipt, 'À payer', '/bills', onAPayerTap),
-                _buildNavItem(context, Icons.receipt_long_outlined, Icons.receipt_long, 'Dettes', '/dettes', onDettesTap),
-                _buildNavItem(context, Icons.savings_outlined, Icons.savings, 'Épargne', '/epargne', onEpargneTap),
-                _buildNavItem(context, Icons.rocket_launch_outlined, Icons.rocket_launch, 'Projets', '/projets', onProjetTap),
+                _buildNavItem(
+                  context,
+                  Icons.receipt_outlined,
+                  Icons.receipt,
+                  'À payer',
+                  '/bills',
+                  onAPayerTap,
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.receipt_long_outlined,
+                  Icons.receipt_long,
+                  'Dettes',
+                  '/dettes',
+                  onDettesTap,
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.savings_outlined,
+                  Icons.savings,
+                  'Épargne',
+                  '/epargne',
+                  onEpargneTap,
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.rocket_launch_outlined,
+                  Icons.rocket_launch,
+                  'Projets',
+                  '/projets',
+                  onProjetTap,
+                ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   child: Divider(height: 1),
                 ),
-                _buildNavItem(context, Icons.autorenew_outlined, Icons.autorenew, 'Paiements Récurrents', '/recurring', onRecurringTap),
-                _buildNavItem(context, Icons.pie_chart_outline, Icons.pie_chart, 'Budgets', '/budgets', onBudgetsTap),
-                _buildNavItem(context, Icons.settings_outlined, Icons.settings, 'Paramètres', '/settings', onSettingsTap),
+                _buildNavItem(
+                  context,
+                  Icons.autorenew_outlined,
+                  Icons.autorenew,
+                  'Paiements Récurrents',
+                  '/recurring',
+                  onRecurringTap,
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.pie_chart_outline,
+                  Icons.pie_chart,
+                  'Budgets',
+                  '/budgets',
+                  onBudgetsTap,
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.settings_outlined,
+                  Icons.settings,
+                  'Paramètres',
+                  '/settings',
+                  onSettingsTap,
+                ),
               ],
             ),
           ),
-          
+
           if (!isCollapsed)
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Text(
                 'v0.01 • Beta',
-                style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.3), fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
         ],
@@ -108,7 +185,14 @@ class AppDrawerContent extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData icon, IconData activeIcon, String label, String route, VoidCallback? onTap) {
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData icon,
+    IconData activeIcon,
+    String label,
+    String route,
+    VoidCallback? onTap,
+  ) {
     final theme = Theme.of(context);
     final isActive = currentRoute == route;
     final isDark = theme.brightness == Brightness.dark;
@@ -119,17 +203,28 @@ class AppDrawerContent extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12, horizontal: isCollapsed ? 4 : 16),
+          padding: EdgeInsets.symmetric(
+            vertical: 12,
+            horizontal: isCollapsed ? 4 : 16,
+          ),
           decoration: BoxDecoration(
-            color: isActive ? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)) : Colors.transparent,
+            color: isActive
+                ? (isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.05))
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
           ),
           child: Row(
-            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: isCollapsed
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               Icon(
                 isActive ? activeIcon : icon,
-                color: isActive ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: isActive
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 size: 22,
               ),
               if (!isCollapsed) ...[
@@ -139,7 +234,9 @@ class AppDrawerContent extends StatelessWidget {
                     label,
                     style: TextStyle(
                       fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                      color: isActive ? theme.colorScheme.onSurface : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: isActive
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       fontSize: 15,
                     ),
                     overflow: TextOverflow.ellipsis,

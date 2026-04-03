@@ -2,21 +2,16 @@ import 'package:flutter/material.dart';
 import 'responsive_layout.dart';
 import 'models.dart';
 import 'widgets/transaction_form.dart';
-import 'widgets/app_drawer.dart';
 import 'widgets/app_side_menu.dart';
 import 'widgets/app_menu_bar.dart';
 import 'transactions_page.dart';
 import 'utils/styles.dart';
-import 'settings_page.dart';
 import 'data/category_repository.dart';
 import 'data/transaction_repository.dart';
 import 'data/wallet_repository.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
-import 'pages/category_overview_page.dart';
-import 'pages/recurring_payments_page.dart';
-import 'pages/bills_to_pay_page.dart';
 
 class HomePage extends StatefulWidget {
   final ValueNotifier<ThemeMode> themeNotifier;
@@ -69,12 +64,17 @@ class _HomePageState extends State<HomePage> {
     await _categoryRepo.saveCategories(_categories);
   }
 
-  double get _totalBalance => _balanceService.computeTotalBalance(_wallets, _transactions, _selectedWalletIds);
+  double get _totalBalance => _balanceService.computeTotalBalance(
+    _wallets,
+    _transactions,
+    _selectedWalletIds,
+  );
 
-  double _getWalletBalance(String walletId) => _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
+  double _getWalletBalance(String walletId) =>
+      _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
 
-  List<Transaction> get _filteredTransactions => _balanceService.filterTransactionsByWalletSelection(_transactions, _selectedWalletIds);
-
+  List<Transaction> get _filteredTransactions => _balanceService
+      .filterTransactionsByWalletSelection(_transactions, _selectedWalletIds);
 
   String _getWalletName(String? id) {
     if (id == null) return 'Inconnu';
@@ -102,10 +102,16 @@ class _HomePageState extends State<HomePage> {
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.kDefaultRadius)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppStyles.kDefaultRadius),
+        ),
       ),
       builder: (context) {
-        return TransactionForm(wallets: _wallets, categories: _categories, editingTx: editingTx);
+        return TransactionForm(
+          wallets: _wallets,
+          categories: _categories,
+          editingTx: editingTx,
+        );
       },
     ).then((result) {
       if (result != null && result is Map) {
@@ -115,7 +121,7 @@ class _HomePageState extends State<HomePage> {
         }
         final tx = result['tx'] as Transaction;
         final action = result['action'] as String;
-        
+
         setState(() {
           if (action == 'save') {
             if (editingTx != null) {
@@ -127,17 +133,19 @@ class _HomePageState extends State<HomePage> {
           } else if (action == 'delete') {
             _transactions.removeWhere((t) => t.id == tx.id);
           }
-          
+
           // Auto-settle/complete logic for debts and savings
           for (var w in _wallets) {
             if (!w.isSettled && w.targetAmount != null) {
               final balance = _getWalletBalance(w.id);
               double effectiveTarget = w.targetAmount!;
-              
-              if (w.type == WalletType.debt && w.interestRate != null && w.interestRate! > 0) {
+
+              if (w.type == WalletType.debt &&
+                  w.interestRate != null &&
+                  w.interestRate! > 0) {
                 effectiveTarget = effectiveTarget * (1 + w.interestRate! / 100);
               }
-              
+
               // If balance reached or exceeded target, mark as settled/completed
               if (balance >= effectiveTarget) {
                 w.isSettled = true;
@@ -156,16 +164,21 @@ class _HomePageState extends State<HomePage> {
 
   double _getMonthlyTotal(TransactionType type) {
     final now = DateTime.now();
-    return _filteredTransactions.where((tx) => 
-      tx.type == type && 
-      tx.date.month == now.month && 
-      tx.date.year == now.year
-    ).fold(0.0, (sum, tx) => sum + tx.amount.abs());
+    return _filteredTransactions
+        .where(
+          (tx) =>
+              tx.type == type &&
+              tx.date.month == now.month &&
+              tx.date.year == now.year,
+        )
+        .fold(0.0, (sum, tx) => sum + tx.amount.abs());
   }
 
   Map<String, double> _getCategorySpending() {
     final Map<String, double> res = {};
-    for (var tx in _filteredTransactions.where((tx) => tx.type == TransactionType.expense)) {
+    for (var tx in _filteredTransactions.where(
+      (tx) => tx.type == TransactionType.expense,
+    )) {
       final name = _getCategoryName(tx.categoryId).split('>').last.trim();
       res[name] = (res[name] ?? 0) + tx.amount.abs();
     }
@@ -175,7 +188,9 @@ class _HomePageState extends State<HomePage> {
   void _showWalletDialog({Wallet? wallet}) {
     final theme = Theme.of(context);
     final nameController = TextEditingController(text: wallet?.name ?? '');
-    final initialBalanceController = TextEditingController(text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00');
+    final initialBalanceController = TextEditingController(
+      text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00',
+    );
     WalletType selectedType = wallet?.type ?? WalletType.current;
 
     showDialog(
@@ -185,10 +200,15 @@ class _HomePageState extends State<HomePage> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: theme.colorScheme.surface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+              ),
               title: Text(
                 wallet == null ? 'Nouveau Wallet' : 'Modifier Wallet',
-                style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -201,7 +221,9 @@ class _HomePageState extends State<HomePage> {
                       decoration: InputDecoration(
                         labelText: 'Nom du Wallet',
                         prefixIcon: const Icon(Icons.edit_note),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       autofocus: wallet == null,
                     ),
@@ -209,44 +231,90 @@ class _HomePageState extends State<HomePage> {
                     TextField(
                       controller: initialBalanceController,
                       style: TextStyle(color: theme.colorScheme.onSurface),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
                         labelText: 'Solde initial',
                         prefixIcon: const Icon(Icons.account_balance),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<WalletType>(
                       initialValue: selectedType,
-                      items: WalletType.values.where((t) => t != WalletType.debt && t != WalletType.project).map((type) {
-                        IconData icon;
-                        String label;
-                        switch (type) {
-                          case WalletType.current: icon = Icons.account_balance_wallet; label = 'Courant'; break;
-                          case WalletType.savings: icon = Icons.savings; label = 'Épargne'; break;
-                          case WalletType.cash: icon = Icons.payments; label = 'Cash'; break;
-                          case WalletType.bank: icon = Icons.account_balance; label = 'Banque'; break;
-                          case WalletType.mobileMoney: icon = Icons.phone_android; label = 'Mobile Money'; break;
-                          case WalletType.debt: icon = Icons.money_off; label = 'Dette'; break;
-                          case WalletType.project: icon = Icons.flag; label = 'Projet'; break;
-                        }
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Row(
-                            children: [
-                              Icon(icon, size: 20, color: theme.colorScheme.primary),
-                              const SizedBox(width: 12),
-                              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) => setDialogState(() => selectedType = val!),
+                      items: WalletType.values
+                          .where(
+                            (t) =>
+                                t != WalletType.debt && t != WalletType.project,
+                          )
+                          .map((type) {
+                            IconData icon;
+                            String label;
+                            switch (type) {
+                              case WalletType.current:
+                                icon = Icons.account_balance_wallet;
+                                label = 'Courant';
+                                break;
+                              case WalletType.savings:
+                                icon = Icons.savings;
+                                label = 'Épargne';
+                                break;
+                              case WalletType.cash:
+                                icon = Icons.payments;
+                                label = 'Cash';
+                                break;
+                              case WalletType.bank:
+                                icon = Icons.account_balance;
+                                label = 'Banque';
+                                break;
+                              case WalletType.mobileMoney:
+                                icon = Icons.phone_android;
+                                label = 'Mobile Money';
+                                break;
+                              case WalletType.debt:
+                                icon = Icons.money_off;
+                                label = 'Dette';
+                                break;
+                              case WalletType.project:
+                                icon = Icons.flag;
+                                label = 'Projet';
+                                break;
+                            }
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 20,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    label,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          })
+                          .toList(),
+                      onChanged: (val) =>
+                          setDialogState(() => selectedType = val!),
                       decoration: InputDecoration(
                         labelText: 'Type de Wallet',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                       dropdownColor: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
@@ -262,16 +330,23 @@ class _HomePageState extends State<HomePage> {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Supprimer ?'),
-                          content: const Text('Toutes les transactions liées seront perdues.'),
+                          content: const Text(
+                            'Toutes les transactions liées seront perdues.',
+                          ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Annuler'),
+                            ),
                             TextButton(
                               onPressed: () {
                                 setState(() {
-                                  _transactions.removeWhere((tx) =>
-                                      tx.walletId == wallet.id ||
-                                      tx.fromWalletId == wallet.id ||
-                                      tx.toWalletId == wallet.id);
+                                  _transactions.removeWhere(
+                                    (tx) =>
+                                        tx.walletId == wallet.id ||
+                                        tx.fromWalletId == wallet.id ||
+                                        tx.toWalletId == wallet.id,
+                                  );
                                   _wallets.remove(wallet);
                                   _selectedWalletIds.remove(wallet.id);
                                 });
@@ -279,13 +354,19 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.pop(ctx);
                                 Navigator.pop(context);
                               },
-                              child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                              child: const Text(
+                                'Supprimer',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           ],
                         ),
                       );
                     },
-                    child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                    child: const Text(
+                      'Supprimer',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -294,15 +375,22 @@ class _HomePageState extends State<HomePage> {
                 FilledButton(
                   onPressed: () {
                     if (nameController.text.trim().isNotEmpty) {
-                      final initialBalance = double.tryParse(initialBalanceController.text.replaceAll(',', '.')) ?? 0.0;
+                      final initialBalance =
+                          double.tryParse(
+                            initialBalanceController.text.replaceAll(',', '.'),
+                          ) ??
+                          0.0;
                       setState(() {
                         if (wallet == null) {
-                          _wallets.add(Wallet(
-                            id: DateTime.now().millisecondsSinceEpoch.toString(),
-                            name: nameController.text.trim(),
-                            initialBalance: initialBalance,
-                            type: selectedType,
-                          ));
+                          _wallets.add(
+                            Wallet(
+                              id: DateTime.now().millisecondsSinceEpoch
+                                  .toString(),
+                              name: nameController.text.trim(),
+                              initialBalance: initialBalance,
+                              type: selectedType,
+                            ),
+                          );
                         } else {
                           wallet.name = nameController.text.trim();
                           wallet.initialBalance = initialBalance;
@@ -323,21 +411,26 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final income = _getMonthlyTotal(TransactionType.income);
     final expenses = _getMonthlyTotal(TransactionType.expense);
     final categorySpending = _getCategorySpending();
-    final historicalBalances = _balanceService.computeHistoricalBalances(_wallets, _transactions, _selectedWalletIds, 7);
+    final historicalBalances = _balanceService.computeHistoricalBalances(
+      _wallets,
+      _transactions,
+      _selectedWalletIds,
+      7,
+    );
 
     final rawFiltered = _filteredTransactions;
     rawFiltered.sort((a, b) => b.date.compareTo(a.date));
     final filteredTxs = rawFiltered;
 
-    final dashboardItems = _dashboardConfig.order.where((type) => _dashboardConfig.visible.contains(type)).toList();
+    final dashboardItems = _dashboardConfig.order
+        .where((type) => _dashboardConfig.visible.contains(type))
+        .toList();
 
     Widget mainContent = SingleChildScrollView(
       child: Column(
@@ -353,9 +446,11 @@ class _HomePageState extends State<HomePage> {
                 if (newIndex > oldIndex) newIndex -= 1;
                 final item = dashboardItems.removeAt(oldIndex);
                 dashboardItems.insert(newIndex, item);
-                
+
                 // Update persistent order
-                final currentOrder = List<DashboardWidgetType>.from(_dashboardConfig.order);
+                final currentOrder = List<DashboardWidgetType>.from(
+                  _dashboardConfig.order,
+                );
                 final globalOldIdx = currentOrder.indexOf(item);
                 currentOrder.removeAt(globalOldIdx);
                 // Position relative to other visible items
@@ -371,9 +466,9 @@ class _HomePageState extends State<HomePage> {
                   currentOrder.remove(DashboardWidgetType.balance);
                   currentOrder.insert(0, DashboardWidgetType.balance);
                 }
-                
+
                 _dashboardConfig = DashboardConfig(
-                  order: currentOrder, 
+                  order: currentOrder,
                   visible: _dashboardConfig.visible,
                   categoryChartStyle: _dashboardConfig.categoryChartStyle,
                 );
@@ -381,25 +476,27 @@ class _HomePageState extends State<HomePage> {
               });
             },
             buildDefaultDragHandles: _isEditMode,
-            proxyDecorator: (child, index, animation) => Material(
-              color: Colors.transparent,
-              child: child,
-            ),
+            proxyDecorator: (child, index, animation) =>
+                Material(color: Colors.transparent, child: child),
             itemBuilder: (context, index) {
               final type = dashboardItems[index];
               Widget mod;
               switch (type) {
                 case DashboardWidgetType.balance:
                   mod = BalanceSummaryCard(
-                    totalBalance: _totalBalance, 
-                    wallets: _wallets, 
-                    selectedWalletIds: _selectedWalletIds, 
+                    totalBalance: _totalBalance,
+                    wallets: _wallets,
+                    selectedWalletIds: _selectedWalletIds,
                     onWalletTap: (id) => setState(() {
-                      if (id == null) { _selectedWalletIds.clear(); }
-                      else if (_selectedWalletIds.contains(id)) { _selectedWalletIds.remove(id); }
-                      else { _selectedWalletIds.add(id); }
+                      if (id == null) {
+                        _selectedWalletIds.clear();
+                      } else if (_selectedWalletIds.contains(id)) {
+                        _selectedWalletIds.remove(id);
+                      } else {
+                        _selectedWalletIds.add(id);
+                      }
                     }),
-                    onEditWallet: (w) => _showWalletDialog(wallet: w), 
+                    onEditWallet: (w) => _showWalletDialog(wallet: w),
                     getWalletBalance: _getWalletBalance,
                   );
                   break;
@@ -425,15 +522,18 @@ class _HomePageState extends State<HomePage> {
                   break;
                 case DashboardWidgetType.recent:
                   mod = RecentTransactionsCard(
-                    transactions: filteredTxs, 
-                    getCategoryName: _getCategoryName, 
-                    getWalletCaption: (tx) => tx.type == TransactionType.transfer
+                    transactions: filteredTxs,
+                    getCategoryName: _getCategoryName,
+                    getWalletCaption: (tx) =>
+                        tx.type == TransactionType.transfer
                         ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
-                        : _getWalletName(tx.walletId), 
+                        : _getWalletName(tx.walletId),
                     onTap: () async {
                       await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const TransactionsPage()),
+                        MaterialPageRoute(
+                          builder: (context) => const TransactionsPage(),
+                        ),
                       );
                       _loadData();
                     },
@@ -455,7 +555,10 @@ class _HomePageState extends State<HomePage> {
                         top: 10,
                         right: 10,
                         child: IconButton(
-                          icon: const Icon(Icons.remove_circle, color: Colors.red),
+                          icon: const Icon(
+                            Icons.remove_circle,
+                            color: Colors.red,
+                          ),
                           onPressed: () {
                             setState(() {
                               _dashboardConfig.visible.remove(type);
@@ -469,7 +572,7 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          
+
           if (_isEditMode)
             Padding(
               padding: const EdgeInsets.all(20),
@@ -478,24 +581,36 @@ class _HomePageState extends State<HomePage> {
                   showModalBottomSheet(
                     context: context,
                     builder: (context) => ListView(
-                      children: DashboardWidgetType.values.where((t) => !_dashboardConfig.visible.contains(t)).map((t) => ListTile(
-                        title: Text(t.name),
-                        trailing: const Icon(Icons.add_circle, color: Colors.green),
-                        onTap: () {
-                          setState(() {
-                            _dashboardConfig.visible.add(t);
-                            _saveDashboardConfig();
-                          });
-                          Navigator.pop(context);
-                        },
-                      )).toList(),
+                      children: DashboardWidgetType.values
+                          .where((t) => !_dashboardConfig.visible.contains(t))
+                          .map(
+                            (t) => ListTile(
+                              title: Text(t.name),
+                              trailing: const Icon(
+                                Icons.add_circle,
+                                color: Colors.green,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _dashboardConfig.visible.add(t);
+                                  _saveDashboardConfig();
+                                });
+                                Navigator.pop(context);
+                              },
+                            ),
+                          )
+                          .toList(),
                     ),
                   );
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Ajouter un module'),
                 style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppStyles.kDefaultRadius,
+                    ),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
@@ -503,7 +618,7 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 100),
         ],
-      )
+      ),
     );
 
     final sideMenu = AppSideMenu(
@@ -522,11 +637,17 @@ class _HomePageState extends State<HomePage> {
                 onPressed: () => setState(() => _isEditMode = true),
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('Modifier'),
-                style: TextButton.styleFrom(foregroundColor: theme.colorScheme.onSurface),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.onSurface,
+                ),
               )
             else
               IconButton(
-                icon: Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 28),
+                icon: Icon(
+                  Icons.check_circle,
+                  color: theme.colorScheme.primary,
+                  size: 28,
+                ),
                 onPressed: () => setState(() => _isEditMode = false),
               ),
           ],
@@ -536,12 +657,16 @@ class _HomePageState extends State<HomePage> {
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _wallets.isEmpty
-              ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Créez un wallet d\'abord.')))
+              ? () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Créez un wallet d\'abord.')),
+                )
               : () => _showTransactionModal(),
           elevation: 0,
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
+          ),
           label: const Text(
             'Ajouter',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -563,8 +688,12 @@ class _HomePageState extends State<HomePage> {
             child: Scaffold(
               appBar: AppMenuBar(
                 leading: IconButton(
-                  icon: Icon(_isSidebarCollapsed ? Icons.menu_open : Icons.menu),
-                  onPressed: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+                  icon: Icon(
+                    _isSidebarCollapsed ? Icons.menu_open : Icons.menu,
+                  ),
+                  onPressed: () => setState(
+                    () => _isSidebarCollapsed = !_isSidebarCollapsed,
+                  ),
                 ),
                 actions: [
                   if (!_isEditMode)
@@ -572,27 +701,36 @@ class _HomePageState extends State<HomePage> {
                       onPressed: () => setState(() => _isEditMode = true),
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('Modifier'),
-                      style: TextButton.styleFrom(foregroundColor: theme.colorScheme.onSurface),
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onSurface,
+                      ),
                     )
                   else
                     IconButton(
-                      icon: Icon(Icons.check_circle, color: theme.colorScheme.primary, size: 28),
+                      icon: Icon(
+                        Icons.check_circle,
+                        color: theme.colorScheme.primary,
+                        size: 28,
+                      ),
                       onPressed: () => setState(() => _isEditMode = false),
                     ),
                 ],
               ),
-              body: ResponsiveCenter(
-                maxWidth: 1000,
-                child: mainContent,
-              ),
+              body: ResponsiveCenter(maxWidth: 1000, child: mainContent),
               floatingActionButton: FloatingActionButton.extended(
                 onPressed: _wallets.isEmpty
-                    ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Créez un wallet d\'abord.')))
+                    ? () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Créez un wallet d\'abord.'),
+                        ),
+                      )
                     : () => _showTransactionModal(),
                 elevation: 0,
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: theme.colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
                 label: const Text(
                   'Ajouter',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),

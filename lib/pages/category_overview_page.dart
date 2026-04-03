@@ -22,13 +22,14 @@ class CategoryOverviewPage extends StatefulWidget {
   State<CategoryOverviewPage> createState() => _CategoryOverviewPageState();
 }
 
-class _CategoryOverviewPageState extends State<CategoryOverviewPage> with SingleTickerProviderStateMixin {
+class _CategoryOverviewPageState extends State<CategoryOverviewPage>
+    with SingleTickerProviderStateMixin {
   List<Transaction> _transactions = [];
   List<Wallet> _allWallets = [];
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
   late TabController _tabController;
-  
+
   final _transactionRepo = TransactionRepository();
   final _walletRepo = WalletRepository();
   final _categoryRepo = CategoryRepository();
@@ -62,7 +63,8 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
     await _walletRepo.saveWallets(walletsById.values.toList());
   }
 
-  double _getWalletBalance(String walletId) => _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
+  double _getWalletBalance(String walletId) =>
+      _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
 
   List<Transaction> _getFilteredTransactions(List<Wallet> currentWallets) {
     if (currentWallets.isEmpty) return [];
@@ -72,7 +74,8 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
         return true;
       }
       if (tx.type == TransactionType.transfer) {
-        return walletIds.contains(tx.fromWalletId) || walletIds.contains(tx.toWalletId);
+        return walletIds.contains(tx.fromWalletId) ||
+            walletIds.contains(tx.toWalletId);
       }
       return walletIds.contains(tx.walletId);
     }).toList();
@@ -102,9 +105,16 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
     return 'Inconnu';
   }
 
-  void _showTransactionModal({Transaction? editingTx, String? prefilledWalletId}) {
-    if (widget.type == WalletType.debt && prefilledWalletId != null && editingTx == null) {
-      final debtWallet = _wallets.where((w) => w.id == prefilledWalletId).toList();
+  void _showTransactionModal({
+    Transaction? editingTx,
+    String? prefilledWalletId,
+  }) {
+    if (widget.type == WalletType.debt &&
+        prefilledWalletId != null &&
+        editingTx == null) {
+      final debtWallet = _wallets
+          .where((w) => w.id == prefilledWalletId)
+          .toList();
       if (debtWallet.isNotEmpty) {
         _showDebtRepaymentFlow(debtWallet.first);
       }
@@ -116,12 +126,14 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.kDefaultRadius)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppStyles.kDefaultRadius),
+        ),
       ),
       builder: (context) {
         return TransactionForm(
-          wallets: _wallets, 
-          categories: _categories, 
+          wallets: _wallets,
+          categories: _categories,
           editingTx: editingTx,
           prefilledWalletId: prefilledWalletId,
         );
@@ -159,8 +171,14 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
         title: const Text('Confirmation'),
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('non')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('oui')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('non'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('oui'),
+          ),
         ],
       ),
     );
@@ -197,7 +215,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
     bool useExistingWallet = true;
     String? selectedWalletId;
 
-    final transactionWallets = _allWallets.where((w) => w.type != WalletType.debt).toList();
+    final transactionWallets = _allWallets
+        .where((w) => w.type != WalletType.debt)
+        .toList();
     if (transactionWallets.isNotEmpty) {
       selectedWalletId = transactionWallets.first.id;
     }
@@ -215,12 +235,16 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Nom de la dette'),
+                    decoration: const InputDecoration(
+                      labelText: 'Nom de la dette',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Montant'),
                   ),
                   const SizedBox(height: 12),
@@ -230,7 +254,8 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         child: ChoiceChip(
                           label: const Text('Je dois'),
                           selected: !isCredit,
-                          onSelected: (_) => setDialogState(() => isCredit = false),
+                          onSelected: (_) =>
+                              setDialogState(() => isCredit = false),
                           showCheckmark: false,
                         ),
                       ),
@@ -239,7 +264,8 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         child: ChoiceChip(
                           label: const Text('On me doit'),
                           selected: isCredit,
-                          onSelected: (_) => setDialogState(() => isCredit = true),
+                          onSelected: (_) =>
+                              setDialogState(() => isCredit = true),
                           showCheckmark: false,
                         ),
                       ),
@@ -257,12 +283,17 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         firstDate: DateTime(2000),
                         lastDate: DateTime(2101),
                       );
-                      if (picked != null) setDialogState(() => issueDate = picked);
+                      if (picked != null)
+                        setDialogState(() => issueDate = picked);
                     },
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(dueDate == null ? 'Date d\'échéance (optionnel)' : 'Échéance: ${_formatDate(dueDate!)}'),
+                    title: Text(
+                      dueDate == null
+                          ? 'Date d\'échéance (optionnel)'
+                          : 'Échéance: ${_formatDate(dueDate!)}',
+                    ),
                     trailing: const Icon(Icons.event),
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -271,7 +302,8 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         firstDate: issueDate,
                         lastDate: DateTime(2101),
                       );
-                      if (picked != null) setDialogState(() => dueDate = picked);
+                      if (picked != null)
+                        setDialogState(() => dueDate = picked);
                     },
                   ),
                   const Divider(),
@@ -280,43 +312,62 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                     title: const Text('Sélectionner un wallet existant'),
                     value: true,
                     groupValue: useExistingWallet,
-                    onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
+                    onChanged: (val) =>
+                        setDialogState(() => useExistingWallet = val ?? true),
                   ),
                   if (useExistingWallet)
                     DropdownButtonFormField<String>(
                       initialValue: selectedWalletId,
                       items: transactionWallets
-                          .map((w) => DropdownMenuItem(value: w.id, child: Text(w.name)))
+                          .map(
+                            (w) => DropdownMenuItem(
+                              value: w.id,
+                              child: Text(w.name),
+                            ),
+                          )
                           .toList(),
-                      onChanged: (val) => setDialogState(() => selectedWalletId = val),
+                      onChanged: (val) =>
+                          setDialogState(() => selectedWalletId = val),
                     ),
                   RadioListTile<bool>(
                     title: const Text('Créer un nouveau wallet'),
                     value: false,
                     groupValue: useExistingWallet,
-                    onChanged: (val) => setDialogState(() => useExistingWallet = val ?? false),
+                    onChanged: (val) =>
+                        setDialogState(() => useExistingWallet = val ?? false),
                   ),
                   if (!useExistingWallet)
                     TextField(
                       controller: newWalletNameController,
-                      decoration: const InputDecoration(labelText: 'Nom du nouveau wallet'),
+                      decoration: const InputDecoration(
+                        labelText: 'Nom du nouveau wallet',
+                      ),
                     ),
                 ],
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annuler'),
+              ),
               FilledButton(
                 onPressed: () async {
-                  final amount = double.tryParse(amountController.text.replaceAll(',', '.'));
-                  if (nameController.text.trim().isEmpty || amount == null || amount <= 0) {
+                  final amount = double.tryParse(
+                    amountController.text.replaceAll(',', '.'),
+                  );
+                  if (nameController.text.trim().isEmpty ||
+                      amount == null ||
+                      amount <= 0) {
                     return;
                   }
 
                   Wallet? transactionWallet;
                   if (useExistingWallet) {
                     if (selectedWalletId == null) return;
-                    transactionWallet = transactionWallets.firstWhere((w) => w.id == selectedWalletId);
+                    transactionWallet = transactionWallets.firstWhere(
+                      (w) => w.id == selectedWalletId,
+                    );
                   } else {
                     if (newWalletNameController.text.trim().isEmpty) return;
                     transactionWallet = Wallet(
@@ -344,7 +395,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                     'Voulez-vous enregistrer la transaction associée à cette dette ? (oui/non)',
                   );
                   if (shouldCreateTx) {
-                    final txType = isCredit ? TransactionType.expense : TransactionType.income;
+                    final txType = isCredit
+                        ? TransactionType.expense
+                        : TransactionType.income;
                     final tx = Transaction(
                       id: DateTime.now().microsecondsSinceEpoch.toString(),
                       amount: amount,
@@ -353,21 +406,23 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                           : 'Création dette (emprunt) : ${debtWallet.name}',
                       type: txType,
                       date: issueDate,
-                      walletId: transactionWallet!.id,
+                      walletId: transactionWallet.id,
                       relatedDebtId: debtWallet.id,
                     );
                     _transactions.insert(0, tx);
                     _showOperationSummary(
                       operation: 'Création de dette',
-                      walletName: transactionWallet!.name,
-                      amount: txType == TransactionType.expense ? -amount : amount,
+                      walletName: transactionWallet.name,
+                      amount: txType == TransactionType.expense
+                          ? -amount
+                          : amount,
                       date: issueDate,
                       txType: txType.name,
                     );
                   } else {
                     _showOperationSummary(
                       operation: 'Création de dette (sans transaction)',
-                      walletName: transactionWallet!.name,
+                      walletName: transactionWallet.name,
                       amount: isCredit ? -amount : amount,
                       date: issueDate,
                       txType: 'aucune',
@@ -392,7 +447,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
     bool useExistingWallet = true;
     String? selectedWalletId;
     final newWalletNameController = TextEditingController();
-    final transactionWallets = _allWallets.where((w) => w.type != WalletType.debt).toList();
+    final transactionWallets = _allWallets
+        .where((w) => w.type != WalletType.debt)
+        .toList();
     if (transactionWallets.isNotEmpty) {
       selectedWalletId = transactionWallets.first.id;
     }
@@ -407,47 +464,66 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
             children: [
               TextField(
                 controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Montant remboursé'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Montant remboursé',
+                ),
               ),
               RadioListTile<bool>(
                 title: const Text('Sélectionner un wallet existant'),
                 value: true,
                 groupValue: useExistingWallet,
-                onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
+                onChanged: (val) =>
+                    setDialogState(() => useExistingWallet = val ?? true),
               ),
               if (useExistingWallet)
                 DropdownButtonFormField<String>(
                   initialValue: selectedWalletId,
                   items: transactionWallets
-                      .map((w) => DropdownMenuItem(value: w.id, child: Text(w.name)))
+                      .map(
+                        (w) =>
+                            DropdownMenuItem(value: w.id, child: Text(w.name)),
+                      )
                       .toList(),
-                  onChanged: (val) => setDialogState(() => selectedWalletId = val),
+                  onChanged: (val) =>
+                      setDialogState(() => selectedWalletId = val),
                 ),
               RadioListTile<bool>(
                 title: const Text('Créer un nouveau wallet'),
                 value: false,
                 groupValue: useExistingWallet,
-                onChanged: (val) => setDialogState(() => useExistingWallet = val ?? false),
+                onChanged: (val) =>
+                    setDialogState(() => useExistingWallet = val ?? false),
               ),
               if (!useExistingWallet)
                 TextField(
                   controller: newWalletNameController,
-                  decoration: const InputDecoration(labelText: 'Nom du nouveau wallet'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nom du nouveau wallet',
+                  ),
                 ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler'),
+            ),
             FilledButton(
               onPressed: () async {
-                final amount = double.tryParse(amountController.text.replaceAll(',', '.'));
+                final amount = double.tryParse(
+                  amountController.text.replaceAll(',', '.'),
+                );
                 if (amount == null || amount <= 0) return;
 
                 Wallet? transactionWallet;
                 if (useExistingWallet) {
                   if (selectedWalletId == null) return;
-                  transactionWallet = transactionWallets.firstWhere((w) => w.id == selectedWalletId);
+                  transactionWallet = transactionWallets.firstWhere(
+                    (w) => w.id == selectedWalletId,
+                  );
                 } else {
                   if (newWalletNameController.text.trim().isEmpty) return;
                   transactionWallet = Wallet(
@@ -462,28 +538,32 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                   'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
                 );
                 if (shouldCreateTx) {
-                  final txType = debtWallet.isCredit ? TransactionType.income : TransactionType.expense;
+                  final txType = debtWallet.isCredit
+                      ? TransactionType.income
+                      : TransactionType.expense;
                   final tx = Transaction(
                     id: DateTime.now().microsecondsSinceEpoch.toString(),
                     amount: amount,
                     description: 'Remboursement de ${debtWallet.name}',
                     type: txType,
                     date: debtWallet.createdAt,
-                    walletId: transactionWallet!.id,
+                    walletId: transactionWallet.id,
                     relatedDebtId: debtWallet.id,
                   );
                   _transactions.insert(0, tx);
                   _showOperationSummary(
                     operation: 'Remboursement',
-                    walletName: transactionWallet!.name,
-                    amount: txType == TransactionType.expense ? -amount : amount,
+                    walletName: transactionWallet.name,
+                    amount: txType == TransactionType.expense
+                        ? -amount
+                        : amount,
                     date: debtWallet.createdAt,
                     txType: txType.name,
                   );
                 } else {
                   _showOperationSummary(
                     operation: 'Remboursement (sans transaction)',
-                    walletName: transactionWallet!.name,
+                    walletName: transactionWallet.name,
                     amount: debtWallet.isCredit ? amount : -amount,
                     date: debtWallet.createdAt,
                     txType: 'aucune',
@@ -503,13 +583,20 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
   void _showSpecializedWalletDialog({Wallet? wallet}) {
     final theme = Theme.of(context);
     final nameController = TextEditingController(text: wallet?.name ?? '');
-    final initialBalanceController = TextEditingController(text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00');
-    final targetAmountController = TextEditingController(text: wallet?.targetAmount?.toStringAsFixed(2) ?? '');
-    final interestRateController = TextEditingController(text: wallet?.interestRate?.toString() ?? '');
+    final initialBalanceController = TextEditingController(
+      text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00',
+    );
+    final targetAmountController = TextEditingController(
+      text: wallet?.targetAmount?.toStringAsFixed(2) ?? '',
+    );
+    final interestRateController = TextEditingController(
+      text: wallet?.interestRate?.toString() ?? '',
+    );
     WalletType selectedType = wallet?.type ?? widget.type;
     DateTime? selectedDueDate = wallet?.dueDate;
     bool isCredit = wallet?.isCredit ?? false;
-    bool hasInterest = wallet?.interestRate != null && wallet!.interestRate! > 0;
+    bool hasInterest =
+        wallet?.interestRate != null && wallet!.interestRate! > 0;
 
     showDialog(
       context: context,
@@ -518,10 +605,15 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: theme.colorScheme.surface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+              ),
               title: Text(
                 wallet == null ? 'Nouveau Goal' : 'Modifier Goal',
-                style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -534,7 +626,11 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                       decoration: InputDecoration(
                         labelText: 'Nom',
                         prefixIcon: const Icon(Icons.edit_note),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppStyles.kDefaultRadius,
+                          ),
+                        ),
                       ),
                       autofocus: wallet == null,
                     ),
@@ -545,30 +641,68 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         IconData icon;
                         String label;
                         switch (type) {
-                          case WalletType.current: icon = Icons.account_balance_wallet; label = 'Courant'; break;
-                          case WalletType.savings: icon = Icons.savings; label = 'Épargne'; break;
-                          case WalletType.debt: icon = Icons.money_off; label = 'Dette'; break;
-                          case WalletType.project: icon = Icons.flag; label = 'Projet'; break;
-                          case WalletType.bank: icon = Icons.account_balance; label = 'Banque'; break;
-                          case WalletType.cash: icon = Icons.payments; label = 'Cash'; break;
-                          case WalletType.mobileMoney: icon = Icons.phone_android; label = 'Mobile Money'; break;
+                          case WalletType.current:
+                            icon = Icons.account_balance_wallet;
+                            label = 'Courant';
+                            break;
+                          case WalletType.savings:
+                            icon = Icons.savings;
+                            label = 'Épargne';
+                            break;
+                          case WalletType.debt:
+                            icon = Icons.money_off;
+                            label = 'Dette';
+                            break;
+                          case WalletType.project:
+                            icon = Icons.flag;
+                            label = 'Projet';
+                            break;
+                          case WalletType.bank:
+                            icon = Icons.account_balance;
+                            label = 'Banque';
+                            break;
+                          case WalletType.cash:
+                            icon = Icons.payments;
+                            label = 'Cash';
+                            break;
+                          case WalletType.mobileMoney:
+                            icon = Icons.phone_android;
+                            label = 'Mobile Money';
+                            break;
                         }
                         return DropdownMenuItem(
                           value: type,
                           child: Row(
                             children: [
-                              Icon(icon, size: 20, color: theme.colorScheme.primary),
+                              Icon(
+                                icon,
+                                size: 20,
+                                color: theme.colorScheme.primary,
+                              ),
                               const SizedBox(width: 12),
-                              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              Text(
+                                label,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         );
                       }).toList(),
-                      onChanged: null, // Locked to the category type on this page
+                      onChanged:
+                          null, // Locked to the category type on this page
                       decoration: InputDecoration(
                         labelText: 'Type',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppStyles.kDefaultRadius,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                       dropdownColor: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
@@ -577,17 +711,31 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                     TextField(
                       controller: initialBalanceController,
                       style: TextStyle(color: theme.colorScheme.onSurface),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
-                        labelText: selectedType == WalletType.debt ? (isCredit ? 'Déjà remboursé' : 'Déjà payé') : 'Solde initial',
+                        labelText: selectedType == WalletType.debt
+                            ? (isCredit ? 'Déjà remboursé' : 'Déjà payé')
+                            : 'Solde initial',
                         prefixIcon: const Icon(Icons.account_balance),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppStyles.kDefaultRadius,
+                          ),
+                        ),
                       ),
                     ),
-                    
+
                     if (selectedType == WalletType.debt) ...[
                       const SizedBox(height: 24),
-                      const Text('Type de Dette', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const Text(
+                        'Type de Dette',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -595,10 +743,20 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                             child: ChoiceChip(
                               label: const Text('Je dois'),
                               selected: !isCredit,
-                              onSelected: (val) => setDialogState(() => isCredit = false),
+                              onSelected: (val) =>
+                                  setDialogState(() => isCredit = false),
                               selectedColor: Colors.red.withValues(alpha: 0.2),
-                              labelStyle: TextStyle(color: !isCredit ? Colors.red : theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                              labelStyle: TextStyle(
+                                color: !isCredit
+                                    ? Colors.red
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppStyles.kDefaultRadius,
+                                ),
+                              ),
                               showCheckmark: false,
                             ),
                           ),
@@ -607,10 +765,22 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                             child: ChoiceChip(
                               label: const Text('On me doit'),
                               selected: isCredit,
-                              onSelected: (val) => setDialogState(() => isCredit = true),
-                              selectedColor: Colors.green.withValues(alpha: 0.2),
-                              labelStyle: TextStyle(color: isCredit ? Colors.green : theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                              onSelected: (val) =>
+                                  setDialogState(() => isCredit = true),
+                              selectedColor: Colors.green.withValues(
+                                alpha: 0.2,
+                              ),
+                              labelStyle: TextStyle(
+                                color: isCredit
+                                    ? Colors.green
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppStyles.kDefaultRadius,
+                                ),
+                              ),
                               showCheckmark: false,
                             ),
                           ),
@@ -620,20 +790,33 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
 
                     const SizedBox(height: 24),
                     Text(
-                      selectedType == WalletType.debt ? 'Détails de la Dette' : 'Détails de l\'Objectif',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      selectedType == WalletType.debt
+                          ? 'Détails de la Dette'
+                          : 'Détails de l\'Objectif',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: targetAmountController,
                       style: TextStyle(color: theme.colorScheme.onSurface),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: InputDecoration(
-                        labelText: selectedType == WalletType.debt 
-                            ? (isCredit ? 'Montant prêté' : 'Montant total emprunté') 
+                        labelText: selectedType == WalletType.debt
+                            ? (isCredit
+                                  ? 'Montant prêté'
+                                  : 'Montant total emprunté')
                             : 'Objectif d\'épargne',
                         prefixIcon: const Icon(Icons.ads_click),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppStyles.kDefaultRadius,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -654,23 +837,34 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         decoration: InputDecoration(
                           labelText: 'Date d\'échéance',
                           prefixIcon: const Icon(Icons.event),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppStyles.kDefaultRadius,
+                            ),
+                          ),
                         ),
                         child: Text(
-                          selectedDueDate == null 
-                              ? 'Sélectionner...' 
-                              : '${selectedDueDate!.day.toString().padLeft(2,'0')}/${selectedDueDate!.month.toString().padLeft(2,'0')}/${selectedDueDate!.year}',
+                          selectedDueDate == null
+                              ? 'Sélectionner...'
+                              : '${selectedDueDate!.day.toString().padLeft(2, '0')}/${selectedDueDate!.month.toString().padLeft(2, '0')}/${selectedDueDate!.year}',
                           style: TextStyle(color: theme.colorScheme.onSurface),
                         ),
                       ),
                     ),
-                    
+
                     if (selectedType == WalletType.debt) ...[
                       const SizedBox(height: 16),
                       SwitchListTile(
-                        title: const Text('Inclure des intérêts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        title: const Text(
+                          'Inclure des intérêts',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                         value: hasInterest,
-                        onChanged: (val) => setDialogState(() => hasInterest = val),
+                        onChanged: (val) =>
+                            setDialogState(() => hasInterest = val),
                         contentPadding: EdgeInsets.zero,
                         dense: true,
                       ),
@@ -678,11 +872,15 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         TextField(
                           controller: interestRateController,
                           style: TextStyle(color: theme.colorScheme.onSurface),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: InputDecoration(
                             labelText: 'Taux d\'intérêt annuel (%)',
                             prefixIcon: const Icon(Icons.percent),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                         ),
                     ],
@@ -697,30 +895,45 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Supprimer ?'),
-                          content: const Text('Toutes les transactions liées seront perdues.'),
+                          content: const Text(
+                            'Toutes les transactions liées seront perdues.',
+                          ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Annuler'),
+                            ),
                             TextButton(
                               onPressed: () {
                                 setState(() {
-                                  _transactions.removeWhere((tx) =>
-                                      tx.walletId == wallet.id ||
-                                      tx.fromWalletId == wallet.id ||
-                                      tx.toWalletId == wallet.id);
+                                  _transactions.removeWhere(
+                                    (tx) =>
+                                        tx.walletId == wallet.id ||
+                                        tx.fromWalletId == wallet.id ||
+                                        tx.toWalletId == wallet.id,
+                                  );
                                   _wallets.remove(wallet);
-                                  _allWallets.removeWhere((w) => w.id == wallet.id);
+                                  _allWallets.removeWhere(
+                                    (w) => w.id == wallet.id,
+                                  );
                                 });
                                 _saveData();
                                 Navigator.pop(ctx);
                                 Navigator.pop(context);
                               },
-                              child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                              child: const Text(
+                                'Supprimer',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           ],
                         ),
                       );
                     },
-                    child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                    child: const Text(
+                      'Supprimer',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -729,18 +942,32 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                 FilledButton(
                   onPressed: () {
                     if (nameController.text.trim().isNotEmpty) {
-                      final initialBalance = double.tryParse(initialBalanceController.text.replaceAll(',', '.')) ?? 0.0;
+                      final initialBalance =
+                          double.tryParse(
+                            initialBalanceController.text.replaceAll(',', '.'),
+                          ) ??
+                          0.0;
                       setState(() {
                         if (wallet == null) {
                           final newWallet = Wallet(
-                            id: DateTime.now().millisecondsSinceEpoch.toString(),
+                            id: DateTime.now().millisecondsSinceEpoch
+                                .toString(),
                             name: nameController.text.trim(),
                             initialBalance: initialBalance,
                             type: selectedType,
-                            targetAmount: double.tryParse(targetAmountController.text.replaceAll(',', '.')),
+                            targetAmount: double.tryParse(
+                              targetAmountController.text.replaceAll(',', '.'),
+                            ),
                             dueDate: selectedDueDate,
                             isCredit: isCredit,
-                            interestRate: hasInterest ? double.tryParse(interestRateController.text.replaceAll(',', '.')) : null,
+                            interestRate: hasInterest
+                                ? double.tryParse(
+                                    interestRateController.text.replaceAll(
+                                      ',',
+                                      '.',
+                                    ),
+                                  )
+                                : null,
                           );
                           _wallets.add(newWallet);
                           _allWallets.add(newWallet);
@@ -748,10 +975,19 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                           wallet.name = nameController.text.trim();
                           wallet.initialBalance = initialBalance;
                           wallet.type = selectedType;
-                          wallet.targetAmount = double.tryParse(targetAmountController.text.replaceAll(',', '.'));
+                          wallet.targetAmount = double.tryParse(
+                            targetAmountController.text.replaceAll(',', '.'),
+                          );
                           wallet.dueDate = selectedDueDate;
                           wallet.isCredit = isCredit;
-                          wallet.interestRate = hasInterest ? double.tryParse(interestRateController.text.replaceAll(',', '.')) : null;
+                          wallet.interestRate = hasInterest
+                              ? double.tryParse(
+                                  interestRateController.text.replaceAll(
+                                    ',',
+                                    '.',
+                                  ),
+                                )
+                              : null;
                         }
                       });
                       _saveData();
@@ -771,24 +1007,37 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     final activeWallets = _wallets.where((w) => !w.isSettled).toList();
     final settledWallets = _wallets.where((w) => w.isSettled).toList();
-    
-    final currentWallets = _tabController.index == 0 ? activeWallets : settledWallets;
+
+    final currentWallets = _tabController.index == 0
+        ? activeWallets
+        : settledWallets;
     final displayedTxs = _getFilteredTransactions(currentWallets);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(
+          widget.title,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: theme.colorScheme.primary,
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(
+            alpha: 0.5,
+          ),
           tabs: [
-            Tab(text: widget.type == WalletType.savings ? 'Objectifs' : 'En cours'),
-            Tab(text: widget.type == WalletType.savings ? 'Atteints' : 'Soldées'),
+            Tab(
+              text: widget.type == WalletType.savings
+                  ? 'Objectifs'
+                  : 'En cours',
+            ),
+            Tab(
+              text: widget.type == WalletType.savings ? 'Atteints' : 'Soldées',
+            ),
           ],
         ),
       ),
@@ -804,11 +1053,15 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                     final balance = _getWalletBalance(wallet.id);
                     final isDebt = wallet.type == WalletType.debt;
                     final hasTarget = wallet.targetAmount != null;
-                    final hasInterest = isDebt && wallet.interestRate != null && wallet.interestRate! > 0;
-                    
+                    final hasInterest =
+                        isDebt &&
+                        wallet.interestRate != null &&
+                        wallet.interestRate! > 0;
+
                     double effectiveTarget = wallet.targetAmount ?? 0;
                     if (hasInterest) {
-                      effectiveTarget = effectiveTarget * (1 + wallet.interestRate! / 100);
+                      effectiveTarget =
+                          effectiveTarget * (1 + wallet.interestRate! / 100);
                     }
 
                     double? progress;
@@ -836,168 +1089,289 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                       child: Card(
                         margin: const EdgeInsets.only(bottom: 16),
                         elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-                        side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.08)),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(wallet.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5)),
-                                          if (hasInterest) ...[
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                '+${wallet.interestRate}%',
-                                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppStyles.kDefaultRadius,
+                          ),
+                          side: BorderSide(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.08,
+                            ),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              wallet.name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 18,
+                                                letterSpacing: -0.5,
                                               ),
                                             ),
-                                          ],
-                                        ],
-                                      ),
-                                      if (wallet.dueDate != null)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 6.0),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.event_note, size: 14, color: theme.colorScheme.primary.withValues(alpha: 0.6)),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'Échéance: ${wallet.dueDate!.day}/${wallet.dueDate!.month}/${wallet.dueDate!.year}',
-                                                style: TextStyle(
-                                                  fontSize: 12, 
-                                                  fontWeight: FontWeight.w600,
-                                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                            if (hasInterest) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  '+${wallet.interestRate}%',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .primary,
+                                                  ),
                                                 ),
                                               ),
                                             ],
-                                          ),
+                                          ],
                                         ),
+                                        if (wallet.dueDate != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 6.0,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.event_note,
+                                                  size: 14,
+                                                  color: theme
+                                                      .colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.6),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Échéance: ${wallet.dueDate!.day}/${wallet.dueDate!.month}/${wallet.dueDate!.year}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.5),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      if ((isDebt ||
+                                              wallet.type ==
+                                                  WalletType.savings) &&
+                                          !wallet.isSettled)
+                                        IconButton.filledTonal(
+                                          onPressed: () =>
+                                              _showTransactionModal(
+                                                prefilledWalletId: wallet.id,
+                                              ),
+                                          icon: Icon(
+                                            isDebt
+                                                ? (wallet.isCredit
+                                                      ? Icons.add
+                                                      : Icons.remove)
+                                                : Icons.add_circle_outline,
+                                            size: 20,
+                                          ),
+                                          tooltip: isDebt
+                                              ? (wallet.isCredit
+                                                    ? 'Encaisser'
+                                                    : 'Payer')
+                                              : 'Épargner',
+                                          color:
+                                              wallet.type == WalletType.savings
+                                              ? Colors.teal
+                                              : null,
+                                        ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: Icon(
+                                          wallet.isSettled
+                                              ? Icons.check_circle
+                                              : Icons.circle_outlined,
+                                        ),
+                                        color: wallet.isSettled
+                                            ? Colors.green
+                                            : theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.2),
+                                        onPressed: () {
+                                          setState(() {
+                                            wallet.isSettled =
+                                                !wallet.isSettled;
+                                          });
+                                          _saveData();
+                                        },
+                                      ),
                                     ],
                                   ),
-                                ),
-                                Row(
-                                  children: [
-                                    if ((isDebt || wallet.type == WalletType.savings) && !wallet.isSettled)
-                                      IconButton.filledTonal(
-                                        onPressed: () => _showTransactionModal(prefilledWalletId: wallet.id),
-                                        icon: Icon(isDebt ? (wallet.isCredit ? Icons.add : Icons.remove) : Icons.add_circle_outline, size: 20),
-                                        tooltip: isDebt ? (wallet.isCredit ? 'Encaisser' : 'Payer') : 'Épargner',
-                                        color: wallet.type == WalletType.savings ? Colors.teal : null,
-                                      ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: Icon(wallet.isSettled ? Icons.check_circle : Icons.circle_outlined),
-                                      color: wallet.isSettled ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                                      onPressed: () {
-                                        setState(() {
-                                          wallet.isSettled = !wallet.isSettled;
-                                        });
-                                        _saveData();
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(mainLabel.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface.withValues(alpha: 0.4), letterSpacing: 1)),
-                                    const SizedBox(height: 4),
-                                    Text(formatAmount(balance), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)),
-                                  ],
-                                ),
-                                if (hasTarget)
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(targetLabel.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface.withValues(alpha: 0.4), letterSpacing: 1)),
+                                      Text(
+                                        mainLabel.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.4),
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        formatAmount(effectiveTarget - balance),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900, 
+                                        formatAmount(balance),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
                                           fontSize: 22,
                                           letterSpacing: -0.5,
-                                          color: targetColor,
                                         ),
                                       ),
                                     ],
                                   ),
-                              ],
-                            ),
-                            if (progress != null) ...[
-                              const SizedBox(height: 20),
-                              Stack(
-                                children: [
-                                  Container(
-                                    height: 8,
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                                      borderRadius: BorderRadius.circular(4),
+                                  if (hasTarget)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          targetLabel.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.4),
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          formatAmount(
+                                            effectiveTarget - balance,
+                                          ),
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 22,
+                                            letterSpacing: -0.5,
+                                            color: targetColor,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  FractionallySizedBox(
-                                    widthFactor: progress,
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 500),
+                                ],
+                              ),
+                              if (progress != null) ...[
+                                const SizedBox(height: 20),
+                                Stack(
+                                  children: [
+                                    Container(
                                       height: 8,
+                                      width: double.infinity,
                                       decoration: BoxDecoration(
-                                        color: targetColor,
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.05),
                                         borderRadius: BorderRadius.circular(4),
-                                        boxShadow: [
-                                          BoxShadow(color: targetColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2)),
-                                        ],
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${(progress * 100).toStringAsFixed(0)}% rempli',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-                                  ),
-                                  if (hasTarget)
-                                    Text(
-                                      'sur ${formatAmount(effectiveTarget)}',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                                    FractionallySizedBox(
+                                      widthFactor: progress,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 500,
+                                        ),
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: targetColor,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: targetColor.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${(progress * 100).toStringAsFixed(0)}% rempli',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                    if (hasTarget)
+                                      Text(
+                                        'sur ${formatAmount(effectiveTarget)}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                }),
-                  
+                    );
+                  }),
+
                   if (displayedTxs.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Padding(
@@ -1007,13 +1381,15 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                           letterSpacing: 1.2,
                         ),
                       ),
                     ),
                     ...displayedTxs.map((tx) {
-                       final walletCaption = tx.type == TransactionType.transfer
+                      final walletCaption = tx.type == TransactionType.transfer
                           ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
                           : _getWalletName(tx.walletId);
 
@@ -1026,20 +1402,31 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                       );
                     }),
                   ] else if (currentWallets.isEmpty) ...[
-                     const SizedBox(height: 100),
-                     Center(
-                        child: Column(
-                          children: [
-                            Icon(Icons.inbox_outlined, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aucun élément ici.',
-                              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontWeight: FontWeight.w600),
+                    const SizedBox(height: 100),
+                    Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.inbox_outlined,
+                            size: 48,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.1,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Aucun élément ici.',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.4,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                  ]
+                    ),
+                  ],
                 ],
               ),
             ),
