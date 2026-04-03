@@ -25,6 +25,28 @@ void main() {
     expect(filtered.first.id, '1');
   });
 
+  test('filtre transactions avec tags exclus et type de tag inclus', () {
+    final txs = [
+      Transaction(id: '1', amount: 10, description: '', type: TransactionType.expense, date: DateTime(2026, 4, 1), walletId: 'w1', categoryId: 'c1', tags: const ['food']),
+      Transaction(id: '2', amount: 15, description: '', type: TransactionType.expense, date: DateTime(2026, 4, 2), walletId: 'w1', categoryId: 'c1', tags: const ['projetx']),
+    ];
+    final defs = [
+      TagDefinition(id: 't1', name: 'food', type: TagType.expense),
+      TagDefinition(id: 't2', name: 'projetx', type: TagType.project),
+    ];
+    final service = BudgetPlanningService();
+
+    final filtered = service.filterTransactions(
+      transactions: txs,
+      start: DateTime(2026, 4, 1),
+      end: DateTime(2026, 4, 30),
+      tagDefinitions: defs,
+      excludedTagTypes: const {TagType.project},
+    );
+
+    expect(filtered.map((e) => e.id), ['1']);
+  });
+
   test('respecte dépendance de budget parent', () {
     final parent = BudgetPlan(
       id: 'p',
