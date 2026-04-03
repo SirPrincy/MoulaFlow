@@ -25,6 +25,7 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     String sign = '';
     Color amountColor = theme.colorScheme.onSurface;
@@ -85,7 +86,7 @@ class TransactionTile extends StatelessWidget {
                               ),
                               child: Text(
                                 tag,
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.72 : 0.4)),
                               ),
                             )),
                           ],
@@ -95,7 +96,7 @@ class TransactionTile extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           tx.description,
-                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.88 : 0.7)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -103,7 +104,7 @@ class TransactionTile extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${tx.date.day.toString().padLeft(2, '0')}/${tx.date.month.toString().padLeft(2, '0')}/${tx.date.year} • $walletCaption',
-                        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5), fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.74 : 0.5), fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
