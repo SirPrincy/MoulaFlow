@@ -24,6 +24,7 @@ class CategoryOverviewPage extends StatefulWidget {
 
 class _CategoryOverviewPageState extends State<CategoryOverviewPage> with SingleTickerProviderStateMixin {
   List<Transaction> _transactions = [];
+  List<Wallet> _allWallets = [];
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
   late TabController _tabController;
@@ -49,20 +50,15 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
 
   Future<void> _loadData() async {
     _categories = await _categoryRepo.loadCategories();
-    final allWallets = await _walletRepo.loadWallets();
-    _wallets = allWallets.where((w) => w.type == widget.type).toList();
+    _allWallets = await _walletRepo.loadWallets();
+    _wallets = _allWallets.where((w) => w.type == widget.type).toList();
     _transactions = await _transactionRepo.loadTransactions();
     setState(() {});
   }
 
   Future<void> _saveData() async {
     await _transactionRepo.saveTransactions(_transactions);
-    final allWallets = await _walletRepo.loadWallets();
-    final walletsById = {
-      for (final wallet in allWallets)
-        if (wallet.type != widget.type) wallet.id: wallet,
-      for (final wallet in _wallets) wallet.id: wallet,
-    };
+    final walletsById = {for (final wallet in _allWallets) wallet.id: wallet};
     await _walletRepo.saveWallets(walletsById.values.toList());
   }
 
@@ -72,6 +68,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
     if (currentWallets.isEmpty) return [];
     final walletIds = currentWallets.map((w) => w.id).toSet();
     final relevantTxs = _transactions.where((tx) {
+      if (tx.relatedDebtId != null && walletIds.contains(tx.relatedDebtId)) {
+        return true;
+      }
       if (tx.type == TransactionType.transfer) {
         return walletIds.contains(tx.fromWalletId) || walletIds.contains(tx.toWalletId);
       }
@@ -86,7 +85,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
   String _getWalletName(String? id) {
     if (id == null) return 'Inconnu';
     try {
-      return _wallets.firstWhere((w) => w.id == id).name;
+      return _allWallets.firstWhere((w) => w.id == id).name;
     } catch (_) {
       return 'Inconnu';
     }
@@ -104,6 +103,14 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
   }
 
   void _showTransactionModal({Transaction? editingTx, String? prefilledWalletId}) {
+    if (widget.type == WalletType.debt && prefilledWalletId != null && editingTx == null) {
+      final debtWallet = _wallets.where((w) => w.id == prefilledWalletId).toList();
+      if (debtWallet.isNotEmpty) {
+        _showDebtRepaymentFlow(debtWallet.first);
+      }
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -121,13 +128,376 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
       },
     ).then((result) {
       if (result != null && result is Map) {
-         if (result['action'] == 'create_wallet') {
+        if (result['action'] == 'create_wallet') {
           _showSpecializedWalletDialog();
           return;
-         }
-         _loadData();
+        }
+        final tx = result['tx'] as Transaction;
+        final action = result['action'] as String;
+
+        setState(() {
+          if (action == 'save') {
+            if (editingTx != null) {
+              final index = _transactions.indexWhere((t) => t.id == tx.id);
+              if (index != -1) _transactions[index] = tx;
+            } else {
+              _transactions.insert(0, tx);
+            }
+          } else if (action == 'delete') {
+            _transactions.removeWhere((t) => t.id == tx.id);
+          }
+        });
+        _saveData();
       }
     });
+  }
+
+  Future<bool> _askTransactionConfirmation(String message) async {
+    final answer = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmation'),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('non')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('oui')),
+        ],
+      ),
+    );
+    return answer ?? false;
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+  void _showOperationSummary({
+    required String operation,
+    required String walletName,
+    required double amount,
+    required DateTime date,
+    required String txType,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$operation • wallet: $walletName • montant: ${formatAmount(amount)} • '
+          'date: ${_formatDate(date)} • type: $txType',
+        ),
+      ),
+    );
+  }
+
+  void _showDebtCreationFlow() {
+    final nameController = TextEditingController();
+    final amountController = TextEditingController();
+    final newWalletNameController = TextEditingController();
+    DateTime issueDate = DateTime.now();
+    DateTime? dueDate;
+    bool isCredit = false;
+    bool useExistingWallet = true;
+    String? selectedWalletId;
+
+    final transactionWallets = _allWallets.where((w) => w.type != WalletType.debt).toList();
+    if (transactionWallets.isNotEmpty) {
+      selectedWalletId = transactionWallets.first.id;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: const Text('Créer une dette'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Nom de la dette'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Montant'),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Je dois'),
+                          selected: !isCredit,
+                          onSelected: (_) => setDialogState(() => isCredit = false),
+                          showCheckmark: false,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('On me doit'),
+                          selected: isCredit,
+                          onSelected: (_) => setDialogState(() => isCredit = true),
+                          showCheckmark: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Date d\'émission: ${_formatDate(issueDate)}'),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: issueDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2101),
+                      );
+                      if (picked != null) setDialogState(() => issueDate = picked);
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(dueDate == null ? 'Date d\'échéance (optionnel)' : 'Échéance: ${_formatDate(dueDate!)}'),
+                    trailing: const Icon(Icons.event),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: dueDate ?? issueDate,
+                        firstDate: issueDate,
+                        lastDate: DateTime(2101),
+                      );
+                      if (picked != null) setDialogState(() => dueDate = picked);
+                    },
+                  ),
+                  const Divider(),
+                  const Text('Wallet de transaction (choix explicite)'),
+                  RadioListTile<bool>(
+                    title: const Text('Sélectionner un wallet existant'),
+                    value: true,
+                    groupValue: useExistingWallet,
+                    onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
+                  ),
+                  if (useExistingWallet)
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedWalletId,
+                      items: transactionWallets
+                          .map((w) => DropdownMenuItem(value: w.id, child: Text(w.name)))
+                          .toList(),
+                      onChanged: (val) => setDialogState(() => selectedWalletId = val),
+                    ),
+                  RadioListTile<bool>(
+                    title: const Text('Créer un nouveau wallet'),
+                    value: false,
+                    groupValue: useExistingWallet,
+                    onChanged: (val) => setDialogState(() => useExistingWallet = val ?? false),
+                  ),
+                  if (!useExistingWallet)
+                    TextField(
+                      controller: newWalletNameController,
+                      decoration: const InputDecoration(labelText: 'Nom du nouveau wallet'),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+              FilledButton(
+                onPressed: () async {
+                  final amount = double.tryParse(amountController.text.replaceAll(',', '.'));
+                  if (nameController.text.trim().isEmpty || amount == null || amount <= 0) {
+                    return;
+                  }
+
+                  Wallet? transactionWallet;
+                  if (useExistingWallet) {
+                    if (selectedWalletId == null) return;
+                    transactionWallet = transactionWallets.firstWhere((w) => w.id == selectedWalletId);
+                  } else {
+                    if (newWalletNameController.text.trim().isEmpty) return;
+                    transactionWallet = Wallet(
+                      id: DateTime.now().microsecondsSinceEpoch.toString(),
+                      name: newWalletNameController.text.trim(),
+                      type: WalletType.current,
+                    );
+                    _allWallets.add(transactionWallet);
+                  }
+
+                  final debtWallet = Wallet(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: nameController.text.trim(),
+                    type: WalletType.debt,
+                    targetAmount: amount,
+                    dueDate: dueDate,
+                    isCredit: isCredit,
+                    createdAt: issueDate,
+                  );
+
+                  _allWallets.add(debtWallet);
+                  _wallets.add(debtWallet);
+
+                  final shouldCreateTx = await _askTransactionConfirmation(
+                    'Voulez-vous enregistrer la transaction associée à cette dette ? (oui/non)',
+                  );
+                  if (shouldCreateTx) {
+                    final txType = isCredit ? TransactionType.expense : TransactionType.income;
+                    final tx = Transaction(
+                      id: DateTime.now().microsecondsSinceEpoch.toString(),
+                      amount: amount,
+                      description: isCredit
+                          ? 'Création dette (prêt) : ${debtWallet.name}'
+                          : 'Création dette (emprunt) : ${debtWallet.name}',
+                      type: txType,
+                      date: issueDate,
+                      walletId: transactionWallet!.id,
+                      relatedDebtId: debtWallet.id,
+                    );
+                    _transactions.insert(0, tx);
+                    _showOperationSummary(
+                      operation: 'Création de dette',
+                      walletName: transactionWallet!.name,
+                      amount: txType == TransactionType.expense ? -amount : amount,
+                      date: issueDate,
+                      txType: txType.name,
+                    );
+                  } else {
+                    _showOperationSummary(
+                      operation: 'Création de dette (sans transaction)',
+                      walletName: transactionWallet!.name,
+                      amount: isCredit ? -amount : amount,
+                      date: issueDate,
+                      txType: 'aucune',
+                    );
+                  }
+
+                  setState(() {});
+                  await _saveData();
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Créer'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDebtRepaymentFlow(Wallet debtWallet) {
+    final amountController = TextEditingController();
+    bool useExistingWallet = true;
+    String? selectedWalletId;
+    final newWalletNameController = TextEditingController();
+    final transactionWallets = _allWallets.where((w) => w.type != WalletType.debt).toList();
+    if (transactionWallets.isNotEmpty) {
+      selectedWalletId = transactionWallets.first.id;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('Remboursement - ${debtWallet.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Montant remboursé'),
+              ),
+              RadioListTile<bool>(
+                title: const Text('Sélectionner un wallet existant'),
+                value: true,
+                groupValue: useExistingWallet,
+                onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
+              ),
+              if (useExistingWallet)
+                DropdownButtonFormField<String>(
+                  initialValue: selectedWalletId,
+                  items: transactionWallets
+                      .map((w) => DropdownMenuItem(value: w.id, child: Text(w.name)))
+                      .toList(),
+                  onChanged: (val) => setDialogState(() => selectedWalletId = val),
+                ),
+              RadioListTile<bool>(
+                title: const Text('Créer un nouveau wallet'),
+                value: false,
+                groupValue: useExistingWallet,
+                onChanged: (val) => setDialogState(() => useExistingWallet = val ?? false),
+              ),
+              if (!useExistingWallet)
+                TextField(
+                  controller: newWalletNameController,
+                  decoration: const InputDecoration(labelText: 'Nom du nouveau wallet'),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+            FilledButton(
+              onPressed: () async {
+                final amount = double.tryParse(amountController.text.replaceAll(',', '.'));
+                if (amount == null || amount <= 0) return;
+
+                Wallet? transactionWallet;
+                if (useExistingWallet) {
+                  if (selectedWalletId == null) return;
+                  transactionWallet = transactionWallets.firstWhere((w) => w.id == selectedWalletId);
+                } else {
+                  if (newWalletNameController.text.trim().isEmpty) return;
+                  transactionWallet = Wallet(
+                    id: DateTime.now().microsecondsSinceEpoch.toString(),
+                    name: newWalletNameController.text.trim(),
+                    type: WalletType.current,
+                  );
+                  _allWallets.add(transactionWallet);
+                }
+
+                final shouldCreateTx = await _askTransactionConfirmation(
+                  'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
+                );
+                if (shouldCreateTx) {
+                  final txType = debtWallet.isCredit ? TransactionType.income : TransactionType.expense;
+                  final tx = Transaction(
+                    id: DateTime.now().microsecondsSinceEpoch.toString(),
+                    amount: amount,
+                    description: 'Remboursement de ${debtWallet.name}',
+                    type: txType,
+                    date: debtWallet.createdAt,
+                    walletId: transactionWallet!.id,
+                    relatedDebtId: debtWallet.id,
+                  );
+                  _transactions.insert(0, tx);
+                  _showOperationSummary(
+                    operation: 'Remboursement',
+                    walletName: transactionWallet!.name,
+                    amount: txType == TransactionType.expense ? -amount : amount,
+                    date: debtWallet.createdAt,
+                    txType: txType.name,
+                  );
+                } else {
+                  _showOperationSummary(
+                    operation: 'Remboursement (sans transaction)',
+                    walletName: transactionWallet!.name,
+                    amount: debtWallet.isCredit ? amount : -amount,
+                    date: debtWallet.createdAt,
+                    txType: 'aucune',
+                  );
+                }
+                await _saveData();
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('Valider'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSpecializedWalletDialog({Wallet? wallet}) {
@@ -338,6 +708,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                                       tx.fromWalletId == wallet.id ||
                                       tx.toWalletId == wallet.id);
                                   _wallets.remove(wallet);
+                                  _allWallets.removeWhere((w) => w.id == wallet.id);
                                 });
                                 _saveData();
                                 Navigator.pop(ctx);
@@ -361,7 +732,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                       final initialBalance = double.tryParse(initialBalanceController.text.replaceAll(',', '.')) ?? 0.0;
                       setState(() {
                         if (wallet == null) {
-                          _wallets.add(Wallet(
+                          final newWallet = Wallet(
                             id: DateTime.now().millisecondsSinceEpoch.toString(),
                             name: nameController.text.trim(),
                             initialBalance: initialBalance,
@@ -370,7 +741,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
                             dueDate: selectedDueDate,
                             isCredit: isCredit,
                             interestRate: hasInterest ? double.tryParse(interestRateController.text.replaceAll(',', '.')) : null,
-                          ));
+                          );
+                          _wallets.add(newWallet);
+                          _allWallets.add(newWallet);
                         } else {
                           wallet.name = nameController.text.trim();
                           wallet.initialBalance = initialBalance;
@@ -674,7 +1047,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showSpecializedWalletDialog(),
+        onPressed: () => widget.type == WalletType.debt
+            ? _showDebtCreationFlow()
+            : _showSpecializedWalletDialog(),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         child: const Icon(Icons.add),

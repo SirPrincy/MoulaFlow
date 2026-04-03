@@ -7,6 +7,7 @@ class Wallet {
   String name;
   double initialBalance;
   WalletType type;
+  DateTime createdAt;
   double? targetAmount;
   DateTime? dueDate;
   bool isSettled;
@@ -18,18 +19,20 @@ class Wallet {
     required this.name,
     this.initialBalance = 0.0,
     this.type = WalletType.current,
+    DateTime? createdAt,
     this.targetAmount,
     this.dueDate,
     this.isSettled = false,
     this.isCredit = false,
     this.interestRate,
-  });
+  }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         'initialBalance': initialBalance,
         'type': type.name,
+        'createdAt': createdAt.toIso8601String(),
         'targetAmount': targetAmount,
         'dueDate': dueDate?.toIso8601String(),
         'isSettled': isSettled,
@@ -45,6 +48,7 @@ class Wallet {
           (e) => e.name == json['type'],
           orElse: () => WalletType.current,
         ),
+        createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
         targetAmount: json['targetAmount']?.toDouble(),
         dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
         isSettled: json['isSettled'] ?? false,
@@ -110,6 +114,7 @@ class Transaction {
   final String? categoryId;
   final List<String> tags;
   final bool isRecurring;
+  final String? relatedDebtId;
 
   Transaction({
     required this.id,
@@ -123,6 +128,7 @@ class Transaction {
     this.categoryId,
     this.tags = const [],
     this.isRecurring = false,
+    this.relatedDebtId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -137,6 +143,7 @@ class Transaction {
         'categoryId': categoryId,
         'tags': tags,
         'isRecurring': isRecurring,
+        'relatedDebtId': relatedDebtId,
       };
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -162,6 +169,7 @@ class Transaction {
       categoryId: json['categoryId'],
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       isRecurring: json['isRecurring'] ?? false,
+      relatedDebtId: json['relatedDebtId'],
     );
   }
 }
