@@ -5,6 +5,7 @@ import '../settings_page.dart';
 import '../pages/category_overview_page.dart';
 import '../pages/recurring_payments_page.dart';
 import '../pages/bills_to_pay_page.dart';
+import '../pages/budget_planner_page.dart';
 import '../models.dart';
 import '../responsive_layout.dart';
 import 'app_drawer.dart';
@@ -55,6 +56,7 @@ class AppSideMenu extends StatelessWidget {
       onEpargneTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne')),
       onProjetTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.project, title: 'Projets')),
       onRecurringTap: () => _navigateTo(context, const RecurringPaymentsPage()),
+      onBudgetsTap: () => _navigateTo(context, BudgetPlannerPage(themeNotifier: themeNotifier)),
     );
   }
 }

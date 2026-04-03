@@ -227,3 +227,93 @@ class RecurringPayment {
         isActive: json['isActive'] ?? true,
       );
 }
+
+
+enum BudgetPeriodType { daily, weekly, monthly, custom }
+enum BudgetRepeatFrequency { none, weekly, monthly }
+
+class BudgetPlan {
+  final String id;
+  String name;
+  BudgetPeriodType periodType;
+  DateTime startDate;
+  DateTime endDate;
+  List<String> walletIds;
+  List<String> categoryIds;
+  bool includeAllCategories;
+  List<String> tags;
+  double amount;
+  bool enableAlerts;
+  bool enableProgressiveAdjustment;
+  String? dependencyBudgetId;
+  double? dependencyPercentLimit;
+  BudgetRepeatFrequency repeatFrequency;
+  double repeatAdjustmentPercent;
+  DateTime createdAt;
+
+  BudgetPlan({
+    required this.id,
+    required this.name,
+    required this.periodType,
+    required this.startDate,
+    required this.endDate,
+    this.walletIds = const [],
+    this.categoryIds = const [],
+    this.includeAllCategories = true,
+    this.tags = const [],
+    required this.amount,
+    this.enableAlerts = true,
+    this.enableProgressiveAdjustment = false,
+    this.dependencyBudgetId,
+    this.dependencyPercentLimit,
+    this.repeatFrequency = BudgetRepeatFrequency.none,
+    this.repeatAdjustmentPercent = 0,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'periodType': periodType.name,
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+        'walletIds': walletIds,
+        'categoryIds': categoryIds,
+        'includeAllCategories': includeAllCategories,
+        'tags': tags,
+        'amount': amount,
+        'enableAlerts': enableAlerts,
+        'enableProgressiveAdjustment': enableProgressiveAdjustment,
+        'dependencyBudgetId': dependencyBudgetId,
+        'dependencyPercentLimit': dependencyPercentLimit,
+        'repeatFrequency': repeatFrequency.name,
+        'repeatAdjustmentPercent': repeatAdjustmentPercent,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory BudgetPlan.fromJson(Map<String, dynamic> json) => BudgetPlan(
+        id: json['id'],
+        name: json['name'] ?? 'Budget',
+        periodType: BudgetPeriodType.values.firstWhere(
+          (e) => e.name == json['periodType'],
+          orElse: () => BudgetPeriodType.monthly,
+        ),
+        startDate: DateTime.parse(json['startDate']),
+        endDate: DateTime.parse(json['endDate']),
+        walletIds: (json['walletIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        categoryIds: (json['categoryIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        includeAllCategories: json['includeAllCategories'] ?? true,
+        tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        amount: (json['amount'] ?? 0).toDouble(),
+        enableAlerts: json['enableAlerts'] ?? true,
+        enableProgressiveAdjustment: json['enableProgressiveAdjustment'] ?? false,
+        dependencyBudgetId: json['dependencyBudgetId'],
+        dependencyPercentLimit: json['dependencyPercentLimit']?.toDouble(),
+        repeatFrequency: BudgetRepeatFrequency.values.firstWhere(
+          (e) => e.name == json['repeatFrequency'],
+          orElse: () => BudgetRepeatFrequency.none,
+        ),
+        repeatAdjustmentPercent: (json['repeatAdjustmentPercent'] ?? 0).toDouble(),
+        createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      );
+}
