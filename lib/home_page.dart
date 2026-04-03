@@ -5,6 +5,11 @@ import 'widgets/transaction_form.dart';
 import 'widgets/app_side_menu.dart';
 import 'widgets/app_menu_bar.dart';
 import 'transactions_page.dart';
+import 'settings_page.dart';
+import 'pages/category_overview_page.dart';
+import 'pages/bills_to_pay_page.dart';
+import 'pages/recurring_payments_page.dart';
+import 'pages/budget_planner_page.dart';
 import 'utils/styles.dart';
 import 'data/category_repository.dart';
 import 'data/transaction_repository.dart';
@@ -27,6 +32,7 @@ class _HomePageState extends State<HomePage> {
   List<TransactionCategory> _categories = [];
   final Set<String> _selectedWalletIds = {};
   bool _isSidebarCollapsed = false;
+  bool _isMobileMenuOpen = false;
 
   final _categoryRepo = CategoryRepository();
   final _transactionRepo = TransactionRepository();
@@ -72,6 +78,21 @@ class _HomePageState extends State<HomePage> {
 
   double _getWalletBalance(String walletId) =>
       _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
+
+  Future<void> _openMobilePage(Widget page) async {
+    setState(() => _isMobileMenuOpen = false);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+    );
+    if (mounted) {
+      _loadData();
+    }
+  }
+
+  void _toggleMobileMenu() {
+    setState(() => _isMobileMenuOpen = !_isMobileMenuOpen);
+  }
 
   List<Transaction> get _filteredTransactions => _balanceService
       .filterTransactionsByWalletSelection(_transactions, _selectedWalletIds);
@@ -183,6 +204,128 @@ class _HomePageState extends State<HomePage> {
       res[name] = (res[name] ?? 0) + tx.amount.abs();
     }
     return res;
+  }
+
+  Widget _buildMobileOverlayMenu(ThemeData theme) {
+    final menuItems = <({
+      IconData icon,
+      String label,
+      VoidCallback onTap,
+    })>[
+      (
+        icon: Icons.dashboard_outlined,
+        label: 'Tableau de bord',
+        onTap: () => setState(() => _isMobileMenuOpen = false),
+      ),
+      (
+        icon: Icons.receipt_long_outlined,
+        label: 'Transactions',
+        onTap: () => _openMobilePage(const TransactionsPage()),
+      ),
+      (
+        icon: Icons.receipt_outlined,
+        label: 'À payer',
+        onTap: () => _openMobilePage(const BillsToPayPage()),
+      ),
+      (
+        icon: Icons.receipt_long,
+        label: 'Dettes',
+        onTap: () => _openMobilePage(
+          const CategoryOverviewPage(type: WalletType.debt, title: 'Dettes'),
+        ),
+      ),
+      (
+        icon: Icons.savings_outlined,
+        label: 'Épargne',
+        onTap: () => _openMobilePage(
+          const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne'),
+        ),
+      ),
+      (
+        icon: Icons.rocket_launch_outlined,
+        label: 'Projets',
+        onTap: () => _openMobilePage(
+          const CategoryOverviewPage(type: WalletType.project, title: 'Projets'),
+        ),
+      ),
+      (
+        icon: Icons.autorenew_outlined,
+        label: 'Paiements Récurrents',
+        onTap: () => _openMobilePage(const RecurringPaymentsPage()),
+      ),
+      (
+        icon: Icons.pie_chart_outline,
+        label: 'Budgets',
+        onTap: () => _openMobilePage(
+          BudgetPlannerPage(themeNotifier: widget.themeNotifier),
+        ),
+      ),
+      (
+        icon: Icons.settings_outlined,
+        label: 'Paramètres',
+        onTap: () => _openMobilePage(
+          SettingsPage(themeNotifier: widget.themeNotifier),
+        ),
+      ),
+    ];
+
+    return IgnorePointer(
+      ignoring: !_isMobileMenuOpen,
+      child: AnimatedOpacity(
+        opacity: _isMobileMenuOpen ? 1 : 0,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        child: AnimatedScale(
+          scale: _isMobileMenuOpen ? 1 : 0.96,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          child: Container(
+            color: theme.colorScheme.surface.withValues(alpha: 0.98),
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final item in menuItems)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: FilledButton.tonal(
+                              onPressed: item.onTap,
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(52),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(item.icon, size: 20),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    item.label,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showWalletDialog({Wallet? wallet}) {
@@ -631,6 +774,11 @@ class _HomePageState extends State<HomePage> {
     if (context.isMobileScreen) {
       return Scaffold(
         appBar: AppMenuBar(
+          leading: IconButton(
+            onPressed: _toggleMobileMenu,
+            icon: Icon(_isMobileMenuOpen ? Icons.close : Icons.menu),
+            tooltip: _isMobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu',
+          ),
           actions: [
             if (!_isEditMode)
               TextButton.icon(
@@ -652,8 +800,12 @@ class _HomePageState extends State<HomePage> {
               ),
           ],
         ),
-        drawer: Drawer(child: sideMenu),
-        body: mainContent,
+        body: Stack(
+          children: [
+            mainContent,
+            _buildMobileOverlayMenu(theme),
+          ],
+        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _wallets.isEmpty
