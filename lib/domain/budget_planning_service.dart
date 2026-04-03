@@ -19,18 +19,45 @@ class BudgetPlanningService {
     required List<Transaction> transactions,
     required DateTime start,
     required DateTime end,
+    List<TagDefinition> tagDefinitions = const [],
     Set<String> walletIds = const {},
     Set<String> categoryIds = const {},
     Set<String> tags = const {},
+    Set<String> excludedTags = const {},
+    Set<TagType> includedTagTypes = const {},
+    Set<TagType> excludedTagTypes = const {},
+    bool requireAllIncludedTags = false,
   }) {
+    final tagsByName = <String, TagDefinition>{
+      for (final t in tagDefinitions) t.name.toLowerCase(): t,
+    };
     final normalizedTags = tags.map((e) => e.toLowerCase()).toSet();
+    final normalizedExcludedTags = excludedTags.map((e) => e.toLowerCase()).toSet();
     return transactions.where((tx) {
       if (tx.type != TransactionType.expense) return false;
       if (tx.date.isBefore(start) || tx.date.isAfter(end)) return false;
       if (walletIds.isNotEmpty && !walletIds.contains(tx.walletId)) return false;
       if (categoryIds.isNotEmpty && !categoryIds.contains(tx.categoryId)) return false;
+      final txTags = tx.tags.map((t) => t.toLowerCase()).toSet();
+      final txTagTypes = txTags
+          .map((name) => tagsByName[name]?.type)
+          .whereType<TagType>()
+          .toSet();
+
+      if (normalizedExcludedTags.isNotEmpty &&
+          txTags.any((tag) => normalizedExcludedTags.contains(tag))) {
+        return false;
+      }
       if (normalizedTags.isNotEmpty &&
-          !tx.tags.any((t) => normalizedTags.contains(t.toLowerCase()))) {
+          !(requireAllIncludedTags
+              ? normalizedTags.every(txTags.contains)
+              : txTags.any((tag) => normalizedTags.contains(tag)))) {
+        return false;
+      }
+      if (includedTagTypes.isNotEmpty && !txTagTypes.any(includedTagTypes.contains)) {
+        return false;
+      }
+      if (excludedTagTypes.isNotEmpty && txTagTypes.any(excludedTagTypes.contains)) {
         return false;
       }
       return true;

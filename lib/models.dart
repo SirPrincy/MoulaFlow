@@ -102,6 +102,53 @@ String formatAmount(double amount) {
 
 enum TransactionType { income, expense, transfer }
 
+enum TagType {
+  expense,
+  income,
+  budget,
+  project,
+  custom,
+}
+
+class TagDefinition {
+  final String id;
+  String name;
+  TagType type;
+  String? colorHex;
+  String? description;
+  DateTime createdAt;
+
+  TagDefinition({
+    required this.id,
+    required this.name,
+    this.type = TagType.custom,
+    this.colorHex,
+    this.description,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': type.name,
+        'colorHex': colorHex,
+        'description': description,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory TagDefinition.fromJson(Map<String, dynamic> json) => TagDefinition(
+        id: json['id'],
+        name: json['name'] ?? '',
+        type: TagType.values.firstWhere(
+          (e) => e.name == json['type'],
+          orElse: () => TagType.custom,
+        ),
+        colorHex: json['colorHex'],
+        description: json['description'],
+        createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      );
+}
+
 class Transaction {
   final String id;
   final double amount;
@@ -242,6 +289,9 @@ class BudgetPlan {
   List<String> categoryIds;
   bool includeAllCategories;
   List<String> tags;
+  List<String> excludedTags;
+  List<String> includedTagTypes;
+  List<String> excludedTagTypes;
   double amount;
   bool enableAlerts;
   bool enableProgressiveAdjustment;
@@ -261,6 +311,9 @@ class BudgetPlan {
     this.categoryIds = const [],
     this.includeAllCategories = true,
     this.tags = const [],
+    this.excludedTags = const [],
+    this.includedTagTypes = const [],
+    this.excludedTagTypes = const [],
     required this.amount,
     this.enableAlerts = true,
     this.enableProgressiveAdjustment = false,
@@ -281,6 +334,9 @@ class BudgetPlan {
         'categoryIds': categoryIds,
         'includeAllCategories': includeAllCategories,
         'tags': tags,
+        'excludedTags': excludedTags,
+        'includedTagTypes': includedTagTypes,
+        'excludedTagTypes': excludedTagTypes,
         'amount': amount,
         'enableAlerts': enableAlerts,
         'enableProgressiveAdjustment': enableProgressiveAdjustment,
@@ -304,6 +360,9 @@ class BudgetPlan {
         categoryIds: (json['categoryIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
         includeAllCategories: json['includeAllCategories'] ?? true,
         tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        excludedTags: (json['excludedTags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        includedTagTypes: (json['includedTagTypes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+        excludedTagTypes: (json['excludedTagTypes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
         amount: (json['amount'] ?? 0).toDouble(),
         enableAlerts: json['enableAlerts'] ?? true,
         enableProgressiveAdjustment: json['enableProgressiveAdjustment'] ?? false,
