@@ -29,3 +29,9 @@ L'organisation est au cœur de l'application.
 ## 🌙 Personnalisation
 - **Thème** : Bascule automatique ou manuelle entre le Mode Sombre (Batman Style/Premium) et le Mode Clair.
 - **Reset des Données** : Dans les paramètres, vous pouvez effacer toutes les données pour repartir de zéro.
+
+
+## 🗂️ Gestion des catégories (v0.03)
+- Interface retravaillée pour une navigation plus fluide entre catégories principales et sous-catégories.
+- Panneaux expansibles animés pour réduire les ruptures visuelles.
+- Actions rapides directement accessibles (Ajouter, Modifier, Supprimer).

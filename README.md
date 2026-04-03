@@ -1,6 +1,6 @@
 ![Moula Flow logo](assets/logo_moula.svg)
 
-# Moula Flow 🦇 (v0.02)
+# Moula Flow 🦇 (v0.03)
 
 This project is **100% vibe coded** with Flutter.
 
@@ -13,6 +13,7 @@ Moula Flow est une application minimaliste de suivi de finances personnelles dé
 - **Aperçus Spécifiques** : Vues détaillées pour l'Épargne et les Dettes avec suivi de progression et statut de règlement.
 - **Catégorisation Hiérarchique** :
   - **Sélecteur modal** : Recherche et filtrage en temps réel.
+  - **UI Catégorie retravaillée (v0.03)** : panneaux expansibles animés et actions contextuelles plus fluides.
   - **Bibliothèque Riche** : Catégories par défaut injectées au démarrage.
 - **Transactions & Transferts** : Dépenses, Revenus et Transferts entre comptes.
 - **Paiements Récurrents** : Identifiez et suivez vos transactions habituelles dans une vue dédiée.
@@ -38,6 +39,7 @@ Le projet suit une architecture en couches pour séparer les responsabilités :
 - `lib/widgets/` : Composants UI (`dashboard_cards.dart`, `widgets.dart`).
 
 ## Versioning 📌
+- **v0.03** : Refonte UI de la gestion des catégories + documentation design consolidée.
 - **v0.02** : Dashboard dynamique, Overviews (Dettes/Épargne), et support des objectifs.
 - **v0.01** : Refactorisation initiale, repositories, et tests unitaires.
 
@@ -46,6 +48,7 @@ Plus de détails disponibles dans le dossier `docs/` :
 - [Architecture](docs/ARCHITECTURE.md)
 - [Fonctionnalités](docs/FEATURES.md)
 - [Développement](docs/DEVELOPMENT.md)
+- [Design System](docs/Design.md)
 
 ## Build 🏗️
 Testé via `flutter build linux` et `flutter build apk`. 🎉

@@ -42,3 +42,4 @@ Lors de l'ajout d'une nouvelle fonctionnalité, n'oubliez pas d'actualiser :
 1. Les modèles (`lib/models.dart`) si nécessaire.
 2. Les repositories (`lib/data/`) pour la persistance.
 3. Ce document et `contexteAI.md`.
+4. `docs/Design.md` pour les décisions UI/UX.
