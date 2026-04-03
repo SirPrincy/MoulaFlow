@@ -105,6 +105,20 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
     return 'Inconnu';
   }
 
+  double _getDebtTargetAmount(Wallet debtWallet) {
+    var target = debtWallet.targetAmount ?? 0;
+    if (debtWallet.interestRate != null && debtWallet.interestRate! > 0) {
+      target = target * (1 + debtWallet.interestRate! / 100);
+    }
+    return target;
+  }
+
+  double _getDebtRemainingAmount(Wallet debtWallet) {
+    final target = _getDebtTargetAmount(debtWallet);
+    if (target <= 0) return 0;
+    return (target - debtWallet.initialBalance).clamp(0.0, double.infinity);
+  }
+
   void _showTransactionModal({
     Transaction? editingTx,
     String? prefilledWalletId,
@@ -457,125 +471,189 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('Remboursement - ${debtWallet.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Montant remboursé',
-                ),
-              ),
-              RadioListTile<bool>(
-                title: const Text('Sélectionner un wallet existant'),
-                value: true,
-                groupValue: useExistingWallet,
-                onChanged: (val) =>
-                    setDialogState(() => useExistingWallet = val ?? true),
-              ),
-              if (useExistingWallet)
-                DropdownButtonFormField<String>(
-                  initialValue: selectedWalletId,
-                  items: transactionWallets
-                      .map(
-                        (w) =>
-                            DropdownMenuItem(value: w.id, child: Text(w.name)),
-                      )
-                      .toList(),
-                  onChanged: (val) =>
-                      setDialogState(() => selectedWalletId = val),
-                ),
-              RadioListTile<bool>(
-                title: const Text('Créer un nouveau wallet'),
-                value: false,
-                groupValue: useExistingWallet,
-                onChanged: (val) =>
-                    setDialogState(() => useExistingWallet = val ?? false),
-              ),
-              if (!useExistingWallet)
-                TextField(
-                  controller: newWalletNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom du nouveau wallet',
+        builder: (ctx, setDialogState) {
+          final remainingAmount = _getDebtRemainingAmount(debtWallet);
+          final hasTarget = _getDebtTargetAmount(debtWallet) > 0;
+
+          return AlertDialog(
+            title: Text('Remboursement - ${debtWallet.name}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.primary.withValues(
+                      alpha: 0.08,
+                    ),
+                    borderRadius: BorderRadius.circular(
+                      AppStyles.kDefaultRadius,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Dette sélectionnée: ${debtWallet.name}',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hasTarget
+                            ? 'Montant restant: ${formatAmount(remainingAmount)}'
+                            : 'Montant restant: non défini',
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Montant remboursé',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                RadioListTile<bool>(
+                  title: const Text('Sélectionner un wallet existant'),
+                  value: true,
+                  groupValue: useExistingWallet,
+                  onChanged: (val) =>
+                      setDialogState(() => useExistingWallet = val ?? true),
+                ),
+                if (useExistingWallet)
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedWalletId,
+                    items: transactionWallets
+                        .map(
+                          (w) =>
+                              DropdownMenuItem(value: w.id, child: Text(w.name)),
+                        )
+                        .toList(),
+                    onChanged: (val) =>
+                        setDialogState(() => selectedWalletId = val),
+                  ),
+                RadioListTile<bool>(
+                  title: const Text('Créer un nouveau wallet'),
+                  value: false,
+                  groupValue: useExistingWallet,
+                  onChanged: (val) =>
+                      setDialogState(() => useExistingWallet = val ?? false),
+                ),
+                if (!useExistingWallet)
+                  TextField(
+                    controller: newWalletNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nom du nouveau wallet',
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final amount = double.tryParse(
+                    amountController.text.replaceAll(',', '.'),
+                  );
+                  if (amount == null || amount <= 0) return;
+                  if (hasTarget && amount > remainingAmount) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Le remboursement dépasse le restant (${formatAmount(remainingAmount)}).',
+                          ),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  Wallet? transactionWallet;
+                  if (useExistingWallet) {
+                    if (selectedWalletId == null) return;
+                    transactionWallet = transactionWallets.firstWhere(
+                      (w) => w.id == selectedWalletId,
+                    );
+                  } else {
+                    if (newWalletNameController.text.trim().isEmpty) return;
+                    transactionWallet = Wallet(
+                      id: DateTime.now().microsecondsSinceEpoch.toString(),
+                      name: newWalletNameController.text.trim(),
+                      type: WalletType.current,
+                    );
+                    _allWallets.add(transactionWallet);
+                  }
+
+                  debtWallet.initialBalance += amount;
+                  if (hasTarget && _getDebtRemainingAmount(debtWallet) <= 0.0001) {
+                    debtWallet.isSettled = true;
+                  }
+
+                  final shouldCreateTx = await _askTransactionConfirmation(
+                    'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
+                  );
+                  if (shouldCreateTx) {
+                    final txType = debtWallet.isCredit
+                        ? TransactionType.income
+                        : TransactionType.expense;
+                    final tx = Transaction(
+                      id: DateTime.now().microsecondsSinceEpoch.toString(),
+                      amount: amount,
+                      description: 'Remboursement de ${debtWallet.name}',
+                      type: txType,
+                      date: DateTime.now(),
+                      walletId: transactionWallet.id,
+                      relatedDebtId: debtWallet.id,
+                    );
+                    _transactions.insert(0, tx);
+                    _showOperationSummary(
+                      operation: 'Remboursement',
+                      walletName: transactionWallet.name,
+                      amount: txType == TransactionType.expense
+                          ? -amount
+                          : amount,
+                      date: DateTime.now(),
+                      txType: txType.name,
+                    );
+                  } else {
+                    _showOperationSummary(
+                      operation: 'Remboursement (sans transaction)',
+                      walletName: transactionWallet.name,
+                      amount: debtWallet.isCredit ? amount : -amount,
+                      date: DateTime.now(),
+                      txType: 'aucune',
+                    );
+                  }
+                  await _saveData();
+                  if (context.mounted) {
+                    final updatedRemaining = _getDebtRemainingAmount(debtWallet);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Remboursement de ${formatAmount(amount)} enregistré. '
+                          'Reste: ${formatAmount(updatedRemaining)}',
+                        ),
+                      ),
+                    );
+                  }
+                  setState(() {});
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Valider'),
+              ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final amount = double.tryParse(
-                  amountController.text.replaceAll(',', '.'),
-                );
-                if (amount == null || amount <= 0) return;
-
-                Wallet? transactionWallet;
-                if (useExistingWallet) {
-                  if (selectedWalletId == null) return;
-                  transactionWallet = transactionWallets.firstWhere(
-                    (w) => w.id == selectedWalletId,
-                  );
-                } else {
-                  if (newWalletNameController.text.trim().isEmpty) return;
-                  transactionWallet = Wallet(
-                    id: DateTime.now().microsecondsSinceEpoch.toString(),
-                    name: newWalletNameController.text.trim(),
-                    type: WalletType.current,
-                  );
-                  _allWallets.add(transactionWallet);
-                }
-
-                final shouldCreateTx = await _askTransactionConfirmation(
-                  'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
-                );
-                if (shouldCreateTx) {
-                  final txType = debtWallet.isCredit
-                      ? TransactionType.income
-                      : TransactionType.expense;
-                  final tx = Transaction(
-                    id: DateTime.now().microsecondsSinceEpoch.toString(),
-                    amount: amount,
-                    description: 'Remboursement de ${debtWallet.name}',
-                    type: txType,
-                    date: debtWallet.createdAt,
-                    walletId: transactionWallet.id,
-                    relatedDebtId: debtWallet.id,
-                  );
-                  _transactions.insert(0, tx);
-                  _showOperationSummary(
-                    operation: 'Remboursement',
-                    walletName: transactionWallet.name,
-                    amount: txType == TransactionType.expense
-                        ? -amount
-                        : amount,
-                    date: debtWallet.createdAt,
-                    txType: txType.name,
-                  );
-                } else {
-                  _showOperationSummary(
-                    operation: 'Remboursement (sans transaction)',
-                    walletName: transactionWallet.name,
-                    amount: debtWallet.isCredit ? amount : -amount,
-                    date: debtWallet.createdAt,
-                    txType: 'aucune',
-                  );
-                }
-                await _saveData();
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: const Text('Valider'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -1007,6 +1085,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final activeWallets = _wallets.where((w) => !w.isSettled).toList();
     final settledWallets = _wallets.where((w) => w.isSettled).toList();
@@ -1027,7 +1106,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
           indicatorColor: theme.colorScheme.primary,
           labelColor: theme.colorScheme.primary,
           unselectedLabelColor: theme.colorScheme.onSurface.withValues(
-            alpha: 0.5,
+            alpha: isDark ? 0.75 : 0.5,
           ),
           tabs: [
             Tab(
@@ -1177,7 +1256,11 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                                     color: theme
                                                         .colorScheme
                                                         .onSurface
-                                                        .withValues(alpha: 0.5),
+                                                        .withValues(
+                                                          alpha: isDark
+                                                              ? 0.8
+                                                              : 0.5,
+                                                        ),
                                                   ),
                                                 ),
                                               ],
@@ -1225,7 +1308,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                         color: wallet.isSettled
                                             ? Colors.green
                                             : theme.colorScheme.onSurface
-                                                  .withValues(alpha: 0.2),
+                                                  .withValues(
+                                                    alpha: isDark ? 0.55 : 0.2,
+                                                  ),
                                         onPressed: () {
                                           setState(() {
                                             wallet.isSettled =
@@ -1253,7 +1338,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: theme.colorScheme.onSurface
-                                              .withValues(alpha: 0.4),
+                                              .withValues(
+                                                alpha: isDark ? 0.72 : 0.4,
+                                              ),
                                           letterSpacing: 1,
                                         ),
                                       ),
@@ -1279,7 +1366,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: theme.colorScheme.onSurface
-                                                .withValues(alpha: 0.4),
+                                                .withValues(
+                                                  alpha: isDark ? 0.72 : 0.4,
+                                                ),
                                             letterSpacing: 1,
                                           ),
                                         ),
@@ -1349,7 +1438,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.6),
+                                            .withValues(
+                                              alpha: isDark ? 0.82 : 0.6,
+                                            ),
                                       ),
                                     ),
                                     if (hasTarget)
@@ -1359,7 +1450,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
                                           color: theme.colorScheme.onSurface
-                                              .withValues(alpha: 0.4),
+                                              .withValues(
+                                                alpha: isDark ? 0.72 : 0.4,
+                                              ),
                                         ),
                                       ),
                                   ],
@@ -1382,7 +1475,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.4,
+                            alpha: isDark ? 0.72 : 0.4,
                           ),
                           letterSpacing: 1.2,
                         ),
