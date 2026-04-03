@@ -57,7 +57,13 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage> with Single
 
   Future<void> _saveData() async {
     await _transactionRepo.saveTransactions(_transactions);
-    await _walletRepo.saveWallets(_wallets);
+    final allWallets = await _walletRepo.loadWallets();
+    final walletsById = {
+      for (final wallet in allWallets)
+        if (wallet.type != widget.type) wallet.id: wallet,
+      for (final wallet in _wallets) wallet.id: wallet,
+    };
+    await _walletRepo.saveWallets(walletsById.values.toList());
   }
 
   double _getWalletBalance(String walletId) => _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
