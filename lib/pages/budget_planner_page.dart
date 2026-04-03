@@ -114,9 +114,10 @@ class _BudgetPlannerPageState extends State<BudgetPlannerPage> {
 
   Future<void> _pickDate({required bool isStart}) async {
     final initial = isStart ? _startDate : _endDate;
+    final firstDate = isStart ? DateTime(2020) : _startDate;
     final selected = await showDatePicker(
       context: context,
-      firstDate: DateTime(2020),
+      firstDate: firstDate,
       lastDate: DateTime(2100),
       initialDate: initial,
     );
@@ -132,10 +133,11 @@ class _BudgetPlannerPageState extends State<BudgetPlannerPage> {
   }
 
   BudgetProjection _projection(double amount) {
+    final effectiveEnd = _endDate.isBefore(DateTime.now()) ? _endDate : DateTime.now();
     final filtered = _service.filterTransactions(
       transactions: _transactions,
       start: _startDate,
-      end: DateTime.now(),
+      end: effectiveEnd,
       walletIds: _selectedWalletIds,
       categoryIds: _includeAllCategories ? {} : _selectedCategoryIds,
       tags: _parsedTags,
@@ -151,10 +153,11 @@ class _BudgetPlannerPageState extends State<BudgetPlannerPage> {
   }
 
   double _spentNow() {
+    final effectiveEnd = _endDate.isBefore(DateTime.now()) ? _endDate : DateTime.now();
     final filtered = _service.filterTransactions(
       transactions: _transactions,
       start: _startDate,
-      end: DateTime.now(),
+      end: effectiveEnd,
       walletIds: _selectedWalletIds,
       categoryIds: _includeAllCategories ? {} : _selectedCategoryIds,
       tags: _parsedTags,
