@@ -12,6 +12,7 @@ class AppDrawerContent extends StatelessWidget {
   final VoidCallback? onEpargneTap;
   final VoidCallback? onProjetTap;
   final VoidCallback? onRecurringTap;
+  final VoidCallback? onBudgetsTap;
   final bool isCollapsed;
 
   const AppDrawerContent({
@@ -25,6 +26,7 @@ class AppDrawerContent extends StatelessWidget {
     this.onEpargneTap,
     this.onProjetTap,
     this.onRecurringTap,
+    this.onBudgetsTap,
     this.isCollapsed = false,
   });
 
@@ -87,6 +89,7 @@ class AppDrawerContent extends StatelessWidget {
                   child: Divider(height: 1),
                 ),
                 _buildNavItem(context, Icons.autorenew_outlined, Icons.autorenew, 'Paiements Récurrents', '/recurring', onRecurringTap),
+                _buildNavItem(context, Icons.pie_chart_outline, Icons.pie_chart, 'Budgets', '/budgets', onBudgetsTap),
                 _buildNavItem(context, Icons.settings_outlined, Icons.settings, 'Paramètres', '/settings', onSettingsTap),
               ],
             ),
