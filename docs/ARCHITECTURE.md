@@ -24,7 +24,8 @@ Contient la logique métier pure, indépendante de l'interface Flutter.
 
 ### 3. UI Layer (`lib/pages/` & `lib/widgets/`)
 Responsable de l'affichage et de l'interaction utilisateur.
-- **Pages** : Conteneurs de haut niveau (HomePage, CategoryOverviewPage, etc.).
+- **Pages** : Conteneurs de haut niveau (HomePage, CategoryOverviewPage, CategoryManagementPage, etc.).
+  - `CategoryManagementPage` : gestion hiérarchique via panneaux expansibles animés.
 - **Widgets** : Composants réutilisables.
     - `DashboardCards` : Widgets spécialisés pour le tableau de bord (Soldes, Flux, Catégories).
     - `TransactionTile` : Affichage d'une transaction unique.

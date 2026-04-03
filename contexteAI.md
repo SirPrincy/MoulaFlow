@@ -1,7 +1,11 @@
-# Contexte AI - Moula Flow (v0.02)
+# Contexte AI - Moula Flow (v0.03)
 
 ## Ce qui a été fait
 - Initialisation du projet Flutter `moula_flow`.
+- **Mise à jour v0.03 (Fluidité UI Catégories & Docs)** :
+    - Refonte de `category_management_page.dart` avec `ExpansionPanelList.radio` et transitions plus stables.
+    - Actions contextualisées (ajout/modification/suppression) au niveau des catégories et sous-catégories.
+    - Harmonisation documentaire : README, docs et ajout de `docs/Design.md`.
 - **Refactoring architectural (v0.01)** : `main.dart`, `models.dart`, `home_page.dart`, `widgets.dart`, `settings_page.dart`, `category_management_page.dart`.
 - **Mise à jour v0.02 (Dashboard & Overviews)** :
     - **Dashboard Dynamique** : Système de widgets configurables (Ordre, Visibilité : Balance, Flux, Catégories, Tendances, Récents).
