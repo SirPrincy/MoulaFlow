@@ -1,19 +1,5 @@
 import '../models.dart';
 
-class BudgetProjection {
-  final double optimistic;
-  final double average;
-  final double pessimistic;
-  final DateTime? estimatedOverrunDate;
-
-  const BudgetProjection({
-    required this.optimistic,
-    required this.average,
-    required this.pessimistic,
-    this.estimatedOverrunDate,
-  });
-}
-
 class BudgetPlanningService {
   List<Transaction> filterTransactions({
     required List<Transaction> transactions,

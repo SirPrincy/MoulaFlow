@@ -10,6 +10,7 @@ import 'package:moula_flow/domain/balance_service.dart';
 import 'package:moula_flow/data/settings_repository.dart';
 import 'package:moula_flow/data/dashboard_repository.dart';
 import 'package:moula_flow/data/app_access_method.dart';
+import 'package:moula_flow/domain/budget_planning_service.dart';
 import 'package:flutter/material.dart';
 
 final databaseProvider = Provider((ref) => AppDatabase());
@@ -41,6 +42,69 @@ final budgetsProvider = StreamProvider<List<BudgetPlan>>((ref) {
 
 final recurringPaymentsProvider = StreamProvider<List<RecurringPayment>>((ref) {
   return ref.watch(recurringPaymentRepositoryProvider).watchRecurringPayments();
+});
+
+final budgetPlanningServiceProvider = Provider((ref) => BudgetPlanningService());
+
+final budgetStatusProvider = Provider.family<AsyncValue<BudgetStatus>, String>((ref, budgetId) {
+  final budgetsAsync = ref.watch(budgetsProvider);
+  final transactionsAsync = ref.watch(transactionsProvider);
+  final service = ref.watch(budgetPlanningServiceProvider);
+
+  return budgetsAsync.when(
+    data: (budgets) {
+      final plan = budgets.cast<BudgetPlan?>().firstWhere((b) => b?.id == budgetId, orElse: () => null);
+      if (plan == null) return AsyncError('Budget not found', StackTrace.current);
+      
+      final currentTransactionsAsync = transactionsAsync;
+      
+      return currentTransactionsAsync.when(
+        data: (transactions) {
+          final filtered = service.filterTransactions(
+            transactions: transactions,
+            start: plan.startDate,
+            end: plan.endDate,
+            walletIds: plan.walletIds.toSet(),
+            categoryIds: plan.categoryIds.toSet(),
+            tags: plan.tags.toSet(),
+            excludedTags: plan.excludedTags.toSet(),
+          );
+          final spent = service.computeSpent(filtered);
+          final projection = service.projectBudget(
+            spent: spent,
+            totalBudget: plan.amount,
+            start: plan.startDate,
+            end: plan.endDate,
+            now: DateTime.now(),
+          );
+          
+          return AsyncValue.data(BudgetStatus(
+            plan: plan,
+            spent: spent,
+            percentage: plan.amount > 0 ? spent / plan.amount : 0,
+            remaining: (plan.amount - spent).clamp(0, double.infinity),
+            transactions: filtered,
+            projection: projection,
+          ));
+        },
+        loading: () => const AsyncValue.loading(),
+        error: (e, s) => AsyncValue.error(e, s),
+      );
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (e, s) => AsyncValue.error(e, s),
+  );
+});
+
+final activeBudgetsProvider = Provider<AsyncValue<List<BudgetPlan>>>((ref) {
+  final budgetsAsync = ref.watch(budgetsProvider);
+  return budgetsAsync.whenData((budgets) {
+    final now = DateTime.now();
+    // Sort by end date (closest first)
+    final active = budgets.where((b) => b.endDate.isAfter(now) || b.endDate.isAtSameMomentAs(now)).toList();
+    active.sort((a, b) => a.endDate.compareTo(b.endDate));
+    return active;
+  });
 });
 
 // Settings Providers

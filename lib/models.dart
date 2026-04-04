@@ -376,3 +376,38 @@ class BudgetPlan {
         createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       );
 }
+
+class BudgetProjection {
+  final double optimistic;
+  final double average;
+  final double pessimistic;
+  final DateTime? estimatedOverrunDate;
+
+  const BudgetProjection({
+    required this.optimistic,
+    required this.average,
+    required this.pessimistic,
+    this.estimatedOverrunDate,
+  });
+}
+
+class BudgetStatus {
+  final BudgetPlan plan;
+  final double spent;
+  final double percentage;
+  final double remaining;
+  final List<Transaction> transactions;
+  final BudgetProjection projection;
+
+  BudgetStatus({
+    required this.plan,
+    required this.spent,
+    required this.percentage,
+    required this.remaining,
+    required this.transactions,
+    required this.projection,
+  });
+
+  bool get isOverBudget => spent > plan.amount;
+  bool get isNearLimit => percentage >= 0.8 && !isOverBudget;
+}
