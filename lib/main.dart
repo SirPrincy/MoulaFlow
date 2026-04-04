@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moula_flow/providers.dart';
+import 'utils/app_provider_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ void main() async {
   final accessMethod = await settingsRepo.loadAppAccessMethod();
 
   runApp(ProviderScope(
+    observers: const [AppProviderObserver()],
     overrides: [
       themeModeProvider.overrideWith(() => ThemeModeNotifier(isDark ? ThemeMode.dark : ThemeMode.light)),
       onboardingSeenProvider.overrideWith(() => OnboardingSeenNotifier(onboardingSeen)),
