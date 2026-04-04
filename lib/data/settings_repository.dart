@@ -149,11 +149,18 @@ class SettingsRepository {
     for (final entry in meta.entries) {
       final value = entry.value;
       if (value == null) continue;
-      if (value is String) await prefs.setString(entry.key, value);
-      else if (value is bool) await prefs.setBool(entry.key, value);
-      else if (value is int) await prefs.setInt(entry.key, value);
-      else if (value is double) await prefs.setDouble(entry.key, value);
-      else if (value is List) await prefs.setStringList(entry.key, value.map((e) => e.toString()).toList());
+      if (value is String) {
+        await prefs.setString(entry.key, value);
+      } else if (value is bool) {
+        await prefs.setBool(entry.key, value);
+      } else if (value is int) {
+        await prefs.setInt(entry.key, value);
+      } else if (value is double) {
+        await prefs.setDouble(entry.key, value);
+      } else if (value is List) {
+        await prefs.setStringList(
+            entry.key, value.map((e) => e.toString()).toList());
+      }
     }
 
     // Apply DB

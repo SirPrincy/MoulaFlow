@@ -111,7 +111,7 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -150,7 +150,7 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<BudgetPeriodType>(
-                value: _periodType,
+                initialValue: _periodType,
                 decoration: const InputDecoration(
                   labelText: 'Période',
                   prefixIcon: Icon(Icons.calendar_today_outlined),

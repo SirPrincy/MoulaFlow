@@ -45,11 +45,11 @@ class Wallet {
       initialBalance: initialBalance ?? this.initialBalance,
       type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
-      targetAmount: targetAmount != null ? targetAmount : this.targetAmount,
-      dueDate: dueDate != null ? dueDate : this.dueDate, // If we want to allow nullification it's harder, but normally this is fine
+      targetAmount: targetAmount ?? this.targetAmount,
+      dueDate: dueDate ?? this.dueDate, // If we want to allow nullification it's harder, but normally this is fine
       isSettled: isSettled ?? this.isSettled,
       isCredit: isCredit ?? this.isCredit,
-      interestRate: interestRate != null ? interestRate : this.interestRate,
+      interestRate: interestRate ?? this.interestRate,
     );
   }
 
@@ -174,8 +174,8 @@ class TagDefinition {
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
-      colorHex: colorHex != null ? colorHex : this.colorHex,
-      description: description != null ? description : this.description,
+      colorHex: colorHex ?? this.colorHex,
+      description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
     );
   }
