@@ -42,6 +42,11 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+
+  static Future<String> getDbFilePath() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    return p.join(dbFolder.path, 'moula_flow.sqlite');
+  }
 }
 
 LazyDatabase _openConnection() {

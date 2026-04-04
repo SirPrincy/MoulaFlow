@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -93,14 +94,14 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
               child: ListTile(
-                leading: const Icon(Icons.upload_file_outlined),
+                leading: const Icon(Icons.backup_outlined),
                 title: const Text(
-                  'Exporter en CSV',
+                  'Exporter la Sauvegarde',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
-                subtitle: const Text('Exporter toutes les données en CSV'),
+                subtitle: const Text('Générer un code de sauvegarde (Binaire)'),
                 trailing: const Icon(Icons.keyboard_arrow_right),
-                onTap: () => _showExportCsvDialog(context, settingsRepo),
+                onTap: () => _showExportBackupDialog(context, settingsRepo),
               ),
             ),
             const SizedBox(height: 16),
@@ -113,16 +114,16 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
               child: ListTile(
-                leading: const Icon(Icons.download_outlined),
+                leading: const Icon(Icons.restore_outlined),
                 title: const Text(
-                  'Importer un CSV',
+                  'Restaurer une Sauvegarde',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
                 subtitle: const Text(
-                  'Restaurer toutes les données depuis un CSV',
+                  'Restaurer depuis un code de sauvegarde',
                 ),
                 trailing: const Icon(Icons.keyboard_arrow_right),
-                onTap: () => _showImportCsvDialog(context, settingsRepo, ref),
+                onTap: () => _showImportBackupDialog(context, settingsRepo, ref),
               ),
             ),
             const SizedBox(height: 32),
@@ -201,33 +202,52 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-Future<void> _showExportCsvDialog(
+Future<void> _showExportBackupDialog(
   BuildContext context,
   SettingsRepository settingsRepo,
 ) async {
   try {
-    final csvBackup = await settingsRepo.exportAllDataAsCsv();
+    final bytes = await settingsRepo.exportBinaryBackup();
+    final backupStr = base64Encode(bytes);
     if (!context.mounted) return;
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Export CSV'),
+        title: const Text('Sauvegarde Binaire'),
         content: SizedBox(
           width: 580,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              csvBackup,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Ce code contient l\'intégralité de vos données (préférences et base de données).',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                height: 200,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    backupStr,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              Clipboard.setData(ClipboardData(text: csvBackup));
+              Clipboard.setData(ClipboardData(text: backupStr));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('CSV copié dans le presse-papiers')),
+                const SnackBar(content: Text('Sauvegarde copiée')),
               );
             },
             child: const Text('Copier'),
@@ -242,12 +262,12 @@ Future<void> _showExportCsvDialog(
   } catch (_) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Impossible d\'exporter le CSV')),
+      const SnackBar(content: Text('Impossible d\'exporter la sauvegarde')),
     );
   }
 }
 
-Future<void> _showImportCsvDialog(
+Future<void> _showImportBackupDialog(
   BuildContext context,
   SettingsRepository settingsRepo,
   WidgetRef ref,
@@ -257,17 +277,28 @@ Future<void> _showImportCsvDialog(
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Import CSV'),
+        title: const Text('Restaurer Sauvegarde'),
         content: SizedBox(
           width: 580,
-          child: TextField(
-            controller: controller,
-            minLines: 10,
-            maxLines: 20,
-            decoration: const InputDecoration(
-              hintText: 'Collez votre CSV de backup ici',
-              border: OutlineInputBorder(),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Collez le code de sauvegarde binaire ci-dessous. Toutes les données actuelles seront écrasées.',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                minLines: 8,
+                maxLines: 12,
+                decoration: const InputDecoration(
+                  hintText: 'Collez le code ici...',
+                  border: OutlineInputBorder(),
+                ),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -277,7 +308,7 @@ Future<void> _showImportCsvDialog(
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Importer'),
+            child: const Text('Restaurer'),
           ),
         ],
       ),
@@ -285,7 +316,11 @@ Future<void> _showImportCsvDialog(
 
     if (confirmed != true || !context.mounted) return;
 
-    await settingsRepo.importAllDataFromCsv(controller.text.trim());
+    final trimmed = controller.text.trim();
+    if (trimmed.isEmpty) return;
+
+    final bytes = base64Decode(trimmed);
+    await settingsRepo.importBinaryBackup(bytes);
     
     // Invalidate providers to refresh data
     ref.invalidate(walletsProvider);
@@ -294,20 +329,26 @@ Future<void> _showImportCsvDialog(
     ref.invalidate(budgetsProvider);
     ref.invalidate(recurringPaymentsProvider);
     
+    // Re-initialize theme and name
+    final newName = await settingsRepo.loadUserName();
+    final isDark = await settingsRepo.loadIsDarkMode();
+    ref.read(userNameProvider.notifier).update(newName);
+    ref.read(themeModeProvider.notifier).update(isDark ? ThemeMode.dark : ThemeMode.light);
+
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Données importées avec succès')),
+      const SnackBar(content: Text('Restauration réussie !')),
     );
     Navigator.pop(context);
   } on FormatException catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('CSV invalide: ${e.message}')),
+      SnackBar(content: Text('Code invalide: ${e.message}')),
     );
-  } catch (_) {
+  } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Impossible d\'importer le CSV')),
+      SnackBar(content: Text('Erreur: $e')),
     );
   } finally {
     controller.dispose();

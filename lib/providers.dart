@@ -114,7 +114,13 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
   @override
   ThemeMode build() => _initial ?? ThemeMode.system;
-  void update(ThemeMode mode) => state = mode;
+  
+  void update(ThemeMode mode) {
+    state = mode;
+    // Persist change
+    final isDark = mode == ThemeMode.dark;
+    ref.read(settingsRepositoryProvider).saveIsDarkMode(isDark);
+  }
 }
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
 
@@ -124,7 +130,11 @@ class OnboardingSeenNotifier extends Notifier<bool> {
 
   @override
   bool build() => _initial ?? false;
-  void update(bool seen) => state = seen;
+  
+  void update(bool seen) {
+    state = seen;
+    ref.read(settingsRepositoryProvider).saveOnboardingSeen(seen);
+  }
 }
 final onboardingSeenProvider = NotifierProvider<OnboardingSeenNotifier, bool>(OnboardingSeenNotifier.new);
 
@@ -134,7 +144,11 @@ class AppAccessMethodNotifier extends Notifier<AppAccessMethod> {
 
   @override
   AppAccessMethod build() => _initial ?? AppAccessMethod.none;
-  void update(AppAccessMethod method) => state = method;
+  
+  void update(AppAccessMethod method) {
+    state = method;
+    ref.read(settingsRepositoryProvider).saveAppAccessMethod(method);
+  }
 }
 final appAccessMethodProvider = NotifierProvider<AppAccessMethodNotifier, AppAccessMethod>(AppAccessMethodNotifier.new);
 
@@ -144,7 +158,13 @@ class UserNameNotifier extends Notifier<String?> {
 
   @override
   String? build() => _initial;
-  void update(String? name) => state = name;
+  
+  void update(String? name) {
+    state = name;
+    if (name != null) {
+      ref.read(settingsRepositoryProvider).saveUserName(name);
+    }
+  }
 }
 final userNameProvider = NotifierProvider<UserNameNotifier, String?>(UserNameNotifier.new);
 
@@ -154,7 +174,11 @@ class UserColorNotifier extends Notifier<int> {
 
   @override
   int build() => _initial ?? 0xFF6200EE;
-  void update(int color) => state = color;
+  
+  void update(int color) {
+    state = color;
+    ref.read(settingsRepositoryProvider).saveUserColor(color);
+  }
 }
 final userColorProvider = NotifierProvider<UserColorNotifier, int>(UserColorNotifier.new);
 
@@ -163,8 +187,12 @@ class UserAvatarNotifier extends Notifier<int> {
   UserAvatarNotifier([this._initial]);
 
   @override
-  int build() => _initial ?? 59475; // Icons.person codePoint is 59475 in some versions, check Material Icons.
-  void update(int codePoint) => state = codePoint;
+  int build() => _initial ?? 59475;
+  
+  void update(int codePoint) {
+    state = codePoint;
+    ref.read(settingsRepositoryProvider).saveUserAvatar(codePoint);
+  }
 }
 final userAvatarProvider = NotifierProvider<UserAvatarNotifier, int>(UserAvatarNotifier.new);
 

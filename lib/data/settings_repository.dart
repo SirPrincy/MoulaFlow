@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_access_method.dart';
 import 'storage_keys.dart';
@@ -7,8 +9,6 @@ import 'database/app_database.dart';
 class SettingsRepository {
   final AppDatabase? _db;
   SettingsRepository([this._db]);
-
-  static const int _backupVersion = 1;
 
   static const List<String> _allExportableKeys = [
     StorageKeys.wallets,
@@ -96,149 +96,77 @@ class SettingsRepository {
     }
   }
 
-  Future<String> exportAllDataAsJson() async {
+  Future<Uint8List> exportBinaryBackup() async {
     final prefs = await SharedPreferences.getInstance();
-    final payload = <String, dynamic>{
-      'version': _backupVersion,
-      'exportedAt': DateTime.now().toIso8601String(),
-      'data': <String, dynamic>{},
-    };
-
-    final data = payload['data'] as Map<String, dynamic>;
+    final meta = <String, dynamic>{};
     for (final key in _allExportableKeys) {
-      data[key] = prefs.get(key);
+      meta[key] = prefs.get(key);
     }
+    final metaBytes = utf8.encode(jsonEncode(meta));
 
-    return const JsonEncoder.withIndent('  ').convert(payload);
+    final dbPath = await AppDatabase.getDbFilePath();
+    final dbFile = File(dbPath);
+    final dbBytes = await dbFile.exists() ? await dbFile.readAsBytes() : Uint8List(0);
+
+    final result = BytesBuilder();
+
+    // 1. Header (16 bytes)
+    final header = ascii.encode('MOULA_FLOW_BK_1'.padRight(16));
+    result.add(header);
+
+    // 2. Meta Segment
+    final metaLen = ByteData(4)..setInt32(0, metaBytes.length);
+    result.add(metaLen.buffer.asUint8List());
+    result.add(metaBytes);
+
+    // 3. DB Segment
+    final dbLen = ByteData(4)..setInt32(0, dbBytes.length);
+    result.add(dbLen.buffer.asUint8List());
+    result.add(dbBytes);
+
+    return result.toBytes();
   }
 
-  Future<void> importAllDataFromJson(String rawJson) async {
-    final decoded = jsonDecode(rawJson);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Le JSON doit être un objet.');
-    }
+  Future<void> importBinaryBackup(Uint8List bytes) async {
+    if (bytes.length < 16) throw const FormatException('Données de sauvegarde trop courtes.');
 
-    final data = decoded['data'];
-    if (data is! Map<String, dynamic>) {
-      throw const FormatException('Le champ "data" est manquant ou invalide.');
-    }
+    final data = ByteData.sublistView(bytes);
+    final header = ascii.decode(bytes.sublist(0, 16)).trim();
+    if (header != 'MOULA_FLOW_BK_1') throw const FormatException('Format de sauvegarde invalide.');
 
+    var offset = 16;
+
+    // 1. Meta Segment
+    final metaLen = data.getInt32(offset);
+    offset += 4;
+    final metaBytes = bytes.sublist(offset, offset + metaLen);
+    offset += metaLen;
+    final meta = jsonDecode(utf8.decode(metaBytes)) as Map<String, dynamic>;
+
+    // 2. DB Segment
+    final dbLen = data.getInt32(offset);
+    offset += 4;
+    final dbBytes = bytes.sublist(offset, offset + dbLen);
+
+    // Apply Meta (SharedPreferences)
     final prefs = await SharedPreferences.getInstance();
-    await _db?.clearAllData();
     await prefs.clear();
-
-    for (final key in _allExportableKeys) {
-      if (!data.containsKey(key)) continue;
-      final value = data[key];
+    for (final entry in meta.entries) {
+      final value = entry.value;
       if (value == null) continue;
-
-      if (value is String) {
-        await prefs.setString(key, value);
-      } else if (value is bool) {
-        await prefs.setBool(key, value);
-      } else if (value is int) {
-        await prefs.setInt(key, value);
-      } else if (value is double) {
-        await prefs.setDouble(key, value);
-      } else if (value is List<String>) {
-        await prefs.setStringList(key, value);
-      } else if (value is List) {
-        await prefs.setStringList(key, value.map((e) => e.toString()).toList());
-      } else {
-        throw FormatException('Type non supporté pour la clé "$key".');
-      }
-    }
-  }
-
-  Future<String> exportAllDataAsCsv() async {
-    final prefs = await SharedPreferences.getInstance();
-    final buffer = StringBuffer();
-    buffer.writeln('key,type,value_base64');
-    buffer.writeln('_meta_version,int,${_encodeCsvValue(_backupVersion.toString())}');
-    buffer.writeln(
-      '_meta_exportedAt,string,${_encodeCsvValue(DateTime.now().toIso8601String())}',
-    );
-
-    for (final key in _allExportableKeys) {
-      final value = prefs.get(key);
-      if (value == null) continue;
-      final type = _typeOfValue(value);
-      final serialized = _serializeValue(value);
-      buffer.writeln('$key,$type,${_encodeCsvValue(serialized)}');
+      if (value is String) await prefs.setString(entry.key, value);
+      else if (value is bool) await prefs.setBool(entry.key, value);
+      else if (value is int) await prefs.setInt(entry.key, value);
+      else if (value is double) await prefs.setDouble(entry.key, value);
+      else if (value is List) await prefs.setStringList(entry.key, value.map((e) => e.toString()).toList());
     }
 
-    return buffer.toString();
-  }
-
-  Future<void> importAllDataFromCsv(String rawCsv) async {
-    final lines = rawCsv
-        .split('\n')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-
-    if (lines.isEmpty || lines.first != 'key,type,value_base64') {
-      throw const FormatException('CSV invalide: en-tête manquant.');
+    // Apply DB
+    final dbPath = await AppDatabase.getDbFilePath();
+    final dbFile = File(dbPath);
+    if (await dbFile.exists()) {
+      await dbFile.delete();
     }
-
-    final prefs = await SharedPreferences.getInstance();
-    await _db?.clearAllData();
-    await prefs.clear();
-
-    for (final line in lines.skip(1)) {
-      final parts = line.split(',');
-      if (parts.length < 3) {
-        throw FormatException('CSV invalide: ligne mal formée "$line".');
-      }
-
-      final key = parts[0];
-      final type = parts[1];
-      final encodedValue = parts.sublist(2).join(',');
-      final decodedValue = utf8.decode(base64Decode(encodedValue));
-
-      if (key.startsWith('_meta_')) continue;
-      if (!_allExportableKeys.contains(key)) continue;
-
-      switch (type) {
-        case 'string':
-          await prefs.setString(key, decodedValue);
-          break;
-        case 'bool':
-          await prefs.setBool(key, decodedValue == 'true');
-          break;
-        case 'int':
-          await prefs.setInt(key, int.parse(decodedValue));
-          break;
-        case 'double':
-          await prefs.setDouble(key, double.parse(decodedValue));
-          break;
-        case 'string_list':
-          final list = (jsonDecode(decodedValue) as List<dynamic>)
-              .map((e) => e.toString())
-              .toList();
-          await prefs.setStringList(key, list);
-          break;
-        default:
-          throw FormatException('Type CSV non supporté: "$type".');
-      }
-    }
-  }
-
-  String _encodeCsvValue(String value) => base64Encode(utf8.encode(value));
-
-  String _typeOfValue(Object value) {
-    if (value is String) return 'string';
-    if (value is bool) return 'bool';
-    if (value is int) return 'int';
-    if (value is double) return 'double';
-    if (value is List<String>) return 'string_list';
-    if (value is List) return 'string_list';
-    throw FormatException('Type non supporté pour export CSV: ${value.runtimeType}');
-  }
-
-  String _serializeValue(Object value) {
-    if (value is List<String>) return jsonEncode(value);
-    if (value is List) return jsonEncode(value.map((e) => e.toString()).toList());
-    return value.toString();
+    await dbFile.writeAsBytes(dbBytes);
   }
 }
