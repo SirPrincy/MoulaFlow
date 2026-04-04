@@ -70,46 +70,29 @@ class BudgetPlannerPage extends ConsumerWidget {
           onRefresh: () async => ref.invalidate(budgetsProvider),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: budgets.length == 1
-                ? Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: BudgetCard(
-                        budgetId: budgets.first.id,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BudgetDetailPage(budgetId: budgets.first.id),
-                            ),
-                          );
-                        },
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 450,
+                mainAxisExtent: 200,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: budgets.length,
+              itemBuilder: (context, index) {
+                final budget = budgets[index];
+                return BudgetCard(
+                  budgetId: budget.id,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BudgetDetailPage(budgetId: budget.id),
                       ),
-                    ),
-                  )
-                : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 450,
-                      mainAxisExtent: 180,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: budgets.length,
-                    itemBuilder: (context, index) {
-                      final budget = budgets[index];
-                      return BudgetCard(
-                        budgetId: budget.id,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BudgetDetailPage(budgetId: budget.id),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         );
       },
