@@ -140,8 +140,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             // If balance reached or exceeded target, mark as settled/completed
             if (balance >= effectiveTarget) {
-              w.isSettled = true;
-              await ref.read(walletRepositoryProvider).updateWallet(w);
+              final updatedWallet = w.copyWith(isSettled: true);
+              await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
             }
           }
         }

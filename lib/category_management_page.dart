@@ -101,7 +101,14 @@ class _CategoryManagementPageState extends ConsumerState<CategoryManagementPage>
                       parentCategory.subcategories.add(newCat);
                     }
                   } else {
-                    category.name = name;
+                    final updatedCategory = category.copyWith(name: name);
+                    if (parentCategory == null) {
+                      final idx = _categories.indexWhere((c) => c.id == category.id);
+                      if (idx != -1) _categories[idx] = updatedCategory;
+                    } else {
+                      final idx = parentCategory.subcategories.indexWhere((c) => c.id == category.id);
+                      if (idx != -1) parentCategory.subcategories[idx] = updatedCategory;
+                    }
                   }
                 });
 

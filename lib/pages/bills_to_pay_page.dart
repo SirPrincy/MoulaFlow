@@ -111,25 +111,28 @@ class _BillsToPayPageState extends ConsumerState<BillsToPayPage> {
       _transactions.insert(0, newTx);
 
       // 2. Handle nextDueDate or deactivate
+      bool newIsActive = p.isActive;
+      DateTime newNextDueDate = p.nextDueDate;
+
       if (p.frequency == RecurrenceFrequency.once) {
-        p.isActive = false;
+        newIsActive = false;
       } else {
         switch (p.frequency) {
           case RecurrenceFrequency.daily:
-            p.nextDueDate = p.nextDueDate.add(const Duration(days: 1));
+            newNextDueDate = p.nextDueDate.add(const Duration(days: 1));
             break;
           case RecurrenceFrequency.weekly:
-            p.nextDueDate = p.nextDueDate.add(const Duration(days: 7));
+            newNextDueDate = p.nextDueDate.add(const Duration(days: 7));
             break;
           case RecurrenceFrequency.monthly:
-            p.nextDueDate = DateTime(
+            newNextDueDate = DateTime(
               p.nextDueDate.year,
               p.nextDueDate.month + 1,
               p.nextDueDate.day,
             );
             break;
           case RecurrenceFrequency.yearly:
-            p.nextDueDate = DateTime(
+            newNextDueDate = DateTime(
               p.nextDueDate.year + 1,
               p.nextDueDate.month,
               p.nextDueDate.day,
@@ -138,6 +141,16 @@ class _BillsToPayPageState extends ConsumerState<BillsToPayPage> {
           default:
             break;
         }
+      }
+      
+      final updatedPayment = p.copyWith(
+        isActive: newIsActive,
+        nextDueDate: newNextDueDate,
+      );
+      
+      final idx = _plannedPayments.indexWhere((item) => item.id == p.id);
+      if (idx != -1) {
+        _plannedPayments[idx] = updatedPayment;
       }
     });
 

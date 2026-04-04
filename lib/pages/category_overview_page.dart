@@ -585,11 +585,16 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         .insertWallet(transactionWallet);
                   }
 
-                  debtWallet.initialBalance += amount;
-                  if (hasTarget && _getDebtRemainingAmount(debtWallet) <= 0.0001) {
-                    debtWallet.isSettled = true;
+                  final newBalance = debtWallet.initialBalance + amount;
+                  bool newIsSettled = debtWallet.isSettled;
+                  
+                  final tempWallet = debtWallet.copyWith(initialBalance: newBalance);
+                  if (hasTarget && _getDebtRemainingAmount(tempWallet) <= 0.0001) {
+                    newIsSettled = true;
                   }
-                  await ref.read(walletRepositoryProvider).updateWallet(debtWallet);
+                  
+                  final updatedWallet = tempWallet.copyWith(isSettled: newIsSettled);
+                  await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
 
                   final shouldCreateTx = await _askTransactionConfirmation(
                     'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
@@ -1040,23 +1045,18 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         );
                         await ref.read(walletRepositoryProvider).insertWallet(newWallet);
                       } else {
-                        wallet.name = nameController.text.trim();
-                        wallet.initialBalance = initialBalance;
-                        wallet.type = selectedType;
-                        wallet.targetAmount = double.tryParse(
-                          targetAmountController.text.replaceAll(',', '.'),
+                        final updatedWallet = wallet.copyWith(
+                          name: nameController.text.trim(),
+                          initialBalance: initialBalance,
+                          type: selectedType,
+                          targetAmount: double.tryParse(targetAmountController.text.replaceAll(',', '.')),
+                          dueDate: selectedDueDate,
+                          isCredit: isCredit,
+                          interestRate: hasInterest
+                              ? double.tryParse(interestRateController.text.replaceAll(',', '.'))
+                              : null,
                         );
-                        wallet.dueDate = selectedDueDate;
-                        wallet.isCredit = isCredit;
-                        wallet.interestRate = hasInterest
-                            ? double.tryParse(
-                                interestRateController.text.replaceAll(
-                                  ',',
-                                  '.',
-                                ),
-                              )
-                            : null;
-                        await ref.read(walletRepositoryProvider).updateWallet(wallet);
+                        await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
                       }
                       if (context.mounted) {
                         Navigator.pop(context);
@@ -1316,8 +1316,8 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                                                     alpha: isDark ? 0.55 : 0.2,
                                                   ),
                                         onPressed: () async {
-                                          wallet.isSettled = !wallet.isSettled;
-                                          await ref.read(walletRepositoryProvider).updateWallet(wallet);
+                                          final updatedWallet = wallet.copyWith(isSettled: !wallet.isSettled);
+                                          await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
                                         },
                                       ),
                                     ],

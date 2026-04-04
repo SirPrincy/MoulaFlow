@@ -92,7 +92,7 @@ class TransactionCategory {
     required this.id,
     required this.name,
     List<TransactionCategory>? subcategories,
-  }) : subcategories = subcategories ?? const [];
+  }) : subcategories = subcategories ?? [];
 
   TransactionCategory copyWith({
     String? id,

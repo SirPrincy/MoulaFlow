@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
-import '../utils/styles.dart';
 
 class WalletForm extends StatefulWidget {
   final Wallet? initialWallet;
