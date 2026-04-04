@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../widgets.dart';
 import '../responsive_layout.dart';
+import '../domain/balance_service.dart';
+import '../providers.dart';
 import '../utils/styles.dart';
 
 class CategoryOverviewPage extends ConsumerStatefulWidget {
