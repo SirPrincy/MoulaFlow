@@ -22,19 +22,13 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
 
   // State collected during wizard
   String _userName = '';
-  int _userColor = 0xFF6200EE;
+  int _userColor = 0xFF6366F1; // Default to Indigo
   int _userAvatar = Icons.person_rounded.codePoint;
   
   String _walletName = '';
   double _walletBalance = 0.0;
-  final WalletType _walletType = WalletType.current;
+  WalletType _walletType = WalletType.current;
   
-  // Transaction (Optional)
-  String _txDescription = '';
-  double _txAmount = 0.0;
-  final TransactionType _txType = TransactionType.expense;
-  bool _addFirstTransaction = false;
-
   final List<int> _availableColors = [
     0xFF6366F1, // Indigo
     0xFFEC4899, // Pink
@@ -57,8 +51,15 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
     'Portefeuille',
     'Compte Courant',
     'Épargne',
-    'Cash',
+    'Investissements',
     'Freelance',
+  ];
+
+  final List<({String label, IconData icon, WalletType type})> _walletTypes = [
+    (label: 'Compte Bancaire', icon: Icons.account_balance_rounded, type: WalletType.bank),
+    (label: 'Livret Épargne', icon: Icons.savings_rounded, type: WalletType.savings),
+    (label: 'Espèces', icon: Icons.payments_rounded, type: WalletType.cash),
+    (label: 'Mobile Money', icon: Icons.phone_android_rounded, type: WalletType.mobileMoney),
   ];
 
   final TextEditingController _walletNameController = TextEditingController();
@@ -71,7 +72,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
   }
 
   void _next() {
-    if (_currentStep < 4) {
+    if (_currentStep < 3) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
@@ -117,21 +118,14 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
       );
       await ref.read(walletRepositoryProvider).insertWallet(wallet);
 
-      // 3. Create Transaction (if opted in)
-      if (_addFirstTransaction && _txAmount > 0) {
-        final tx = Transaction(
-          id: const Uuid().v4(),
-          amount: _txAmount,
-          description: _txDescription.isEmpty ? 'Première transaction' : _txDescription,
-          type: _txType,
-          date: DateTime.now(),
-          walletId: wallet.id,
-          categoryId: 'cat_divers',
-        );
-        await ref.read(transactionRepositoryProvider).insertTransaction(tx);
-      }
-
+      // 3. Mark Onboarding as seen
       await widget.onFinished();
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Erreur: $e')),
+         );
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -160,7 +154,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 400),
                     height: 6,
-                    width: (MediaQuery.of(context).size.width - 48) * ((_currentStep + 1) / 5),
+                    width: (MediaQuery.of(context).size.width - 48) * ((_currentStep + 1) / 4),
                     decoration: BoxDecoration(
                       color: Color(_userColor),
                       borderRadius: BorderRadius.circular(10),
@@ -179,7 +173,6 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
                   _buildIntroStep(),
                   _buildNameStep(),
                   _buildWalletStep(),
-                  _buildTransactionStep(),
                   _buildSuccessStep(),
                 ],
               ),
@@ -189,7 +182,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                   if (_currentStep > 0 && _currentStep < 4)
+                   if (_currentStep > 0 && _currentStep < 3)
                     IconButton(
                       onPressed: _previous,
                       icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -206,7 +199,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
                       ),
                       child: _isSubmitting 
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(_currentStep == 4 ? 'C\'est parti' : 'Suivant'),
+                        : Text(_currentStep == 3 ? 'C\'est parti' : 'Suivant'),
                     ),
                   ),
                 ],
@@ -304,9 +297,11 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
 
   Widget _buildWalletStep() {
     final theme = Theme.of(context);
+    final primaryColor = Color(_userColor);
+
     return _WizardStepContainer(
       icon: Icons.account_balance_wallet_rounded,
-      title: 'Votre premier compte',
+      title: 'Créez votre\npremier compte',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -337,6 +332,36 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
             )).toList(),
           ),
           const SizedBox(height: 32),
+          const Text('TYPE DE COMPTE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _walletTypes.map((item) {
+              final isSelected = _walletType == item.type;
+              return GestureDetector(
+                onTap: () => setState(() => _walletType = item.type),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? primaryColor.withValues(alpha: 0.1) : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: isSelected ? Border.all(color: primaryColor, width: 2) : Border.all(color: Colors.transparent),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(item.icon, size: 20, color: isSelected ? primaryColor : theme.colorScheme.onSurface),
+                      const SizedBox(width: 8),
+                      Text(item.label, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? primaryColor : theme.colorScheme.onSurface)),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 32),
           TextField(
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (val) => _walletBalance = double.tryParse(val.replaceAll(',', '.')) ?? 0.0,
@@ -348,44 +373,6 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionStep() {
-    return _WizardStepContainer(
-      icon: Icons.receipt_long_rounded,
-      title: 'Une première transaction ?',
-      child: Column(
-        children: [
-          SwitchListTile(
-            title: const Text('Souhaitez-vous ajouter une opération ?', style: TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: const Text('Optionnel, peut être skippé'),
-            value: _addFirstTransaction,
-            onChanged: (val) => setState(() => _addFirstTransaction = val),
-            activeThumbColor: Color(_userColor),
-          ),
-          if (_addFirstTransaction) ...[
-             const SizedBox(height: 24),
-             TextField(
-                onChanged: (val) => _txDescription = val,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (val) => _txAmount = double.tryParse(val.replaceAll(',', '.')) ?? 0.0,
-                decoration: InputDecoration(
-                  labelText: 'Montant',
-                  suffixText: '€',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-          ],
         ],
       ),
     );
