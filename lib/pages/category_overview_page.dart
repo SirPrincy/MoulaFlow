@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../widgets.dart';
 import '../responsive_layout.dart';
-import '../data/transaction_repository.dart';
-import '../data/wallet_repository.dart';
-import '../data/category_repository.dart';
-import '../domain/balance_service.dart';
 import '../utils/styles.dart';
 
-class CategoryOverviewPage extends StatefulWidget {
+class CategoryOverviewPage extends ConsumerStatefulWidget {
   final WalletType type;
   final String title;
 
@@ -19,10 +16,10 @@ class CategoryOverviewPage extends StatefulWidget {
   });
 
   @override
-  State<CategoryOverviewPage> createState() => _CategoryOverviewPageState();
+  ConsumerState<CategoryOverviewPage> createState() => _CategoryOverviewPageState();
 }
 
-class _CategoryOverviewPageState extends State<CategoryOverviewPage>
+class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
     with SingleTickerProviderStateMixin {
   List<Transaction> _transactions = [];
   List<Wallet> _allWallets = [];
@@ -30,9 +27,6 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
   List<TransactionCategory> _categories = [];
   late TabController _tabController;
 
-  final _transactionRepo = TransactionRepository();
-  final _walletRepo = WalletRepository();
-  final _categoryRepo = CategoryRepository();
   final _balanceService = BalanceService();
 
   @override
@@ -40,27 +34,12 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() => setState(() {}));
-    _loadData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadData() async {
-    _categories = await _categoryRepo.loadCategories();
-    _allWallets = await _walletRepo.loadWallets();
-    _wallets = _allWallets.where((w) => w.type == widget.type).toList();
-    _transactions = await _transactionRepo.loadTransactions();
-    setState(() {});
-  }
-
-  Future<void> _saveData() async {
-    await _transactionRepo.saveTransactions(_transactions);
-    final walletsById = {for (final wallet in _allWallets) wallet.id: wallet};
-    await _walletRepo.saveWallets(walletsById.values.toList());
   }
 
   double _getWalletBalance(String walletId) =>
@@ -146,13 +125,13 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
       ),
       builder: (context) {
         return TransactionForm(
-          wallets: _wallets,
+          wallets: _allWallets,
           categories: _categories,
           editingTx: editingTx,
           prefilledWalletId: prefilledWalletId,
         );
       },
-    ).then((result) {
+    ).then((result) async {
       if (result != null && result is Map) {
         if (result['action'] == 'create_wallet') {
           _showSpecializedWalletDialog();
@@ -161,19 +140,15 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
         final tx = result['tx'] as Transaction;
         final action = result['action'] as String;
 
-        setState(() {
-          if (action == 'save') {
-            if (editingTx != null) {
-              final index = _transactions.indexWhere((t) => t.id == tx.id);
-              if (index != -1) _transactions[index] = tx;
-            } else {
-              _transactions.insert(0, tx);
-            }
-          } else if (action == 'delete') {
-            _transactions.removeWhere((t) => t.id == tx.id);
+        if (action == 'save') {
+          if (editingTx != null) {
+            await ref.read(transactionRepositoryProvider).updateTransaction(tx);
+          } else {
+            await ref.read(transactionRepositoryProvider).insertTransaction(tx);
           }
-        });
-        _saveData();
+        } else if (action == 'delete') {
+          await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
+        }
       }
     });
   }
@@ -389,7 +364,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                       name: newWalletNameController.text.trim(),
                       type: WalletType.current,
                     );
-                    _allWallets.add(transactionWallet);
+                    await ref.read(walletRepositoryProvider).insertWallet(transactionWallet);
                   }
 
                   final debtWallet = Wallet(
@@ -402,8 +377,7 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                     createdAt: issueDate,
                   );
 
-                  _allWallets.add(debtWallet);
-                  _wallets.add(debtWallet);
+                  await ref.read(walletRepositoryProvider).insertWallet(debtWallet);
 
                   final shouldCreateTx = await _askTransactionConfirmation(
                     'Voulez-vous enregistrer la transaction associée à cette dette ? (oui/non)',
@@ -423,28 +397,30 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                       walletId: transactionWallet.id,
                       relatedDebtId: debtWallet.id,
                     );
-                    _transactions.insert(0, tx);
-                    _showOperationSummary(
-                      operation: 'Création de dette',
-                      walletName: transactionWallet.name,
-                      amount: txType == TransactionType.expense
-                          ? -amount
-                          : amount,
-                      date: issueDate,
-                      txType: txType.name,
-                    );
+                    await ref.read(transactionRepositoryProvider).insertTransaction(tx);
+                    if (mounted) {
+                      _showOperationSummary(
+                        operation: 'Création de dette',
+                        walletName: transactionWallet.name,
+                        amount: txType == TransactionType.expense
+                            ? -amount
+                            : amount,
+                        date: issueDate,
+                        txType: txType.name,
+                      );
+                    }
                   } else {
-                    _showOperationSummary(
-                      operation: 'Création de dette (sans transaction)',
-                      walletName: transactionWallet.name,
-                      amount: isCredit ? -amount : amount,
-                      date: issueDate,
-                      txType: 'aucune',
-                    );
+                    if (mounted) {
+                      _showOperationSummary(
+                        operation: 'Création de dette (sans transaction)',
+                        walletName: transactionWallet.name,
+                        amount: isCredit ? -amount : amount,
+                        date: issueDate,
+                        txType: 'aucune',
+                      );
+                    }
                   }
 
-                  setState(() {});
-                  await _saveData();
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
                 child: const Text('Créer'),
@@ -598,11 +574,12 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                   if (hasTarget && _getDebtRemainingAmount(debtWallet) <= 0.0001) {
                     debtWallet.isSettled = true;
                   }
+                  await ref.read(walletRepositoryProvider).updateWallet(debtWallet);
 
                   final shouldCreateTx = await _askTransactionConfirmation(
                     'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
                   );
-                  if (shouldCreateTx) {
+                  if (shouldCreateTx && transactionWallet != null) {
                     final txType = debtWallet.isCredit
                         ? TransactionType.income
                         : TransactionType.expense;
@@ -615,26 +592,30 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                       walletId: transactionWallet.id,
                       relatedDebtId: debtWallet.id,
                     );
-                    _transactions.insert(0, tx);
-                    _showOperationSummary(
-                      operation: 'Remboursement',
-                      walletName: transactionWallet.name,
-                      amount: txType == TransactionType.expense
-                          ? -amount
-                          : amount,
-                      date: DateTime.now(),
-                      txType: txType.name,
-                    );
+                    await ref.read(transactionRepositoryProvider).insertTransaction(tx);
+                    if (mounted) {
+                      _showOperationSummary(
+                        operation: 'Remboursement',
+                        walletName: transactionWallet.name,
+                        amount: txType == TransactionType.expense
+                            ? -amount
+                            : amount,
+                        date: DateTime.now(),
+                        txType: txType.name,
+                      );
+                    }
                   } else {
-                    _showOperationSummary(
-                      operation: 'Remboursement (sans transaction)',
-                      walletName: transactionWallet.name,
-                      amount: debtWallet.isCredit ? amount : -amount,
-                      date: DateTime.now(),
-                      txType: 'aucune',
-                    );
+                    if (mounted) {
+                      _showOperationSummary(
+                        operation: 'Remboursement (sans transaction)',
+                        walletName: transactionWallet?.name ?? 'Aucun',
+                        amount: debtWallet.isCredit ? amount : -amount,
+                        date: DateTime.now(),
+                        txType: 'aucune',
+                      );
+                    }
                   }
-                  await _saveData();
+                  
                   if (context.mounted) {
                     final updatedRemaining = _getDebtRemainingAmount(debtWallet);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -646,7 +627,6 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                       ),
                     );
                   }
-                  setState(() {});
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
                 child: const Text('Valider'),
@@ -982,22 +962,20 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                               child: const Text('Annuler'),
                             ),
                             TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _transactions.removeWhere(
-                                    (tx) =>
-                                        tx.walletId == wallet.id ||
-                                        tx.fromWalletId == wallet.id ||
-                                        tx.toWalletId == wallet.id,
-                                  );
-                                  _wallets.remove(wallet);
-                                  _allWallets.removeWhere(
-                                    (w) => w.id == wallet.id,
-                                  );
-                                });
-                                _saveData();
-                                Navigator.pop(ctx);
-                                Navigator.pop(context);
+                              onPressed: () async {
+                                final txRepo = ref.read(transactionRepositoryProvider);
+                                final txsToRemove = _transactions.where(
+                                  (tx) => tx.walletId == wallet.id || tx.fromWalletId == wallet.id || tx.toWalletId == wallet.id
+                                ).toList();
+                                for (var tx in txsToRemove) {
+                                  await txRepo.deleteTransaction(tx.id);
+                                }
+                                await ref.read(walletRepositoryProvider).deleteWallet(wallet.id);
+                                
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  Navigator.pop(context);
+                                }
                               },
                               child: const Text(
                                 'Supprimer',
@@ -1018,58 +996,55 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                   child: const Text('Annuler'),
                 ),
                 FilledButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (nameController.text.trim().isNotEmpty) {
                       final initialBalance =
                           double.tryParse(
                             initialBalanceController.text.replaceAll(',', '.'),
                           ) ??
                           0.0;
-                      setState(() {
-                        if (wallet == null) {
-                          final newWallet = Wallet(
-                            id: DateTime.now().millisecondsSinceEpoch
-                                .toString(),
-                            name: nameController.text.trim(),
-                            initialBalance: initialBalance,
-                            type: selectedType,
-                            targetAmount: double.tryParse(
-                              targetAmountController.text.replaceAll(',', '.'),
-                            ),
-                            dueDate: selectedDueDate,
-                            isCredit: isCredit,
-                            interestRate: hasInterest
-                                ? double.tryParse(
-                                    interestRateController.text.replaceAll(
-                                      ',',
-                                      '.',
-                                    ),
-                                  )
-                                : null,
-                          );
-                          _wallets.add(newWallet);
-                          _allWallets.add(newWallet);
-                        } else {
-                          wallet.name = nameController.text.trim();
-                          wallet.initialBalance = initialBalance;
-                          wallet.type = selectedType;
-                          wallet.targetAmount = double.tryParse(
+                      if (wallet == null) {
+                        final newWallet = Wallet(
+                          id: DateTime.now().millisecondsSinceEpoch
+                              .toString(),
+                          name: nameController.text.trim(),
+                          initialBalance: initialBalance,
+                          type: selectedType,
+                          targetAmount: double.tryParse(
                             targetAmountController.text.replaceAll(',', '.'),
-                          );
-                          wallet.dueDate = selectedDueDate;
-                          wallet.isCredit = isCredit;
-                          wallet.interestRate = hasInterest
+                          ),
+                          dueDate: selectedDueDate,
+                          isCredit: isCredit,
+                          interestRate: hasInterest
                               ? double.tryParse(
                                   interestRateController.text.replaceAll(
                                     ',',
                                     '.',
                                   ),
                                 )
-                              : null;
-                        }
-                      });
-                      _saveData();
-                      Navigator.pop(context);
+                              : null,
+                        );
+                        await ref.read(walletRepositoryProvider).insertWallet(newWallet);
+                      } else {
+                        wallet.name = nameController.text.trim();
+                        wallet.initialBalance = initialBalance;
+                        wallet.type = selectedType;
+                        wallet.targetAmount = double.tryParse(
+                          targetAmountController.text.replaceAll(',', '.'),
+                        );
+                        wallet.dueDate = selectedDueDate;
+                        wallet.isCredit = isCredit;
+                        wallet.interestRate = hasInterest
+                            ? double.tryParse(
+                                interestRateController.text.replaceAll(
+                                  ',',
+                                  '.',
+                                ),
+                              )
+                            : null;
+                        await ref.read(walletRepositoryProvider).updateWallet(wallet);
+                      }
+                      if (context.mounted) Navigator.pop(context);
                     }
                   },
                   child: const Text('Enregistrer'),
@@ -1084,6 +1059,19 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
 
   @override
   Widget build(BuildContext context) {
+    final walletsAsync = ref.watch(walletsProvider);
+    final txsAsync = ref.watch(transactionsProvider);
+    final catsAsync = ref.watch(categoriesProvider);
+
+    if (walletsAsync.isLoading || txsAsync.isLoading || catsAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    _allWallets = walletsAsync.value ?? [];
+    _wallets = _allWallets.where((w) => w.type == widget.type).toList();
+    _transactions = txsAsync.value ?? [];
+    _categories = catsAsync.value ?? [];
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -1311,12 +1299,9 @@ class _CategoryOverviewPageState extends State<CategoryOverviewPage>
                                                   .withValues(
                                                     alpha: isDark ? 0.55 : 0.2,
                                                   ),
-                                        onPressed: () {
-                                          setState(() {
-                                            wallet.isSettled =
-                                                !wallet.isSettled;
-                                          });
-                                          _saveData();
+                                        onPressed: () async {
+                                          wallet.isSettled = !wallet.isSettled;
+                                          await ref.read(walletRepositoryProvider).updateWallet(wallet);
                                         },
                                       ),
                                     ],
