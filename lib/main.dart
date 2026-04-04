@@ -108,7 +108,7 @@ class MoulaFlowApp extends ConsumerWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         useMaterial3: true,
-        textTheme: GoogleFonts.workSansTextTheme().copyWith(
+        textTheme: GoogleFonts.workSansTextTheme(ThemeData.light().textTheme).copyWith(
           displayLarge: GoogleFonts.newsreader(
             fontWeight: FontWeight.w900, 
             letterSpacing: -1.5,
@@ -186,7 +186,7 @@ class MoulaFlowApp extends ConsumerWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         useMaterial3: true,
-        textTheme: GoogleFonts.workSansTextTheme().copyWith(
+        textTheme: GoogleFonts.workSansTextTheme(ThemeData.dark().textTheme).copyWith(
           displayLarge: GoogleFonts.newsreader(
             fontWeight: FontWeight.w900, 
             letterSpacing: -1.5,
