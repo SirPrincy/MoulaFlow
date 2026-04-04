@@ -14,7 +14,7 @@ import 'package:moula_flow/domain/budget_planning_service.dart';
 import 'package:flutter/material.dart';
 
 final databaseProvider = Provider((ref) => AppDatabase());
-final settingsRepositoryProvider = Provider((ref) => SettingsRepository());
+final settingsRepositoryProvider = Provider((ref) => SettingsRepository(ref.watch(databaseProvider)));
 final dashboardRepositoryProvider = Provider((ref) => DashboardRepository());
 
 final transactionRepositoryProvider = Provider((ref) => TransactionRepository(ref.watch(databaseProvider)));

@@ -2,8 +2,12 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_access_method.dart';
 import 'storage_keys.dart';
+import 'database/app_database.dart';
 
 class SettingsRepository {
+  final AppDatabase? _db;
+  SettingsRepository([this._db]);
+
   static const int _backupVersion = 1;
 
   static const List<String> _allExportableKeys = [
@@ -85,6 +89,7 @@ class SettingsRepository {
   Future<void> clearAllDataExceptTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool(StorageKeys.isDarkMode);
+    await _db?.clearAllData();
     await prefs.clear();
     if (isDark != null) {
       await prefs.setBool(StorageKeys.isDarkMode, isDark);
@@ -119,6 +124,7 @@ class SettingsRepository {
     }
 
     final prefs = await SharedPreferences.getInstance();
+    await _db?.clearAllData();
     await prefs.clear();
 
     for (final key in _allExportableKeys) {
@@ -176,6 +182,7 @@ class SettingsRepository {
     }
 
     final prefs = await SharedPreferences.getInstance();
+    await _db?.clearAllData();
     await prefs.clear();
 
     for (final line in lines.skip(1)) {
