@@ -7,8 +7,14 @@ import 'package:moula_flow/data/budget_repository.dart';
 import 'package:moula_flow/data/recurring_payment_repository.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/domain/balance_service.dart';
+import 'package:moula_flow/data/settings_repository.dart';
+import 'package:moula_flow/data/dashboard_repository.dart';
+import 'package:moula_flow/data/app_access_method.dart';
+import 'package:flutter/material.dart';
 
 final databaseProvider = Provider((ref) => AppDatabase());
+final settingsRepositoryProvider = Provider((ref) => SettingsRepository());
+final dashboardRepositoryProvider = Provider((ref) => DashboardRepository());
 
 final transactionRepositoryProvider = Provider((ref) => TransactionRepository(ref.watch(databaseProvider)));
 final walletRepositoryProvider = Provider((ref) => WalletRepository(ref.watch(databaseProvider)));
@@ -35,4 +41,31 @@ final budgetsProvider = StreamProvider<List<BudgetPlan>>((ref) {
 
 final recurringPaymentsProvider = StreamProvider<List<RecurringPayment>>((ref) {
   return ref.watch(recurringPaymentRepositoryProvider).watchRecurringPayments();
+});
+
+// Settings Providers
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+final onboardingSeenProvider = StateProvider<bool>((ref) => false);
+final appAccessMethodProvider = StateProvider<AppAccessMethod>((ref) => AppAccessMethod.none);
+
+// Dashboard Config Notifier
+class DashboardNotifier extends StateNotifier<AsyncValue<DashboardConfig>> {
+  final DashboardRepository _repository;
+  DashboardNotifier(this._repository) : super(const AsyncValue.loading()) {
+    load();
+  }
+
+  Future<void> load() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _repository.loadConfig());
+  }
+
+  Future<void> updateConfig(DashboardConfig config) async {
+    await _repository.saveConfig(config);
+    state = AsyncValue.data(config);
+  }
+}
+
+final dashboardConfigProvider = StateNotifierProvider<DashboardNotifier, AsyncValue<DashboardConfig>>((ref) {
+  return DashboardNotifier(ref.watch(dashboardRepositoryProvider));
 });

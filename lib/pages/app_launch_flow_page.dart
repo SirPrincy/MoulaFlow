@@ -1,67 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moula_flow/providers.dart';
 
 import '../data/app_access_method.dart';
-import '../data/settings_repository.dart';
 import '../home_page.dart';
 import '../security/app_access_gate.dart';
 import 'onboarding_page.dart';
 
-class AppLaunchFlowPage extends StatefulWidget {
-  final ValueNotifier<ThemeMode> themeNotifier;
-  final bool onboardingSeenInitial;
-  final AppAccessMethod accessMethodInitial;
-
-  const AppLaunchFlowPage({
-    super.key,
-    required this.themeNotifier,
-    required this.onboardingSeenInitial,
-    required this.accessMethodInitial,
-  });
+class AppLaunchFlowPage extends ConsumerStatefulWidget {
+  const AppLaunchFlowPage({super.key});
 
   @override
-  State<AppLaunchFlowPage> createState() => _AppLaunchFlowPageState();
+  ConsumerState<AppLaunchFlowPage> createState() => _AppLaunchFlowPageState();
 }
 
-class _AppLaunchFlowPageState extends State<AppLaunchFlowPage> {
-  late bool _onboardingSeen;
-  late AppAccessMethod _accessMethod;
+class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
   final AppAccessGateFactory _gateFactory = const AppAccessGateFactory();
 
   @override
   void initState() {
     super.initState();
-    _onboardingSeen = widget.onboardingSeenInitial;
-    _accessMethod = widget.accessMethodInitial;
-    if (_onboardingSeen) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _attemptAccess());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(onboardingSeenProvider)) {
+        _attemptAccess();
+      }
+    });
   }
 
   Future<void> _handleOnboardingCompleted() async {
-    final settingsRepo = SettingsRepository();
-    await settingsRepo.saveOnboardingSeen(true);
+    await ref.read(settingsRepositoryProvider).saveOnboardingSeen(true);
+    ref.read(onboardingSeenProvider.notifier).state = true;
 
     if (!mounted) return;
-
-    setState(() => _onboardingSeen = true);
     await _attemptAccess();
   }
 
   Future<void> _attemptAccess() async {
-    final gate = _gateFactory.create(_accessMethod);
+    final accessMethod = ref.read(appAccessMethodProvider);
+    final gate = _gateFactory.create(accessMethod);
     final granted = await gate.authorize(context);
     if (!mounted || !granted) return;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => HomePage(themeNotifier: widget.themeNotifier),
+        builder: (context) => const HomePage(),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_onboardingSeen) {
+    final onboardingSeen = ref.watch(onboardingSeenProvider);
+    
+    if (!onboardingSeen) {
       return OnboardingPage(onFinished: _handleOnboardingCompleted);
     }
 

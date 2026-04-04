@@ -1,21 +1,20 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moula_flow/providers.dart';
 
 import 'category_management_page.dart';
 import 'data/settings_repository.dart';
 import 'responsive_layout.dart';
 import 'utils/styles.dart';
 
-class SettingsPage extends StatelessWidget {
-  final ValueNotifier<ThemeMode> themeNotifier;
-
-  const SettingsPage({super.key, required this.themeNotifier});
+class SettingsPage extends ConsumerWidget {
+  const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = themeNotifier.value == ThemeMode.dark;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
     final theme = Theme.of(context);
-    final settingsRepo = SettingsRepository();
+    final settingsRepo = ref.read(settingsRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -48,7 +47,9 @@ class SettingsPage extends StatelessWidget {
                 activeThumbColor: Colors.white,
                 activeTrackColor: Colors.black,
                 onChanged: (value) {
-                  themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
+                  final newMode = value ? ThemeMode.dark : ThemeMode.light;
+                  ref.read(themeModeProvider.notifier).state = newMode;
+                  settingsRepo.saveIsDarkMode(value);
                 },
                 secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode),
               ),
@@ -119,7 +120,7 @@ class SettingsPage extends StatelessWidget {
                   'Restaurer toutes les données depuis un CSV',
                 ),
                 trailing: const Icon(Icons.keyboard_arrow_right),
-                onTap: () => _showImportCsvDialog(context, settingsRepo),
+                onTap: () => _showImportCsvDialog(context, settingsRepo, ref),
               ),
             ),
             const SizedBox(height: 32),
@@ -179,7 +180,6 @@ class SettingsPage extends StatelessWidget {
                       ],
                     ),
                   );
-
                   if (confirm == true) {
                     await settingsRepo.clearAllDataExceptTheme();
                     if (context.mounted) {
@@ -248,6 +248,7 @@ Future<void> _showExportCsvDialog(
 Future<void> _showImportCsvDialog(
   BuildContext context,
   SettingsRepository settingsRepo,
+  WidgetRef ref,
 ) async {
   final controller = TextEditingController();
   try {
@@ -283,6 +284,14 @@ Future<void> _showImportCsvDialog(
     if (confirmed != true || !context.mounted) return;
 
     await settingsRepo.importAllDataFromCsv(controller.text.trim());
+    
+    // Invalidate providers to refresh data
+    ref.invalidate(walletsProvider);
+    ref.invalidate(transactionsProvider);
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(budgetsProvider);
+    ref.invalidate(recurringPaymentsProvider);
+    
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Données importées avec succès')),

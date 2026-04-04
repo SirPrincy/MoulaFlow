@@ -4,7 +4,7 @@ import 'responsive_layout.dart';
 import 'providers.dart';
 import 'models.dart';
 import 'widgets/transaction_form.dart';
-import 'widgets/app_side_menu.dart';
+import 'widgets/app_drawer.dart';
 import 'widgets/app_menu_bar.dart';
 import 'transactions_page.dart';
 import 'settings_page.dart';
@@ -18,8 +18,7 @@ import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
 
 class HomePage extends ConsumerStatefulWidget {
-  final ValueNotifier<ThemeMode> themeNotifier;
-  const HomePage({super.key, required this.themeNotifier});
+  const HomePage({super.key});
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
@@ -232,14 +231,14 @@ class _HomePageState extends ConsumerState<HomePage> {
         icon: Icons.pie_chart_outline,
         label: 'Budgets',
         onTap: () => _openMobilePage(
-          BudgetPlannerPage(themeNotifier: widget.themeNotifier),
+          BudgetPlannerPage(),
         ),
       ),
       (
         icon: Icons.settings_outlined,
         label: 'Paramètres',
         onTap: () => _openMobilePage(
-          SettingsPage(themeNotifier: widget.themeNotifier),
+          const SettingsPage(),
         ),
       ),
     ];
@@ -750,11 +749,18 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
 
-    final sideMenu = AppSideMenu(
+    final sideMenu = AppDrawerContent(
       currentRoute: '/',
       isCollapsed: _isSidebarCollapsed,
-      themeNotifier: widget.themeNotifier,
-      onDataChange: () {}, // Handled by Riverpod streams now
+      onHomeTap: () {}, // Already home
+      onTransactionsTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TransactionsPage())),
+      onSettingsTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage())),
+      onAPayerTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BillsToPayPage())),
+      onDettesTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.debt, title: 'Dettes'))),
+      onEpargneTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne'))),
+      onProjetTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.project, title: 'Projets'))),
+      onRecurringTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecurringPaymentsPage())),
+      onBudgetsTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BudgetPlannerPage())),
     );
 
     if (context.isMobileScreen) {
