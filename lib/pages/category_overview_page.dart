@@ -29,7 +29,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
   List<TransactionCategory> _categories = [];
   late TabController _tabController;
 
-  final _balanceService = BalanceService();
+  BalanceService get _balanceService => ref.read(balanceServiceProvider);
 
   @override
   void initState() {
@@ -274,8 +274,9 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         firstDate: DateTime(2000),
                         lastDate: DateTime(2101),
                       );
-                      if (picked != null)
+                      if (picked != null) {
                         setDialogState(() => issueDate = picked);
+                      }
                     },
                   ),
                   ListTile(
@@ -293,8 +294,9 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         firstDate: issueDate,
                         lastDate: DateTime(2101),
                       );
-                      if (picked != null)
+                      if (picked != null) {
                         setDialogState(() => dueDate = picked);
+                      }
                     },
                   ),
                   const Divider(),
@@ -353,7 +355,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     return;
                   }
 
-                  Wallet? transactionWallet;
+                  late final Wallet transactionWallet;
                   if (useExistingWallet) {
                     if (selectedWalletId == null) return;
                     transactionWallet = transactionWallets.firstWhere(
@@ -544,7 +546,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   );
                   if (amount == null || amount <= 0) return;
                   if (hasTarget && amount > remainingAmount) {
-                    if (ctx.mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -556,7 +558,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     return;
                   }
 
-                  Wallet? transactionWallet;
+                  late final Wallet transactionWallet;
                   if (useExistingWallet) {
                     if (selectedWalletId == null) return;
                     transactionWallet = transactionWallets.firstWhere(
@@ -583,7 +585,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   final shouldCreateTx = await _askTransactionConfirmation(
                     'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
                   );
-                  if (shouldCreateTx && transactionWallet != null) {
+                  if (shouldCreateTx) {
                     final txType = debtWallet.isCredit
                         ? TransactionType.income
                         : TransactionType.expense;
@@ -612,7 +614,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     if (mounted) {
                       _showOperationSummary(
                         operation: 'Remboursement (sans transaction)',
-                        walletName: transactionWallet?.name ?? 'Aucun',
+                        walletName: transactionWallet.name,
                         amount: debtWallet.isCredit ? amount : -amount,
                         date: DateTime.now(),
                         txType: 'aucune',
@@ -976,10 +978,9 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                                 }
                                 await ref.read(walletRepositoryProvider).deleteWallet(wallet.id);
                                 
-                                if (mounted) {
-                                  Navigator.pop(ctx);
-                                  Navigator.pop(context);
-                                }
+                                if (!mounted || !ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                Navigator.pop(context);
                               },
                               child: const Text(
                                 'Supprimer',

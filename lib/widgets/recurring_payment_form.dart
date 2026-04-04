@@ -101,8 +101,6 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isEditing = widget.editingPayment != null;
 
     return SingleChildScrollView(

@@ -13,9 +13,6 @@ import 'pages/bills_to_pay_page.dart';
 import 'pages/recurring_payments_page.dart';
 import 'pages/budget_planner_page.dart';
 import 'utils/styles.dart';
-import 'data/category_repository.dart';
-import 'data/transaction_repository.dart';
-import 'data/wallet_repository.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
@@ -475,10 +472,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 setState(() {
                                   _selectedWalletIds.remove(wallet.id);
                                 });
-                                if (mounted) {
-                                  Navigator.pop(ctx);
-                                  Navigator.pop(context);
-                                }
+                                if (!mounted || !ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                Navigator.pop(context);
                               },
                               child: const Text(
                                 'Supprimer',
