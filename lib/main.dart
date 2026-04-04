@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'data/app_access_method.dart';
 import 'data/settings_repository.dart';
 import 'pages/app_launch_flow_page.dart';
 import 'utils/styles.dart';
@@ -18,9 +17,9 @@ void main() async {
 
   runApp(ProviderScope(
     overrides: [
-      themeModeProvider.overrideWith((ref) => isDark ? ThemeMode.dark : ThemeMode.light),
-      onboardingSeenProvider.overrideWith((ref) => onboardingSeen),
-      appAccessMethodProvider.overrideWith((ref) => accessMethod),
+      themeModeProvider.overrideWith(() => ThemeModeNotifier(isDark ? ThemeMode.dark : ThemeMode.light)),
+      onboardingSeenProvider.overrideWith(() => OnboardingSeenNotifier(onboardingSeen)),
+      appAccessMethodProvider.overrideWith(() => AppAccessMethodNotifier(accessMethod)),
     ],
     child: const MoulaFlowApp(),
   ));
@@ -32,8 +31,6 @@ class MoulaFlowApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentMode = ref.watch(themeModeProvider);
-    final onboardingSeen = ref.watch(onboardingSeenProvider);
-    final accessMethod = ref.watch(appAccessMethodProvider);
 
     const lightColorScheme = ColorScheme.light(
       primary: Color(0xFF5B5FC7),

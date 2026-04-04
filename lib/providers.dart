@@ -44,28 +44,53 @@ final recurringPaymentsProvider = StreamProvider<List<RecurringPayment>>((ref) {
 });
 
 // Settings Providers
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
-final onboardingSeenProvider = StateProvider<bool>((ref) => false);
-final appAccessMethodProvider = StateProvider<AppAccessMethod>((ref) => AppAccessMethod.none);
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  final ThemeMode? _initial;
+  ThemeModeNotifier([this._initial]);
 
-// Dashboard Config Notifier
-class DashboardNotifier extends StateNotifier<AsyncValue<DashboardConfig>> {
-  final DashboardRepository _repository;
-  DashboardNotifier(this._repository) : super(const AsyncValue.loading()) {
-    load();
-  }
+  @override
+  ThemeMode build() => _initial ?? ThemeMode.system;
+  void update(ThemeMode mode) => state = mode;
+}
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
 
-  Future<void> load() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _repository.loadConfig());
+class OnboardingSeenNotifier extends Notifier<bool> {
+  final bool? _initial;
+  OnboardingSeenNotifier([this._initial]);
+
+  @override
+  bool build() => _initial ?? false;
+  void update(bool seen) => state = seen;
+}
+final onboardingSeenProvider = NotifierProvider<OnboardingSeenNotifier, bool>(OnboardingSeenNotifier.new);
+
+class AppAccessMethodNotifier extends Notifier<AppAccessMethod> {
+  final AppAccessMethod? _initial;
+  AppAccessMethodNotifier([this._initial]);
+
+  @override
+  AppAccessMethod build() => _initial ?? AppAccessMethod.none;
+  void update(AppAccessMethod method) => state = method;
+}
+final appAccessMethodProvider = NotifierProvider<AppAccessMethodNotifier, AppAccessMethod>(AppAccessMethodNotifier.new);
+
+// Dashboard Config AsyncNotifier
+class DashboardNotifier extends AsyncNotifier<DashboardConfig> {
+  @override
+  Future<DashboardConfig> build() async {
+    return ref.watch(dashboardRepositoryProvider).loadConfig();
   }
 
   Future<void> updateConfig(DashboardConfig config) async {
-    await _repository.saveConfig(config);
-    state = AsyncValue.data(config);
+    state = const AsyncLoading();
+    await ref.read(dashboardRepositoryProvider).saveConfig(config);
+    state = AsyncData(config);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => ref.read(dashboardRepositoryProvider).loadConfig());
   }
 }
 
-final dashboardConfigProvider = StateNotifierProvider<DashboardNotifier, AsyncValue<DashboardConfig>>((ref) {
-  return DashboardNotifier(ref.watch(dashboardRepositoryProvider));
-});
+final dashboardConfigProvider = AsyncNotifierProvider<DashboardNotifier, DashboardConfig>(DashboardNotifier.new);

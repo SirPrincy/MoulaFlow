@@ -50,7 +50,7 @@ class SettingsPage extends ConsumerWidget {
                 activeTrackColor: Colors.black,
                 onChanged: (value) {
                   final newMode = value ? ThemeMode.dark : ThemeMode.light;
-                  ref.read(themeModeProvider.notifier).state = newMode;
+                  ref.read(themeModeProvider.notifier).update(newMode);
                   settingsRepo.saveIsDarkMode(value);
                 },
                 secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode),

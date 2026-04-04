@@ -29,7 +29,7 @@ class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
 
   Future<void> _handleOnboardingCompleted() async {
     await ref.read(settingsRepositoryProvider).saveOnboardingSeen(true);
-    ref.read(onboardingSeenProvider.notifier).state = true;
+    ref.read(onboardingSeenProvider.notifier).update(true);
 
     if (!mounted) return;
     await _attemptAccess();
