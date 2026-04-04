@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'home_page.dart';
-import 'pages/onboarding_page.dart';
+import 'data/app_access_method.dart';
 import 'data/settings_repository.dart';
+import 'pages/app_launch_flow_page.dart';
 import 'utils/styles.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -12,11 +12,13 @@ void main() async {
   final settingsRepo = SettingsRepository();
   final isDark = await settingsRepo.loadIsDarkMode();
   final onboardingSeen = await settingsRepo.loadOnboardingSeen();
-  
+  final accessMethod = await settingsRepo.loadAppAccessMethod();
+
   runApp(ProviderScope(
     child: MoulaFlowApp(
       isDarkInitial: isDark,
       onboardingSeenInitial: onboardingSeen,
+      accessMethodInitial: accessMethod,
     ),
   ));
 }
@@ -24,10 +26,12 @@ void main() async {
 class MoulaFlowApp extends StatefulWidget {
   final bool isDarkInitial;
   final bool onboardingSeenInitial;
+  final AppAccessMethod accessMethodInitial;
   const MoulaFlowApp({
     super.key, 
     required this.isDarkInitial, 
     required this.onboardingSeenInitial,
+    required this.accessMethodInitial,
   });
 
   @override
@@ -232,9 +236,11 @@ class _MoulaFlowAppState extends State<MoulaFlowApp> {
               ),
             ),
           ),
-          home: widget.onboardingSeenInitial 
-            ? HomePage(themeNotifier: _themeNotifier)
-            : OnboardingPage(themeNotifier: _themeNotifier),
+          home: AppLaunchFlowPage(
+            themeNotifier: _themeNotifier,
+            onboardingSeenInitial: widget.onboardingSeenInitial,
+            accessMethodInitial: widget.accessMethodInitial,
+          ),
         );
       },
     );
