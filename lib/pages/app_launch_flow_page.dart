@@ -4,7 +4,8 @@ import 'package:moula_flow/providers.dart';
 
 import '../home_page.dart';
 import '../security/app_access_gate.dart';
-import 'onboarding_page.dart';
+import 'setup_wizard_page.dart';
+import 'welcome_page.dart';
 
 class AppLaunchFlowPage extends ConsumerStatefulWidget {
   const AppLaunchFlowPage({super.key});
@@ -15,16 +16,7 @@ class AppLaunchFlowPage extends ConsumerStatefulWidget {
 
 class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
   final AppAccessGateFactory _gateFactory = const AppAccessGateFactory();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(onboardingSeenProvider)) {
-        _attemptAccess();
-      }
-    });
-  }
+  bool _showWelcome = true;
 
   Future<void> _handleOnboardingCompleted() async {
     await ref.read(settingsRepositoryProvider).saveOnboardingSeen(true);
@@ -47,12 +39,22 @@ class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
     );
   }
 
+  void _startSetup() {
+    setState(() => _showWelcome = false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_showWelcome) {
+      return WelcomePage(
+        onStart: _startSetup,
+        onLogin: _attemptAccess,
+      );
+    }
+
     final onboardingSeen = ref.watch(onboardingSeenProvider);
-    
     if (!onboardingSeen) {
-      return OnboardingPage(onFinished: _handleOnboardingCompleted);
+      return SetupWizardPage(onFinished: _handleOnboardingCompleted);
     }
 
     return const Scaffold(

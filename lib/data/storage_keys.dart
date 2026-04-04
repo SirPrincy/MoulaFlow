@@ -9,4 +9,7 @@ class StorageKeys {
   static const String isDarkMode = 'isDarkMode';
   static const String onboardingSeen = 'onboardingSeen';
   static const String appAccessMethod = 'appAccessMethod';
+  static const String userName = 'userName';
+  static const String userColor = 'userColor';
+  static const String userAvatar = 'userAvatar';
 }

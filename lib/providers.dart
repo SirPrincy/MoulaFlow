@@ -74,6 +74,36 @@ class AppAccessMethodNotifier extends Notifier<AppAccessMethod> {
 }
 final appAccessMethodProvider = NotifierProvider<AppAccessMethodNotifier, AppAccessMethod>(AppAccessMethodNotifier.new);
 
+class UserNameNotifier extends Notifier<String?> {
+  final String? _initial;
+  UserNameNotifier([this._initial]);
+
+  @override
+  String? build() => _initial;
+  void update(String? name) => state = name;
+}
+final userNameProvider = NotifierProvider<UserNameNotifier, String?>(UserNameNotifier.new);
+
+class UserColorNotifier extends Notifier<int> {
+  final int? _initial;
+  UserColorNotifier([this._initial]);
+
+  @override
+  int build() => _initial ?? 0xFF6200EE;
+  void update(int color) => state = color;
+}
+final userColorProvider = NotifierProvider<UserColorNotifier, int>(UserColorNotifier.new);
+
+class UserAvatarNotifier extends Notifier<int> {
+  final int? _initial;
+  UserAvatarNotifier([this._initial]);
+
+  @override
+  int build() => _initial ?? 59475; // Icons.person codePoint is 59475 in some versions, check Material Icons.
+  void update(int codePoint) => state = codePoint;
+}
+final userAvatarProvider = NotifierProvider<UserAvatarNotifier, int>(UserAvatarNotifier.new);
+
 // Dashboard Config AsyncNotifier
 class DashboardNotifier extends AsyncNotifier<DashboardConfig> {
   @override

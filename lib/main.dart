@@ -15,6 +15,9 @@ void main() async {
   final isDark = await settingsRepo.loadIsDarkMode();
   final onboardingSeen = await settingsRepo.loadOnboardingSeen();
   final accessMethod = await settingsRepo.loadAppAccessMethod();
+  final userName = await settingsRepo.loadUserName();
+  final userColor = await settingsRepo.loadUserColor();
+  final userAvatar = await settingsRepo.loadUserAvatar();
 
   runApp(ProviderScope(
     observers: const [AppProviderObserver()],
@@ -22,6 +25,9 @@ void main() async {
       themeModeProvider.overrideWith(() => ThemeModeNotifier(isDark ? ThemeMode.dark : ThemeMode.light)),
       onboardingSeenProvider.overrideWith(() => OnboardingSeenNotifier(onboardingSeen)),
       appAccessMethodProvider.overrideWith(() => AppAccessMethodNotifier(accessMethod)),
+      userNameProvider.overrideWith(() => UserNameNotifier(userName)),
+      userColorProvider.overrideWith(() => UserColorNotifier(userColor)),
+      userAvatarProvider.overrideWith(() => UserAvatarNotifier(userAvatar)),
     ],
     child: const MoulaFlowApp(),
   ));

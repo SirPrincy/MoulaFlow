@@ -16,6 +16,9 @@ class SettingsRepository {
     StorageKeys.isDarkMode,
     StorageKeys.onboardingSeen,
     StorageKeys.appAccessMethod,
+    StorageKeys.userName,
+    StorageKeys.userColor,
+    StorageKeys.userAvatar,
   ];
 
   Future<bool> loadIsDarkMode() async {
@@ -47,6 +50,36 @@ class SettingsRepository {
   Future<void> saveAppAccessMethod(AppAccessMethod method) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(StorageKeys.appAccessMethod, method.storageValue);
+  }
+
+  Future<String?> loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(StorageKeys.userName);
+  }
+
+  Future<void> saveUserName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(StorageKeys.userName, name);
+  }
+
+  Future<int?> loadUserColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(StorageKeys.userColor);
+  }
+
+  Future<void> saveUserColor(int color) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(StorageKeys.userColor, color);
+  }
+
+  Future<int?> loadUserAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(StorageKeys.userAvatar);
+  }
+
+  Future<void> saveUserAvatar(int codePoint) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(StorageKeys.userAvatar, codePoint);
   }
 
   Future<void> clearAllDataExceptTheme() async {
