@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models.dart';
 import '../data/dashboard_repository.dart';
 import '../utils/styles.dart';
+import '../utils/app_icons.dart';
 
 /// Base class for all dashboard widget cards.
 abstract class DashboardCard extends StatelessWidget {
@@ -859,7 +860,7 @@ class ProjectsSummaryCard extends DashboardCard {
                             children: [
                               Icon(
                                 tag.icon != null 
-                                  ? IconData(int.parse(tag.icon!), fontFamily: 'MaterialIcons') 
+                                  ? AppIcons.getIconFromStr(tag.icon!) 
                                   : Icons.rocket_launch,
                                 size: 14,
                                 color: tag.color != null ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) : theme.colorScheme.primary,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../providers.dart';
 import '../utils/styles.dart';
+import '../utils/app_icons.dart';
 import '../widgets/transaction_tile.dart';
 
 class TagProjectPage extends ConsumerStatefulWidget {
@@ -166,7 +167,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                 ),
                 child: Icon(
                   widget.tag.icon != null 
-                    ? IconData(int.parse(widget.tag.icon!), fontFamily: 'MaterialIcons') 
+                    ? AppIcons.getIconFromStr(widget.tag.icon!) 
                     : Icons.rocket_launch,
                   color: Colors.white,
                   size: 24,

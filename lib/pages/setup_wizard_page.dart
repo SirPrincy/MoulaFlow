@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/providers.dart';
 import 'package:moula_flow/utils/app_constants.dart';
+import 'package:moula_flow/utils/app_icons.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
 import 'package:moula_flow/widgets/wallet_form.dart';
 import 'package:uuid/uuid.dart';
@@ -302,7 +303,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(IconData(_userAvatar, fontFamily: 'MaterialIcons'), size: 100, color: Color(_userColor)),
+          Icon(AppIcons.getIconData(_userAvatar), size: 100, color: Color(_userColor)),
           const SizedBox(height: 24),
           Text(
             'Parfait, ${_userName.isEmpty ? AppConstants.defaultUserName : _userName} !',

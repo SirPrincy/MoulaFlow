@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../providers.dart';
 import '../utils/styles.dart';
+import '../utils/app_icons.dart';
 import 'tag_project_page.dart';
 
 class ProjectManagementPage extends ConsumerStatefulWidget {
@@ -57,7 +58,7 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
                     ),
                     child: Icon(
                       tag.icon != null 
-                        ? IconData(int.parse(tag.icon!), fontFamily: 'MaterialIcons') 
+                        ? AppIcons.getIconFromStr(tag.icon!) 
                         : (isProject ? Icons.rocket_launch : Icons.local_offer_outlined),
                       color: tag.color != null 
                         ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) 

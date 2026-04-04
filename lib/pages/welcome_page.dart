@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:moula_flow/utils/app_icons.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
 import 'package:moula_flow/providers.dart';
 import 'package:moula_flow/utils/app_constants.dart';
@@ -93,7 +94,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                           ? CircleAvatar(
                               radius: 50,
                               backgroundColor: primaryColor.withValues(alpha: 0.2),
-                              child: Icon(IconData(userAvatar, fontFamily: 'MaterialIcons'), size: 50, color: primaryColor),
+                              child: Icon(AppIcons.getIconData(userAvatar), size: 50, color: primaryColor),
                             )
                           : const AppLogo(size: 100, borderRadius: 24, withShadow: true),
                       ),
