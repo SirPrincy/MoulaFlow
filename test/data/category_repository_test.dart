@@ -1,15 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:moula_flow/data/category_repository.dart';
+import 'package:moula_flow/data/database/app_database.dart';
 import 'package:moula_flow/models.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late AppDatabase db;
   late CategoryRepository repository;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
-    repository = CategoryRepository();
+    db = AppDatabase.forTest(DatabaseConnection(NativeDatabase.memory()));
+    repository = CategoryRepository(db);
+  });
+
+  tearDown(() async {
+    await db.close();
   });
 
   group('CategoryRepository - Default Categories', () {

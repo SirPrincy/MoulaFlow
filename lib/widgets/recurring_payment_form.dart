@@ -102,6 +102,7 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.editingPayment != null;
+    final theme = Theme.of(context);
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(

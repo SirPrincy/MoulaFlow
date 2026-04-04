@@ -1,30 +1,23 @@
 import 'package:flutter/material.dart';
-
-import '../data/budget_repository.dart';
-import '../data/category_repository.dart';
-import '../data/transaction_repository.dart';
-import '../data/wallet_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers.dart';
 import '../domain/budget_planning_service.dart';
 import '../models.dart';
 import '../responsive_layout.dart';
 import '../widgets/app_menu_bar.dart';
 import '../widgets/app_side_menu.dart';
 
-class BudgetPlannerPage extends StatefulWidget {
+class BudgetPlannerPage extends ConsumerStatefulWidget {
   final ValueNotifier<ThemeMode>? themeNotifier;
   const BudgetPlannerPage({super.key, this.themeNotifier});
 
   @override
-  State<BudgetPlannerPage> createState() => _BudgetPlannerPageState();
+  ConsumerState<BudgetPlannerPage> createState() => _BudgetPlannerPageState();
 }
 
-class _BudgetPlannerPageState extends State<BudgetPlannerPage> {
+class _BudgetPlannerPageState extends ConsumerState<BudgetPlannerPage> {
   final _formKey = GlobalKey<FormState>();
   final _service = BudgetPlanningService();
-  final _walletRepo = WalletRepository();
-  final _categoryRepo = CategoryRepository();
-  final _transactionRepo = TransactionRepository();
-  final _budgetRepo = BudgetRepository();
 
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
@@ -67,11 +60,11 @@ class _BudgetPlannerPageState extends State<BudgetPlannerPage> {
   }
 
   Future<void> _load() async {
-    _wallets = await _walletRepo.loadWallets();
-    _categories = await _categoryRepo.loadCategories();
-    _transactions = await _transactionRepo.loadTransactions();
-    _budgets = await _budgetRepo.loadBudgets();
-    setState(() {});
+    _wallets = await ref.read(walletRepositoryProvider).loadWallets();
+    _categories = await ref.read(categoryRepositoryProvider).loadCategories();
+    _transactions = await ref.read(transactionRepositoryProvider).loadTransactions();
+    _budgets = await ref.read(budgetRepositoryProvider).loadBudgets();
+    if (mounted) setState(() {});
   }
 
   List<TransactionCategory> get _flatCategories {
@@ -248,7 +241,7 @@ class _BudgetPlannerPageState extends State<BudgetPlannerPage> {
     );
 
     _budgets.insert(0, plan);
-    await _budgetRepo.saveBudgets(_budgets);
+    await ref.read(budgetRepositoryProvider).saveBudgets(_budgets);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Budget créé avec succès.')));
   }

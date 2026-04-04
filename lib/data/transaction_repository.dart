@@ -15,6 +15,10 @@ class MigrationResult {
 }
 
 class TransactionRepository {
+  final AppDatabase db;
+
+  TransactionRepository(this.db);
+
   Transaction _mapEntityToModel(TransactionEntity entity) {
     return Transaction(
       id: entity.id,
@@ -50,35 +54,35 @@ class TransactionRepository {
   }
 
   Stream<List<Transaction>> watchTransactions() {
-    return appDb.select(appDb.transactions).watch().map((entities) {
+    return db.select(db.transactions).watch().map((entities) {
       return entities.map(_mapEntityToModel).toList();
     });
   }
 
   Future<List<Transaction>> loadTransactions() async {
-    final entities = await appDb.select(appDb.transactions).get();
+    final entities = await db.select(db.transactions).get();
     return entities.map(_mapEntityToModel).toList();
   }
 
   Future<void> saveTransactions(List<Transaction> transactions) async {
-    await appDb.transaction(() async {
-      await appDb.delete(appDb.transactions).go();
+    await db.transaction(() async {
+      await db.delete(db.transactions).go();
       for (final tx in transactions) {
-        await appDb.into(appDb.transactions).insert(_mapModelToCompanion(tx));
+        await db.into(db.transactions).insert(_mapModelToCompanion(tx));
       }
     });
   }
 
   Future<void> insertTransaction(Transaction tx) async {
-    await appDb.into(appDb.transactions).insert(_mapModelToCompanion(tx), mode: InsertMode.replace);
+    await db.into(db.transactions).insert(_mapModelToCompanion(tx), mode: InsertMode.replace);
   }
 
   Future<void> updateTransaction(Transaction tx) async {
-    await appDb.update(appDb.transactions).replace(_mapModelToCompanion(tx));
+    await db.update(db.transactions).replace(_mapModelToCompanion(tx));
   }
 
   Future<void> deleteTransaction(String id) async {
-    await (appDb.delete(appDb.transactions)..where((tbl) => tbl.id.equals(id))).go();
+    await (db.delete(db.transactions)..where((tbl) => tbl.id.equals(id))).go();
   }
 
   /// Migrates transactions to the new format if needed.

@@ -1,26 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../widgets.dart';
 import '../responsive_layout.dart';
-import '../data/transaction_repository.dart';
-import '../data/wallet_repository.dart';
-import '../data/category_repository.dart';
+import '../providers.dart';
 
-class RecurringPaymentsPage extends StatefulWidget {
+class RecurringPaymentsPage extends ConsumerStatefulWidget {
   const RecurringPaymentsPage({super.key});
 
   @override
-  State<RecurringPaymentsPage> createState() => _RecurringPaymentsPageState();
+  ConsumerState<RecurringPaymentsPage> createState() => _RecurringPaymentsPageState();
 }
 
-class _RecurringPaymentsPageState extends State<RecurringPaymentsPage> {
+class _RecurringPaymentsPageState extends ConsumerState<RecurringPaymentsPage> {
   List<Transaction> _transactions = [];
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
-  
-  final _transactionRepo = TransactionRepository();
-  final _walletRepo = WalletRepository();
-  final _categoryRepo = CategoryRepository();
 
   @override
   void initState() {
@@ -29,10 +24,10 @@ class _RecurringPaymentsPageState extends State<RecurringPaymentsPage> {
   }
 
   Future<void> _loadData() async {
-    _categories = await _categoryRepo.loadCategories();
-    _wallets = await _walletRepo.loadWallets();
-    _transactions = await _transactionRepo.loadTransactions();
-    setState(() {});
+    _categories = await ref.read(categoryRepositoryProvider).loadCategories();
+    _wallets = await ref.read(walletRepositoryProvider).loadWallets();
+    _transactions = await ref.read(transactionRepositoryProvider).loadTransactions();
+    if (mounted) setState(() {});
   }
 
   List<Transaction> get _recurringTransactionsHistory {

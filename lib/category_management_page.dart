@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-
-import 'data/category_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'providers.dart';
 import 'models.dart';
 import 'responsive_layout.dart';
 import 'utils/styles.dart';
 
-class CategoryManagementPage extends StatefulWidget {
+class CategoryManagementPage extends ConsumerStatefulWidget {
   const CategoryManagementPage({super.key});
 
   @override
-  State<CategoryManagementPage> createState() => _CategoryManagementPageState();
+  ConsumerState<CategoryManagementPage> createState() => _CategoryManagementPageState();
 }
 
-class _CategoryManagementPageState extends State<CategoryManagementPage> {
+class _CategoryManagementPageState extends ConsumerState<CategoryManagementPage> {
   List<TransactionCategory> _categories = [];
-  final _categoryRepo = CategoryRepository();
 
   @override
   void initState() {
@@ -23,14 +22,16 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   }
 
   Future<void> _loadCategories() async {
-    final cats = await _categoryRepo.loadCategories();
-    setState(() {
-      _categories = cats;
-    });
+    final cats = await ref.read(categoryRepositoryProvider).loadCategories();
+    if (mounted) {
+      setState(() {
+        _categories = cats;
+      });
+    }
   }
 
   Future<void> _saveCategories() async {
-    await _categoryRepo.saveCategories(_categories);
+    await ref.read(categoryRepositoryProvider).saveCategories(_categories);
   }
 
   void _showAddEditCategoryDialog({

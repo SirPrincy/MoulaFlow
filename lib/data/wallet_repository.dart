@@ -3,6 +3,10 @@ import '../models.dart';
 import 'database/app_database.dart';
 
 class WalletRepository {
+  final AppDatabase db;
+
+  WalletRepository(this.db);
+
   Wallet _mapEntityToModel(WalletEntity entity) {
     return Wallet(
       id: entity.id,
@@ -34,34 +38,34 @@ class WalletRepository {
   }
 
   Stream<List<Wallet>> watchWallets() {
-    return appDb.select(appDb.wallets).watch().map((entities) {
+    return db.select(db.wallets).watch().map((entities) {
       return entities.map(_mapEntityToModel).toList();
     });
   }
 
   Future<List<Wallet>> loadWallets() async {
-    final entities = await appDb.select(appDb.wallets).get();
+    final entities = await db.select(db.wallets).get();
     return entities.map(_mapEntityToModel).toList();
   }
 
   Future<void> saveWallets(List<Wallet> wallets) async {
-    await appDb.transaction(() async {
-      await appDb.delete(appDb.wallets).go();
+    await db.transaction(() async {
+      await db.delete(db.wallets).go();
       for (final w in wallets) {
-        await appDb.into(appDb.wallets).insert(_mapModelToCompanion(w));
+        await db.into(db.wallets).insert(_mapModelToCompanion(w));
       }
     });
   }
 
   Future<void> insertWallet(Wallet wallet) async {
-    await appDb.into(appDb.wallets).insert(_mapModelToCompanion(wallet), mode: InsertMode.replace);
+    await db.into(db.wallets).insert(_mapModelToCompanion(wallet), mode: InsertMode.replace);
   }
 
   Future<void> updateWallet(Wallet wallet) async {
-    await appDb.update(appDb.wallets).replace(_mapModelToCompanion(wallet));
+    await db.update(db.wallets).replace(_mapModelToCompanion(wallet));
   }
 
   Future<void> deleteWallet(String id) async {
-    await (appDb.delete(appDb.wallets)..where((tbl) => tbl.id.equals(id))).go();
+    await (db.delete(db.wallets)..where((tbl) => tbl.id.equals(id))).go();
   }
 }

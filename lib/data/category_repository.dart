@@ -3,8 +3,12 @@ import '../models.dart';
 import 'database/app_database.dart';
 
 class CategoryRepository {
+  final AppDatabase db;
+
+  CategoryRepository(this.db);
+
   Stream<List<TransactionCategory>> watchCategories() {
-    return appDb.select(appDb.categories).watch().asyncMap((entities) async {
+    return db.select(db.categories).watch().asyncMap((entities) async {
       if (entities.isEmpty) {
         final defaults = _getDefaultCategories();
         await insertAll(defaults);
@@ -15,7 +19,7 @@ class CategoryRepository {
   }
 
   Future<List<TransactionCategory>> loadCategories() async {
-    final entities = await appDb.select(appDb.categories).get();
+    final entities = await db.select(db.categories).get();
     if (entities.isEmpty) {
       final defaults = _getDefaultCategories();
       await insertAll(defaults);
@@ -25,7 +29,7 @@ class CategoryRepository {
   }
 
   Future<void> insertCategory(TransactionCategory category, {String? parentId}) async {
-    await appDb.into(appDb.categories).insert(CategoriesCompanion(
+    await db.into(db.categories).insert(CategoriesCompanion(
       id: Value(category.id),
       name: Value(category.name),
       parentId: Value(parentId),
@@ -37,7 +41,7 @@ class CategoryRepository {
   }
 
   Future<void> insertAll(List<TransactionCategory> categories) async {
-    await appDb.transaction(() async {
+    await db.transaction(() async {
       for (final cat in categories) {
         await insertCategory(cat);
       }
@@ -45,8 +49,8 @@ class CategoryRepository {
   }
 
   Future<void> saveCategories(List<TransactionCategory> categories) async {
-    await appDb.transaction(() async {
-      await appDb.delete(appDb.categories).go();
+    await db.transaction(() async {
+      await db.delete(db.categories).go();
       await insertAll(categories);
     });
   }

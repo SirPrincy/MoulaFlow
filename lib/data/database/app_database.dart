@@ -12,6 +12,7 @@ part 'app_database.g.dart';
 @DriftDatabase(tables: [Wallets, Transactions, Categories, Budgets, RecurringPayments])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+  AppDatabase.forTest(DatabaseConnection connection) : super(connection);
 
   @override
   int get schemaVersion => 2;
@@ -25,4 +26,5 @@ LazyDatabase _openConnection() {
   });
 }
 
-final appDb = AppDatabase();
+// final appDb = AppDatabase();
+

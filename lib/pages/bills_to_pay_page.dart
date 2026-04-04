@@ -1,30 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../responsive_layout.dart';
-import '../data/transaction_repository.dart';
-import '../data/wallet_repository.dart';
-import '../data/category_repository.dart';
-import '../data/recurring_payment_repository.dart';
+import '../providers.dart';
 import '../widgets/recurring_payment_form.dart';
 import '../utils/styles.dart';
 
-class BillsToPayPage extends StatefulWidget {
+class BillsToPayPage extends ConsumerStatefulWidget {
   const BillsToPayPage({super.key});
 
   @override
-  State<BillsToPayPage> createState() => _BillsToPayPageState();
+  ConsumerState<BillsToPayPage> createState() => _BillsToPayPageState();
 }
 
-class _BillsToPayPageState extends State<BillsToPayPage> {
+class _BillsToPayPageState extends ConsumerState<BillsToPayPage> {
   List<Transaction> _transactions = [];
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
   List<RecurringPayment> _plannedPayments = [];
-
-  final _transactionRepo = TransactionRepository();
-  final _walletRepo = WalletRepository();
-  final _categoryRepo = CategoryRepository();
-  final _recurringRepo = RecurringPaymentRepository();
 
   @override
   void initState() {
@@ -33,15 +26,20 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
   }
 
   Future<void> _loadData() async {
-    _categories = await _categoryRepo.loadCategories();
-    _wallets = await _walletRepo.loadWallets();
-    _transactions = await _transactionRepo.loadTransactions();
-    _plannedPayments = await _recurringRepo.loadRecurringPayments();
-    setState(() {});
+    final categoryRepo = ref.read(categoryRepositoryProvider);
+    final walletRepo = ref.read(walletRepositoryProvider);
+    final transactionRepo = ref.read(transactionRepositoryProvider);
+    final recurringRepo = ref.read(recurringPaymentRepositoryProvider);
+
+    _categories = await categoryRepo.loadCategories();
+    _wallets = await walletRepo.loadWallets();
+    _transactions = await transactionRepo.loadTransactions();
+    _plannedPayments = await recurringRepo.loadRecurringPayments();
+    if (mounted) setState(() {});
   }
 
   Future<void> _savePlanned() async {
-    await _recurringRepo.saveRecurringPayments(_plannedPayments);
+    await ref.read(recurringPaymentRepositoryProvider).saveRecurringPayments(_plannedPayments);
   }
 
   String _getWalletName(String? id) {
@@ -143,7 +141,7 @@ class _BillsToPayPageState extends State<BillsToPayPage> {
       }
     });
 
-    _transactionRepo.saveTransactions(_transactions);
+    ref.read(transactionRepositoryProvider).saveTransactions(_transactions);
     _savePlanned();
 
     ScaffoldMessenger.of(context).showSnackBar(

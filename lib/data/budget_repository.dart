@@ -3,32 +3,36 @@ import '../models.dart';
 import 'database/app_database.dart';
 
 class BudgetRepository {
+  final AppDatabase db;
+
+  BudgetRepository(this.db);
+
   Stream<List<BudgetPlan>> watchBudgets() {
-    return appDb.select(appDb.budgets).watch().map((entities) {
+    return db.select(db.budgets).watch().map((entities) {
       return entities.map(_mapEntityToModel).toList();
     });
   }
 
   Future<List<BudgetPlan>> loadBudgets() async {
-    final entities = await appDb.select(appDb.budgets).get();
+    final entities = await db.select(db.budgets).get();
     return entities.map(_mapEntityToModel).toList();
   }
 
   Future<void> insertBudget(BudgetPlan budget) async {
-    await appDb.into(appDb.budgets).insert(_mapModelToCompanion(budget), mode: InsertMode.replace);
+    await db.into(db.budgets).insert(_mapModelToCompanion(budget), mode: InsertMode.replace);
   }
 
   Future<void> updateBudget(BudgetPlan budget) async {
-    await appDb.update(appDb.budgets).replace(_mapModelToCompanion(budget));
+    await db.update(db.budgets).replace(_mapModelToCompanion(budget));
   }
 
   Future<void> deleteBudget(String id) async {
-    await (appDb.delete(appDb.budgets)..where((t) => t.id.equals(id))).go();
+    await (db.delete(db.budgets)..where((t) => t.id.equals(id))).go();
   }
 
   Future<void> saveBudgets(List<BudgetPlan> budgets) async {
-    await appDb.transaction(() async {
-      await appDb.delete(appDb.budgets).go();
+    await db.transaction(() async {
+      await db.delete(db.budgets).go();
       for (final b in budgets) {
         await insertBudget(b);
       }

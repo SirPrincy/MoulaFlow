@@ -1,15 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/data/transaction_repository.dart';
+import 'package:moula_flow/data/database/app_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late AppDatabase db;
   late TransactionRepository repository;
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
-    repository = TransactionRepository();
+    db = AppDatabase.forTest(DatabaseConnection(NativeDatabase.memory()));
+    repository = TransactionRepository(db);
+  });
+
+  tearDown(() async {
+    await db.close();
   });
 
   group('TransactionRepository - Serialization', () {

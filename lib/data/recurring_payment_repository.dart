@@ -3,32 +3,36 @@ import '../models.dart';
 import 'database/app_database.dart';
 
 class RecurringPaymentRepository {
+  final AppDatabase db;
+
+  RecurringPaymentRepository(this.db);
+
   Stream<List<RecurringPayment>> watchRecurringPayments() {
-    return appDb.select(appDb.recurringPayments).watch().map((entities) {
+    return db.select(db.recurringPayments).watch().map((entities) {
       return entities.map(_mapEntityToModel).toList();
     });
   }
 
   Future<List<RecurringPayment>> loadRecurringPayments() async {
-    final entities = await appDb.select(appDb.recurringPayments).get();
+    final entities = await db.select(db.recurringPayments).get();
     return entities.map(_mapEntityToModel).toList();
   }
 
   Future<void> insertRecurringPayment(RecurringPayment p) async {
-    await appDb.into(appDb.recurringPayments).insert(_mapModelToCompanion(p), mode: InsertMode.replace);
+    await db.into(db.recurringPayments).insert(_mapModelToCompanion(p), mode: InsertMode.replace);
   }
 
   Future<void> updateRecurringPayment(RecurringPayment p) async {
-    await appDb.update(appDb.recurringPayments).replace(_mapModelToCompanion(p));
+    await db.update(db.recurringPayments).replace(_mapModelToCompanion(p));
   }
 
   Future<void> deleteRecurringPayment(String id) async {
-    await (appDb.delete(appDb.recurringPayments)..where((t) => t.id.equals(id))).go();
+    await (db.delete(db.recurringPayments)..where((t) => t.id.equals(id))).go();
   }
 
   Future<void> saveRecurringPayments(List<RecurringPayment> payments) async {
-    await appDb.transaction(() async {
-      await appDb.delete(appDb.recurringPayments).go();
+    await db.transaction(() async {
+      await db.delete(db.recurringPayments).go();
       for (final p in payments) {
         await insertRecurringPayment(p);
       }

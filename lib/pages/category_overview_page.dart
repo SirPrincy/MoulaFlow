@@ -136,6 +136,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
     ).then((result) async {
       if (result != null && result is Map) {
         if (result['action'] == 'create_wallet') {
+          if (!mounted) return;
           _showSpecializedWalletDialog();
           return;
         }
@@ -425,7 +426,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     }
                   }
 
-                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted && ctx.mounted) Navigator.pop(ctx);
                 },
                 child: const Text('Créer'),
               ),
@@ -1049,7 +1050,8 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                             : null;
                         await ref.read(walletRepositoryProvider).updateWallet(wallet);
                       }
-                      if (context.mounted) Navigator.pop(context);
+                      if (!mounted) return;
+                      Navigator.pop(context);
                     }
                   },
                   child: const Text('Enregistrer'),
