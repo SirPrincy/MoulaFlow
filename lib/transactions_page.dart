@@ -206,7 +206,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                               _selectedWalletIds.remove(wallet.id);
                             });
                             
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             if (ctx.mounted) Navigator.pop(ctx);
                             Navigator.pop(context);
                           },
@@ -247,7 +247,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                     wallet.initialBalance = initialBalance;
                     await ref.read(walletRepositoryProvider).updateWallet(wallet);
                   }
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 }
               },

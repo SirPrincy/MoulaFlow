@@ -302,41 +302,44 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   ),
                   const Divider(),
                   const Text('Wallet de transaction (choix explicite)'),
-                  RadioListTile<bool>(
-                    title: const Text('Sélectionner un wallet existant'),
-                    value: true,
+                  RadioGroup<bool>(
                     groupValue: useExistingWallet,
                     onChanged: (val) =>
                         setDialogState(() => useExistingWallet = val ?? true),
-                  ),
-                  if (useExistingWallet)
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedWalletId,
-                      items: transactionWallets
-                          .map(
-                            (w) => DropdownMenuItem(
-                              value: w.id,
-                              child: Text(w.name),
+                    child: Column(
+                      children: [
+                        RadioListTile<bool>(
+                          title: const Text('Sélectionner un wallet existant'),
+                          value: true,
+                        ),
+                        if (useExistingWallet)
+                          DropdownButtonFormField<String>(
+                            initialValue: selectedWalletId,
+                            items: transactionWallets
+                                .map(
+                                  (w) => DropdownMenuItem(
+                                    value: w.id,
+                                    child: Text(w.name),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (val) =>
+                                setDialogState(() => selectedWalletId = val),
+                          ),
+                        RadioListTile<bool>(
+                          title: const Text('Créer un nouveau wallet'),
+                          value: false,
+                        ),
+                        if (!useExistingWallet)
+                          TextField(
+                            controller: newWalletNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nom du nouveau wallet',
                             ),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setDialogState(() => selectedWalletId = val),
+                          ),
+                      ],
                     ),
-                  RadioListTile<bool>(
-                    title: const Text('Créer un nouveau wallet'),
-                    value: false,
-                    groupValue: useExistingWallet,
-                    onChanged: (val) =>
-                        setDialogState(() => useExistingWallet = val ?? false),
                   ),
-                  if (!useExistingWallet)
-                    TextField(
-                      controller: newWalletNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nom du nouveau wallet',
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -500,39 +503,44 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   ),
                 ),
                 const SizedBox(height: 8),
-                RadioListTile<bool>(
-                  title: const Text('Sélectionner un wallet existant'),
-                  value: true,
+                RadioGroup<bool>(
                   groupValue: useExistingWallet,
                   onChanged: (val) =>
                       setDialogState(() => useExistingWallet = val ?? true),
-                ),
-                if (useExistingWallet)
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedWalletId,
-                    items: transactionWallets
-                        .map(
-                          (w) =>
-                              DropdownMenuItem(value: w.id, child: Text(w.name)),
-                        )
-                        .toList(),
-                    onChanged: (val) =>
-                        setDialogState(() => selectedWalletId = val),
+                  child: Column(
+                    children: [
+                      RadioListTile<bool>(
+                        title: const Text('Sélectionner un wallet existant'),
+                        value: true,
+                      ),
+                      if (useExistingWallet)
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedWalletId,
+                          items: transactionWallets
+                              .map(
+                                (w) => DropdownMenuItem(
+                                  value: w.id,
+                                  child: Text(w.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) =>
+                              setDialogState(() => selectedWalletId = val),
+                        ),
+                      RadioListTile<bool>(
+                        title: const Text('Créer un nouveau wallet'),
+                        value: false,
+                      ),
+                      if (!useExistingWallet)
+                        TextField(
+                          controller: newWalletNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom du nouveau wallet',
+                          ),
+                        ),
+                    ],
                   ),
-                RadioListTile<bool>(
-                  title: const Text('Créer un nouveau wallet'),
-                  value: false,
-                  groupValue: useExistingWallet,
-                  onChanged: (val) =>
-                      setDialogState(() => useExistingWallet = val ?? false),
                 ),
-                if (!useExistingWallet)
-                  TextField(
-                    controller: newWalletNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom du nouveau wallet',
-                    ),
-                  ),
               ],
             ),
             actions: [
@@ -623,7 +631,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     }
                   }
                   
-                  if (context.mounted) {
+                  if (mounted) {
                     final updatedRemaining = _getDebtRemainingAmount(debtWallet);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -1050,8 +1058,9 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                             : null;
                         await ref.read(walletRepositoryProvider).updateWallet(wallet);
                       }
-                      if (!mounted) return;
-                      Navigator.pop(context);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
                     }
                   },
                   child: const Text('Enregistrer'),
