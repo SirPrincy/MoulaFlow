@@ -1,50 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models.dart';
 import 'widgets.dart'; // This is now an export file
 import 'responsive_layout.dart';
-import 'data/transaction_repository.dart';
-import 'data/wallet_repository.dart';
-import 'data/category_repository.dart';
+import 'domain/balance_service.dart';
+import 'providers.dart';
 import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
 import 'utils/styles.dart';
 
-class TransactionsPage extends StatefulWidget {
+class TransactionsPage extends ConsumerStatefulWidget {
   const TransactionsPage({super.key});
 
   @override
-  State<TransactionsPage> createState() => _TransactionsPageState();
+  ConsumerState<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage> {
+class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   List<Transaction> _transactions = [];
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
   String _searchQuery = '';
 
-  final _transactionRepo = TransactionRepository();
-  final _walletRepo = WalletRepository();
-  final _categoryRepo = CategoryRepository();
   final _balanceService = BalanceService();
   final Set<String> _selectedWalletIds = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    _categories = await _categoryRepo.loadCategories();
-    _wallets = await _walletRepo.loadWallets();
-    _transactions = await _transactionRepo.loadTransactions();
-    setState(() {});
-  }
-
-  Future<void> _saveData() async {
-    await _transactionRepo.saveTransactions(_transactions);
-    await _walletRepo.saveWallets(_wallets);
-  }
 
   double get _totalBalance => _balanceService.computeTotalBalance(
     _wallets,
@@ -108,24 +87,20 @@ class _TransactionsPageState extends State<TransactionsPage> {
           editingTx: editingTx,
         );
       },
-    ).then((result) {
+    ).then((result) async {
       if (result != null && result is Map) {
         final action = result['action'];
         final tx = result['tx'];
 
-        setState(() {
-          if (action == 'save') {
-            if (editingTx != null) {
-              final index = _transactions.indexWhere((t) => t.id == tx.id);
-              if (index != -1) _transactions[index] = tx;
-            } else {
-              _transactions.insert(0, tx);
-            }
-          } else if (action == 'delete') {
-            _transactions.removeWhere((t) => t.id == tx.id);
+        if (action == 'save') {
+          if (editingTx != null) {
+            await ref.read(transactionRepositoryProvider).updateTransaction(tx);
+          } else {
+            await ref.read(transactionRepositoryProvider).insertTransaction(tx);
           }
-        });
-        _saveData();
+        } else if (action == 'delete') {
+          await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
+        }
       }
     });
   }
@@ -217,20 +192,24 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            final txRepo = ref.read(transactionRepositoryProvider);
+                            final txsToRemove = _transactions.where(
+                              (tx) => tx.walletId == wallet.id || tx.fromWalletId == wallet.id || tx.toWalletId == wallet.id
+                            ).toList();
+                            for (var tx in txsToRemove) {
+                              await txRepo.deleteTransaction(tx.id);
+                            }
+                            await ref.read(walletRepositoryProvider).deleteWallet(wallet.id);
+                            
                             setState(() {
-                              _transactions.removeWhere(
-                                (tx) =>
-                                    tx.walletId == wallet.id ||
-                                    tx.fromWalletId == wallet.id ||
-                                    tx.toWalletId == wallet.id,
-                              );
-                              _wallets.remove(wallet);
                               _selectedWalletIds.remove(wallet.id);
                             });
-                            _saveData();
-                            Navigator.pop(ctx);
-                            Navigator.pop(context);
+                            
+                            if (mounted) {
+                              Navigator.pop(ctx);
+                              Navigator.pop(context);
+                            }
                           },
                           child: const Text(
                             'Supprimer',
@@ -250,29 +229,26 @@ class _TransactionsPageState extends State<TransactionsPage> {
                 ),
               ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.trim().isNotEmpty) {
                   final initialBalance =
                       double.tryParse(
                         initialBalanceController.text.replaceAll(',', '.'),
                       ) ??
                       0.0;
-                  setState(() {
-                    if (wallet == null) {
-                      _wallets.add(
-                        Wallet(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          name: nameController.text.trim(),
-                          initialBalance: initialBalance,
-                        ),
-                      );
-                    } else {
-                      wallet.name = nameController.text.trim();
-                      wallet.initialBalance = initialBalance;
-                    }
-                  });
-                  _saveData();
-                  Navigator.pop(context);
+                  if (wallet == null) {
+                    final newWallet = Wallet(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      name: nameController.text.trim(),
+                      initialBalance: initialBalance,
+                    );
+                    await ref.read(walletRepositoryProvider).insertWallet(newWallet);
+                  } else {
+                    wallet.name = nameController.text.trim();
+                    wallet.initialBalance = initialBalance;
+                    await ref.read(walletRepositoryProvider).updateWallet(wallet);
+                  }
+                  if (mounted) Navigator.pop(context);
                 }
               },
               child: Text(
@@ -291,6 +267,18 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final walletsAsync = ref.watch(walletsProvider);
+    final txsAsync = ref.watch(transactionsProvider);
+    final catsAsync = ref.watch(categoriesProvider);
+
+    if (walletsAsync.isLoading || txsAsync.isLoading || catsAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    _wallets = walletsAsync.value ?? [];
+    _transactions = txsAsync.value ?? [];
+    _categories = catsAsync.value ?? [];
+
     final theme = Theme.of(context);
     final displayedTxs = _filteredTransactions;
 
@@ -367,11 +355,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           walletCaption: walletCaption,
                           isDetailed: true,
                           onTap: () => _showTransactionModal(editingTx: tx),
-                          onDismissed: () {
-                            setState(() {
-                              _transactions.remove(tx);
-                            });
-                            _saveData();
+                          onDismissed: () async {
+                            await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
                           },
                           confirmDismiss: (_) => showDeleteConfirmDialog(
                             context,

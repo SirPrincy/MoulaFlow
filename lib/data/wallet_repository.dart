@@ -33,6 +33,12 @@ class WalletRepository {
     );
   }
 
+  Stream<List<Wallet>> watchWallets() {
+    return appDb.select(appDb.wallets).watch().map((entities) {
+      return entities.map(_mapEntityToModel).toList();
+    });
+  }
+
   Future<List<Wallet>> loadWallets() async {
     final entities = await appDb.select(appDb.wallets).get();
     return entities.map(_mapEntityToModel).toList();
@@ -45,5 +51,17 @@ class WalletRepository {
         await appDb.into(appDb.wallets).insert(_mapModelToCompanion(w));
       }
     });
+  }
+
+  Future<void> insertWallet(Wallet wallet) async {
+    await appDb.into(appDb.wallets).insert(_mapModelToCompanion(wallet), mode: InsertMode.replace);
+  }
+
+  Future<void> updateWallet(Wallet wallet) async {
+    await appDb.update(appDb.wallets).replace(_mapModelToCompanion(wallet));
+  }
+
+  Future<void> deleteWallet(String id) async {
+    await (appDb.delete(appDb.wallets)..where((tbl) => tbl.id.equals(id))).go();
   }
 }

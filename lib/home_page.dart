@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'responsive_layout.dart';
+import 'providers.dart';
 import 'models.dart';
 import 'widgets/transaction_form.dart';
 import 'widgets/app_side_menu.dart';
@@ -18,15 +20,15 @@ import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   final ValueNotifier<ThemeMode> themeNotifier;
   const HomePage({super.key, required this.themeNotifier});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   List<Transaction> _transactions = [];
   List<Wallet> _wallets = [];
   List<TransactionCategory> _categories = [];
@@ -34,9 +36,6 @@ class _HomePageState extends State<HomePage> {
   bool _isSidebarCollapsed = false;
   bool _isMobileMenuOpen = false;
 
-  final _categoryRepo = CategoryRepository();
-  final _transactionRepo = TransactionRepository();
-  final _walletRepo = WalletRepository();
   final _balanceService = BalanceService();
   final _dashboardRepo = DashboardRepository();
 
@@ -46,29 +45,14 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadDashboard();
   }
 
-  Future<void> _loadData() async {
-    _categories = await _categoryRepo.loadCategories();
-    _wallets = await _walletRepo.loadWallets();
-    _transactions = await _transactionRepo.loadTransactions();
+  Future<void> _loadDashboard() async {
     _dashboardConfig = await _dashboardRepo.loadConfig();
-
-    final result = _transactionRepo.migrateIfNeeded(_transactions, _wallets);
-    if (result.changed) {
-      _transactions = result.transactions;
-      _wallets = result.wallets;
-      await _saveData();
-    }
     setState(() {});
   }
 
-  Future<void> _saveData() async {
-    await _walletRepo.saveWallets(_wallets);
-    await _transactionRepo.saveTransactions(_transactions);
-    await _categoryRepo.saveCategories(_categories);
-  }
 
   double get _totalBalance => _balanceService.computeTotalBalance(
     _wallets,
@@ -85,9 +69,6 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(builder: (context) => page),
     );
-    if (mounted) {
-      _loadData();
-    }
   }
 
   void _toggleMobileMenu() {
@@ -134,7 +115,7 @@ class _HomePageState extends State<HomePage> {
           editingTx: editingTx,
         );
       },
-    ).then((result) {
+    ).then((result) async {
       if (result != null && result is Map) {
         if (result['action'] == 'create_wallet') {
           _showWalletDialog();
@@ -143,38 +124,35 @@ class _HomePageState extends State<HomePage> {
         final tx = result['tx'] as Transaction;
         final action = result['action'] as String;
 
-        setState(() {
-          if (action == 'save') {
-            if (editingTx != null) {
-              final index = _transactions.indexWhere((t) => t.id == tx.id);
-              if (index != -1) _transactions[index] = tx;
-            } else {
-              _transactions.insert(0, tx);
-            }
-          } else if (action == 'delete') {
-            _transactions.removeWhere((t) => t.id == tx.id);
+        if (action == 'save') {
+          if (editingTx != null) {
+            await ref.read(transactionRepositoryProvider).updateTransaction(tx);
+          } else {
+            await ref.read(transactionRepositoryProvider).insertTransaction(tx);
           }
+        } else if (action == 'delete') {
+          await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
+        }
 
-          // Auto-settle/complete logic for debts and savings
-          for (var w in _wallets) {
-            if (!w.isSettled && w.targetAmount != null) {
-              final balance = _getWalletBalance(w.id);
-              double effectiveTarget = w.targetAmount!;
+        // Auto-settle/complete logic for debts and savings
+        for (var w in _wallets) {
+          if (!w.isSettled && w.targetAmount != null) {
+            final balance = _getWalletBalance(w.id);
+            double effectiveTarget = w.targetAmount!;
 
-              if (w.type == WalletType.debt &&
-                  w.interestRate != null &&
-                  w.interestRate! > 0) {
-                effectiveTarget = effectiveTarget * (1 + w.interestRate! / 100);
-              }
+            if (w.type == WalletType.debt &&
+                w.interestRate != null &&
+                w.interestRate! > 0) {
+              effectiveTarget = effectiveTarget * (1 + w.interestRate! / 100);
+            }
 
-              // If balance reached or exceeded target, mark as settled/completed
-              if (balance >= effectiveTarget) {
-                w.isSettled = true;
-              }
+            // If balance reached or exceeded target, mark as settled/completed
+            if (balance >= effectiveTarget) {
+              w.isSettled = true;
+              await ref.read(walletRepositoryProvider).updateWallet(w);
             }
           }
-        });
-        _saveData();
+        }
       }
     });
   }
@@ -482,20 +460,25 @@ class _HomePageState extends State<HomePage> {
                               child: const Text('Annuler'),
                             ),
                             TextButton(
-                              onPressed: () {
+                              onPressed: () async {
+                                final txRepo = ref.read(transactionRepositoryProvider);
+                                final txsToRemove = _transactions.where(
+                                  (tx) =>
+                                      tx.walletId == wallet.id ||
+                                      tx.fromWalletId == wallet.id ||
+                                      tx.toWalletId == wallet.id,
+                                ).toList();
+                                for (var tx in txsToRemove) {
+                                  await txRepo.deleteTransaction(tx.id);
+                                }
+                                await ref.read(walletRepositoryProvider).deleteWallet(wallet.id);
                                 setState(() {
-                                  _transactions.removeWhere(
-                                    (tx) =>
-                                        tx.walletId == wallet.id ||
-                                        tx.fromWalletId == wallet.id ||
-                                        tx.toWalletId == wallet.id,
-                                  );
-                                  _wallets.remove(wallet);
                                   _selectedWalletIds.remove(wallet.id);
                                 });
-                                _saveData();
-                                Navigator.pop(ctx);
-                                Navigator.pop(context);
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  Navigator.pop(context);
+                                }
                               },
                               child: const Text(
                                 'Supprimer',
@@ -516,32 +499,28 @@ class _HomePageState extends State<HomePage> {
                   child: const Text('Annuler'),
                 ),
                 FilledButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (nameController.text.trim().isNotEmpty) {
                       final initialBalance =
                           double.tryParse(
                             initialBalanceController.text.replaceAll(',', '.'),
                           ) ??
                           0.0;
-                      setState(() {
-                        if (wallet == null) {
-                          _wallets.add(
-                            Wallet(
-                              id: DateTime.now().millisecondsSinceEpoch
-                                  .toString(),
-                              name: nameController.text.trim(),
-                              initialBalance: initialBalance,
-                              type: selectedType,
-                            ),
-                          );
-                        } else {
-                          wallet.name = nameController.text.trim();
-                          wallet.initialBalance = initialBalance;
-                          wallet.type = selectedType;
-                        }
-                      });
-                      _saveData();
-                      Navigator.pop(context);
+                      if (wallet == null) {
+                        final newWallet = Wallet(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: nameController.text.trim(),
+                          initialBalance: initialBalance,
+                          type: selectedType,
+                        );
+                        await ref.read(walletRepositoryProvider).insertWallet(newWallet);
+                      } else {
+                        wallet.name = nameController.text.trim();
+                        wallet.initialBalance = initialBalance;
+                        wallet.type = selectedType;
+                        await ref.read(walletRepositoryProvider).updateWallet(wallet);
+                      }
+                      if (context.mounted) Navigator.pop(context);
                     }
                   },
                   child: const Text('Enregistrer'),
@@ -556,6 +535,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final walletsAsync = ref.watch(walletsProvider);
+    final txsAsync = ref.watch(transactionsProvider);
+    final catsAsync = ref.watch(categoriesProvider);
+
+    if (walletsAsync.isLoading || txsAsync.isLoading || catsAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    _wallets = walletsAsync.value ?? [];
+    _transactions = txsAsync.value ?? [];
+    _categories = catsAsync.value ?? [];
+
     final theme = Theme.of(context);
     final income = _getMonthlyTotal(TransactionType.income);
     final expenses = _getMonthlyTotal(TransactionType.expense);
@@ -678,7 +669,6 @@ class _HomePageState extends State<HomePage> {
                           builder: (context) => const TransactionsPage(),
                         ),
                       );
-                      _loadData();
                     },
                   );
                   break;
@@ -768,7 +758,7 @@ class _HomePageState extends State<HomePage> {
       currentRoute: '/',
       isCollapsed: _isSidebarCollapsed,
       themeNotifier: widget.themeNotifier,
-      onDataChange: _loadData,
+      onDataChange: () {}, // Handled by Riverpod streams now
     );
 
     if (context.isMobileScreen) {

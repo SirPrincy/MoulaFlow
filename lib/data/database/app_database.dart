@@ -9,12 +9,12 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Wallets, Transactions])
+@DriftDatabase(tables: [Wallets, Transactions, Categories, Budgets, RecurringPayments])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 }
 
 LazyDatabase _openConnection() {

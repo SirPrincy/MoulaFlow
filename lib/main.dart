@@ -5,15 +5,19 @@ import 'data/settings_repository.dart';
 import 'utils/styles.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settingsRepo = SettingsRepository();
   final isDark = await settingsRepo.loadIsDarkMode();
   final onboardingSeen = await settingsRepo.loadOnboardingSeen();
   
-  runApp(MoulaFlowApp(
-    isDarkInitial: isDark,
-    onboardingSeenInitial: onboardingSeen,
+  runApp(ProviderScope(
+    child: MoulaFlowApp(
+      isDarkInitial: isDark,
+      onboardingSeenInitial: onboardingSeen,
+    ),
   ));
 }
 

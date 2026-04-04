@@ -1,67 +1,71 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart';
 import '../models.dart';
-import 'storage_keys.dart';
+import 'database/app_database.dart';
 
 class CategoryRepository {
+  Stream<List<TransactionCategory>> watchCategories() {
+    return appDb.select(appDb.categories).watch().map((entities) {
+      if (entities.isEmpty) return [];
+      return _buildCategoryTree(entities);
+    });
+  }
+
   Future<List<TransactionCategory>> loadCategories() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? catsData = prefs.getString(StorageKeys.categories);
-    final defaultCategories = _getDefaultCategories();
-
-    if (catsData != null) {
-      final List<dynamic> jsonList = jsonDecode(catsData);
-      final savedCategories = jsonList.map((json) => TransactionCategory.fromJson(json)).toList();
-      final mergedCategories = _mergeWithDefaults(savedCategories, defaultCategories);
-
-      if (_categoriesChanged(savedCategories, mergedCategories)) {
-        await saveCategories(mergedCategories);
-      }
-      return mergedCategories;
-    } else {
-      await saveCategories(defaultCategories);
-      return defaultCategories;
+    final entities = await appDb.select(appDb.categories).get();
+    if (entities.isEmpty) {
+      final defaults = _getDefaultCategories();
+      await insertAll(defaults);
+      return defaults;
     }
+    return _buildCategoryTree(entities);
+  }
+
+  Future<void> insertCategory(TransactionCategory category, {String? parentId}) async {
+    await appDb.into(appDb.categories).insert(CategoriesCompanion(
+      id: Value(category.id),
+      name: Value(category.name),
+      parentId: Value(parentId),
+    ), mode: InsertMode.replace);
+
+    for (final sub in category.subcategories) {
+      await insertCategory(sub, parentId: category.id);
+    }
+  }
+
+  Future<void> insertAll(List<TransactionCategory> categories) async {
+    await appDb.transaction(() async {
+      for (final cat in categories) {
+        await insertCategory(cat);
+      }
+    });
   }
 
   Future<void> saveCategories(List<TransactionCategory> categories) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(StorageKeys.categories, jsonEncode(categories.map((c) => c.toJson()).toList()));
+    await appDb.transaction(() async {
+      await appDb.delete(appDb.categories).go();
+      await insertAll(categories);
+    });
   }
 
-  List<TransactionCategory> _mergeWithDefaults(
-    List<TransactionCategory> saved,
-    List<TransactionCategory> defaults,
-  ) {
-    final merged = List<TransactionCategory>.from(saved);
+  List<TransactionCategory> _buildCategoryTree(List<CategoryEntity> entities) {
+    final map = <String, TransactionCategory>{};
+    final mainCats = <TransactionCategory>[];
 
-    for (final defaultCategory in defaults) {
-      final index = merged.indexWhere((c) => c.id == defaultCategory.id);
-      if (index == -1) {
-        merged.add(defaultCategory);
-      } else {
-        final existing = merged[index];
-        final mergedSubcategories = List<TransactionCategory>.from(existing.subcategories);
-        for (final defaultSub in defaultCategory.subcategories) {
-          final exists = mergedSubcategories.any((s) => s.id == defaultSub.id);
-          if (!exists) {
-            mergedSubcategories.add(defaultSub);
-          }
-        }
-        merged[index] = TransactionCategory(
-          id: existing.id,
-          name: existing.name,
-          subcategories: mergedSubcategories,
-        );
-      }
+    for (final e in entities) {
+      map[e.id] = TransactionCategory(id: e.id, name: e.name, subcategories: []);
     }
 
-    return merged;
-  }
-
-  bool _categoriesChanged(List<TransactionCategory> before, List<TransactionCategory> after) {
-    return jsonEncode(before.map((c) => c.toJson()).toList()) !=
-        jsonEncode(after.map((c) => c.toJson()).toList());
+    for (final e in entities) {
+      if (e.parentId != null) {
+        final parent = map[e.parentId!];
+        if (parent != null) {
+          parent.subcategories.add(map[e.id]!);
+        }
+      } else {
+        mainCats.add(map[e.id]!);
+      }
+    }
+    return mainCats;
   }
 
   List<TransactionCategory> _getDefaultCategories() {
