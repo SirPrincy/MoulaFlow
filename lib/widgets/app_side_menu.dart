@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../home_page.dart';
 import '../transactions_page.dart';
 import '../settings_page.dart';
@@ -10,17 +11,15 @@ import '../models.dart';
 import '../responsive_layout.dart';
 import 'app_drawer.dart';
 
-class AppSideMenu extends StatelessWidget {
+class AppSideMenu extends ConsumerWidget {
   final String currentRoute;
   final bool isCollapsed;
-  final ValueNotifier<ThemeMode> themeNotifier;
   final VoidCallback? onDataChange;
 
   const AppSideMenu({
     super.key,
     required this.currentRoute,
     this.isCollapsed = false,
-    required this.themeNotifier,
     this.onDataChange,
   });
 
@@ -34,7 +33,7 @@ class AppSideMenu extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return AppDrawerContent(
       currentRoute: currentRoute,
       isCollapsed: isCollapsed,
@@ -44,19 +43,19 @@ class AppSideMenu extends StatelessWidget {
         } else {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => HomePage(themeNotifier: themeNotifier)),
+            MaterialPageRoute(builder: (context) => const HomePage()),
             (route) => false,
           );
         }
       },
       onTransactionsTap: () => _navigateTo(context, const TransactionsPage()),
-      onSettingsTap: () => _navigateTo(context, SettingsPage(themeNotifier: themeNotifier)),
+      onSettingsTap: () => _navigateTo(context, const SettingsPage()),
       onAPayerTap: () => _navigateTo(context, const BillsToPayPage()),
       onDettesTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.debt, title: 'Dettes')),
       onEpargneTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne')),
       onProjetTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.project, title: 'Projets')),
       onRecurringTap: () => _navigateTo(context, const RecurringPaymentsPage()),
-      onBudgetsTap: () => _navigateTo(context, BudgetPlannerPage(themeNotifier: themeNotifier)),
+      onBudgetsTap: () => _navigateTo(context, const BudgetPlannerPage()),
     );
   }
 }

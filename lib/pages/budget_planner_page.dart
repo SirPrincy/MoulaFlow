@@ -8,8 +8,7 @@ import '../widgets/app_menu_bar.dart';
 import '../widgets/app_side_menu.dart';
 
 class BudgetPlannerPage extends ConsumerStatefulWidget {
-  final ValueNotifier<ThemeMode>? themeNotifier;
-  const BudgetPlannerPage({super.key, this.themeNotifier});
+  const BudgetPlannerPage({super.key});
 
   @override
   ConsumerState<BudgetPlannerPage> createState() => _BudgetPlannerPageState();
@@ -423,7 +422,6 @@ class _BudgetPlannerPageState extends ConsumerState<BudgetPlannerPage> {
     final sideMenu = AppSideMenu(
       currentRoute: '/budgets',
       isCollapsed: false,
-      themeNotifier: widget.themeNotifier ?? ValueNotifier(ThemeMode.system),
       onDataChange: _load,
     );
 

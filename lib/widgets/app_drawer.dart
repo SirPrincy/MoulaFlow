@@ -214,36 +214,42 @@ class AppDrawerContent extends StatelessWidget {
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
           ),
-          child: Row(
-            mainAxisAlignment: isCollapsed
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
-            children: [
-              Icon(
-                isActive ? activeIcon : icon,
-                color: isActive
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                size: 22,
-              ),
-              if (!isCollapsed) ...[
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+          child: isCollapsed
+              ? Center(
+                  child: Icon(
+                    isActive ? activeIcon : icon,
+                    color: isActive
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    size: 22,
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Icon(
+                      isActive ? activeIcon : icon,
                       color: isActive
                           ? theme.colorScheme.onSurface
                           : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      fontSize: 15,
+                      size: 22,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                          color: isActive
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          fontSize: 15,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ],
-          ),
         ),
       ),
     );
