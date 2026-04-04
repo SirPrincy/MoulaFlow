@@ -4,8 +4,12 @@ import 'database/app_database.dart';
 
 class CategoryRepository {
   Stream<List<TransactionCategory>> watchCategories() {
-    return appDb.select(appDb.categories).watch().map((entities) {
-      if (entities.isEmpty) return [];
+    return appDb.select(appDb.categories).watch().asyncMap((entities) async {
+      if (entities.isEmpty) {
+        final defaults = _getDefaultCategories();
+        await insertAll(defaults);
+        return defaults;
+      }
       return _buildCategoryTree(entities);
     });
   }

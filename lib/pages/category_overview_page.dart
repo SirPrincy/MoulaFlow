@@ -567,7 +567,9 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       name: newWalletNameController.text.trim(),
                       type: WalletType.current,
                     );
-                    _allWallets.add(transactionWallet);
+                    await ref
+                        .read(walletRepositoryProvider)
+                        .insertWallet(transactionWallet);
                   }
 
                   debtWallet.initialBalance += amount;
