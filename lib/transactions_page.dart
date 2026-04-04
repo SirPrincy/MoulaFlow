@@ -5,7 +5,6 @@ import 'widgets.dart'; // This is now an export file
 import 'responsive_layout.dart';
 import 'domain/balance_service.dart';
 import 'providers.dart';
-import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
 import 'utils/styles.dart';
 
@@ -105,6 +104,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     });
   }
 
+  // ignore: unused_element
   void _showWalletDialog({Wallet? wallet}) {
     final theme = Theme.of(context);
     final nameController = TextEditingController(text: wallet?.name ?? '');
@@ -206,10 +206,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                               _selectedWalletIds.remove(wallet.id);
                             });
                             
-                            if (mounted) {
-                              Navigator.pop(ctx);
-                              Navigator.pop(context);
-                            }
+                            if (!mounted || !ctx.mounted) return;
+                            Navigator.pop(ctx);
+                            Navigator.pop(context);
                           },
                           child: const Text(
                             'Supprimer',
