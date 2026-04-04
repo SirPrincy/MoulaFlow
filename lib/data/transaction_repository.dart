@@ -1,7 +1,6 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart';
 import '../models.dart';
-import 'storage_keys.dart';
+import 'database/app_database.dart';
 
 class MigrationResult {
   final List<Transaction> transactions;
@@ -16,19 +15,52 @@ class MigrationResult {
 }
 
 class TransactionRepository {
+  Transaction _mapEntityToModel(TransactionEntity entity) {
+    return Transaction(
+      id: entity.id,
+      amount: entity.amount,
+      description: entity.description,
+      type: entity.type,
+      date: entity.date,
+      walletId: entity.walletId,
+      fromWalletId: entity.fromWalletId,
+      toWalletId: entity.toWalletId,
+      categoryId: entity.categoryId,
+      tags: entity.tags,
+      isRecurring: entity.isRecurring,
+      relatedDebtId: entity.relatedDebtId,
+    );
+  }
+
+  TransactionsCompanion _mapModelToCompanion(Transaction tx) {
+    return TransactionsCompanion(
+      id: Value(tx.id),
+      amount: Value(tx.amount),
+      description: Value(tx.description),
+      type: Value(tx.type),
+      date: Value(tx.date),
+      walletId: Value(tx.walletId),
+      fromWalletId: Value(tx.fromWalletId),
+      toWalletId: Value(tx.toWalletId),
+      categoryId: Value(tx.categoryId),
+      tags: Value(tx.tags),
+      isRecurring: Value(tx.isRecurring),
+      relatedDebtId: Value(tx.relatedDebtId),
+    );
+  }
+
   Future<List<Transaction>> loadTransactions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? txData = prefs.getString(StorageKeys.transactions);
-    if (txData != null) {
-      final List<dynamic> jsonList = jsonDecode(txData);
-      return jsonList.map((json) => Transaction.fromJson(json)).toList();
-    }
-    return [];
+    final entities = await appDb.select(appDb.transactions).get();
+    return entities.map(_mapEntityToModel).toList();
   }
 
   Future<void> saveTransactions(List<Transaction> transactions) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(StorageKeys.transactions, jsonEncode(transactions.map((tx) => tx.toJson()).toList()));
+    await appDb.transaction(() async {
+      await appDb.delete(appDb.transactions).go();
+      for (final tx in transactions) {
+        await appDb.into(appDb.transactions).insert(_mapModelToCompanion(tx));
+      }
+    });
   }
 
   /// Migrates transactions to the new format if needed.

@@ -24,3 +24,5 @@ LazyDatabase _openConnection() {
     return NativeDatabase.createInBackground(file);
   });
 }
+
+final appDb = AppDatabase();
