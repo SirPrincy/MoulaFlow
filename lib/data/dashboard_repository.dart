@@ -7,7 +7,8 @@ enum DashboardWidgetType {
   flow,       // Income vs Expenses
   categories, // Top Categories Chart
   trends,     // Flow Trend Line
-  recent      // Recent 5 Transactions
+  recent,     // Recent 5 Transactions
+  projects    // Project Tracking
 }
 
 enum CategoryChartStyle {

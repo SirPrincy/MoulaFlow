@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/styles.dart';
+import '../pages/project_management_page.dart';
 import 'app_logo.dart';
 
 class AppDrawerContent extends StatelessWidget {
@@ -136,9 +137,14 @@ class AppDrawerContent extends StatelessWidget {
                   context,
                   Icons.rocket_launch_outlined,
                   Icons.rocket_launch,
-                  'Projets',
+                  'Projets / Tags',
                   '/projets',
-                  onProjetTap,
+                  onProjetTap ?? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProjectManagementPage()),
+                    );
+                  },
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(

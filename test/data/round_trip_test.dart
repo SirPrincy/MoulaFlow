@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moula_flow/data/settings_repository.dart';
 import 'package:moula_flow/data/database/app_database.dart';
 import 'package:drift/native.dart';
-import 'package:drift/drift.dart';
 import 'package:flutter/services.dart';
 import 'package:moula_flow/models.dart';
 

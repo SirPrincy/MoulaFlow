@@ -60,6 +60,30 @@ class Categories extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('TagEntity')
+class Tags extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get color => text().nullable()();
+  TextColumn get icon => text().nullable()();
+  RealColumn get goalAmount => real().nullable()(); // Max budget for this project tag
+  TextColumn get description => text().nullable()();
+  IntColumn get type => intEnum<TagType>()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('TransactionTagEntity')
+class TransactionTags extends Table {
+  TextColumn get transactionId => text().references(Transactions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get tagId => text().references(Tags, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  Set<Column> get primaryKey => {transactionId, tagId};
+}
+
 @DataClassName('BudgetPlanEntity')
 class Budgets extends Table {
   TextColumn get id => text()();

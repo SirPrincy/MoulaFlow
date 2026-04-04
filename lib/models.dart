@@ -149,16 +149,20 @@ class TagDefinition {
   final String id;
   final String name;
   final TagType type;
-  final String? colorHex;
+  final String? color;
+  final String? icon;
   final String? description;
+  final double? goalAmount;
   final DateTime createdAt;
 
   TagDefinition({
     required this.id,
     required this.name,
     this.type = TagType.custom,
-    this.colorHex,
+    this.color,
+    this.icon,
     this.description,
+    this.goalAmount,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -166,16 +170,20 @@ class TagDefinition {
     String? id,
     String? name,
     TagType? type,
-    String? colorHex,
+    String? color,
+    String? icon,
     String? description,
+    double? goalAmount,
     DateTime? createdAt,
   }) {
     return TagDefinition(
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
-      colorHex: colorHex ?? this.colorHex,
+      color: color ?? this.color,
+      icon: icon ?? this.icon,
       description: description ?? this.description,
+      goalAmount: goalAmount ?? this.goalAmount,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -184,8 +192,10 @@ class TagDefinition {
         'id': id,
         'name': name,
         'type': type.name,
-        'colorHex': colorHex,
+        'color': color,
+        'icon': icon,
         'description': description,
+        'goalAmount': goalAmount,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -196,8 +206,10 @@ class TagDefinition {
           (e) => e.name == json['type'],
           orElse: () => TagType.custom,
         ),
-        colorHex: json['colorHex'],
+        color: json['color'] ?? json['colorHex'],
+        icon: json['icon'],
         description: json['description'],
+        goalAmount: json['goalAmount']?.toDouble(),
         createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       );
 }

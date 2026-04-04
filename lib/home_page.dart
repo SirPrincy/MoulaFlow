@@ -12,6 +12,8 @@ import 'pages/category_overview_page.dart';
 import 'pages/bills_to_pay_page.dart';
 import 'pages/recurring_payments_page.dart';
 import 'pages/budget_planner_page.dart';
+import 'pages/tag_project_page.dart';
+import 'pages/project_management_page.dart';
 import 'utils/styles.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
@@ -214,9 +216,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       (
         icon: Icons.rocket_launch_outlined,
         label: 'Projets',
-        onTap: () => _openMobilePage(
-          const CategoryOverviewPage(type: WalletType.project, title: 'Projets'),
-        ),
+        onTap: () => _openMobilePage(const ProjectManagementPage()),
       ),
       (
         icon: Icons.autorenew_outlined,
@@ -310,9 +310,11 @@ class _HomePageState extends ConsumerState<HomePage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final tagsAsync = ref.watch(tagsProvider);
     _wallets = walletsAsync.value ?? [];
     _transactions = txsAsync.value ?? [];
     _categories = catsAsync.value ?? [];
+    final tags = tagsAsync.value ?? [];
 
     final theme = Theme.of(context);
     final income = _getMonthlyTotal(TransactionType.income);
@@ -440,6 +442,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                   break;
                 case DashboardWidgetType.trends:
                   mod = WealthTrendCard(history: historicalBalances);
+                  break;
+                case DashboardWidgetType.projects:
+                  mod = ProjectsSummaryCard(
+                    tags: tags,
+                    transactions: _transactions,
+                    onTagTap: (tag) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TagProjectPage(tag: tag),
+                        ),
+                      );
+                    },
+                  );
                   break;
               }
 

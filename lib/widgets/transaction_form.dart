@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../responsive_layout.dart';
 import '../models.dart';
 import '../utils/styles.dart';
+import '../providers.dart';
 import 'category_picker.dart';
 import 'dialogs.dart';
 
-class TransactionForm extends StatefulWidget {
+class TransactionForm extends ConsumerStatefulWidget {
   final List<Wallet> wallets;
   final List<TransactionCategory> categories;
   final Transaction? editingTx;
@@ -20,13 +22,14 @@ class TransactionForm extends StatefulWidget {
   });
 
   @override
-  State<TransactionForm> createState() => _TransactionFormState();
+  ConsumerState<TransactionForm> createState() => _TransactionFormState();
 }
 
-class _TransactionFormState extends State<TransactionForm> {
+class _TransactionFormState extends ConsumerState<TransactionForm> {
   late TextEditingController _amountController;
   late TextEditingController _descController;
   late TextEditingController _tagsController;
+  final List<String> _selectedTags = [];
   
   late TransactionType _type;
   String? _selectedWalletId;
@@ -44,7 +47,7 @@ class _TransactionFormState extends State<TransactionForm> {
       final tx = widget.editingTx!;
       _amountController = TextEditingController(text: tx.amount.toStringAsFixed(2));
       _descController = TextEditingController(text: tx.description);
-      _tagsController = TextEditingController(text: tx.tags.join('; '));
+      _tagsController = TextEditingController();
       _type = tx.type;
       _selectedWalletId = tx.walletId;
       _fromWalletId = tx.fromWalletId;
@@ -52,6 +55,7 @@ class _TransactionFormState extends State<TransactionForm> {
       _selectedCategoryId = tx.categoryId;
       _date = tx.date;
       _isRecurring = tx.isRecurring;
+      _selectedTags.addAll(tx.tags);
       
       if (_selectedWalletId != null && !widget.wallets.any((w) => w.id == _selectedWalletId)) _selectedWalletId = null;
       if (_fromWalletId != null && !widget.wallets.any((w) => w.id == _fromWalletId)) _fromWalletId = null;
@@ -101,7 +105,6 @@ class _TransactionFormState extends State<TransactionForm> {
   void _submit() {
     final amountText = _amountController.text.trim();
     final descText = _descController.text.trim();
-    final tagsText = _tagsController.text.trim();
 
     if (amountText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -153,10 +156,6 @@ class _TransactionFormState extends State<TransactionForm> {
       return;
     }
 
-    List<String> tagsList = tagsText.isNotEmpty 
-        ? tagsText.split(';').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() 
-        : [];
-
     final savedTx = Transaction(
       id: widget.editingTx?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       amount: amount,
@@ -167,7 +166,7 @@ class _TransactionFormState extends State<TransactionForm> {
       fromWalletId: fId,
       toWalletId: tId,
       categoryId: _type == TransactionType.transfer ? null : _selectedCategoryId,
-      tags: tagsList,
+      tags: _selectedTags,
       isRecurring: _isRecurring,
     );
 
@@ -445,12 +444,58 @@ class _TransactionFormState extends State<TransactionForm> {
               style: textStyle.copyWith(fontSize: 16),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _tagsController,
-              decoration: _inputDeco('Tags (Optionnel)', 'Ex: vacances; espagne'),
-              cursorColor: isDark ? Colors.white : Colors.black,
-              style: textStyle.copyWith(fontSize: 16),
+            Text('Tags', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ..._selectedTags.map((tag) => InputChip(
+                  label: Text(tag),
+                  onDeleted: () => setState(() => _selectedTags.remove(tag)),
+                )),
+                IntrinsicWidth(
+                  child: TextField(
+                    controller: _tagsController,
+                    decoration: const InputDecoration(
+                      hintText: 'Ajouter tag...',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                    onSubmitted: (val) {
+                      final tag = val.trim();
+                      if (tag.isNotEmpty && !_selectedTags.contains(tag)) {
+                        setState(() {
+                          _selectedTags.add(tag);
+                          _tagsController.clear();
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
+            if (ref.watch(tagsProvider).hasValue) ...[
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ...ref.watch(tagsProvider).value!
+                      .where((t) => !_selectedTags.contains(t.name))
+                      .take(5)
+                      .map((t) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          avatar: Icon(Icons.add, size: 14, color: t.color != null ? Color(int.parse(t.color!.replaceAll('#', '0xFF'))) : null),
+                          label: Text(t.name),
+                          onPressed: () => setState(() => _selectedTags.add(t.name)),
+                        ),
+                      )),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SwitchListTile(
               title: const Text('Transaction Récurrente', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -500,4 +545,3 @@ class _TransactionFormState extends State<TransactionForm> {
     );
   }
 }
-

@@ -784,3 +784,152 @@ class RecentTransactionsCard extends DashboardCard {
     }
   }
 }
+
+/// 5. Résumé des PROJETS (Tags)
+class ProjectsSummaryCard extends DashboardCard {
+  final List<TagDefinition> tags;
+  final List<Transaction> transactions;
+  final Function(TagDefinition) onTagTap;
+
+  const ProjectsSummaryCard({
+    super.key,
+    required this.tags,
+    required this.transactions,
+    required this.onTagTap,
+    super.isEditMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Filter tags that are projects or have a budget
+    final projectTags = tags.where((t) => t.type == TagType.project || t.goalAmount != null).toList();
+
+    return buildContainer(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildHeader(
+            context, 
+            'PROJETS RÉCENTS',
+            trailing: InkWell(
+              onTap: () {
+                // TODO: View all projects
+              },
+              child: Row(
+                children: [
+                  Text('TOUT VOIR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward, size: 12),
+                ],
+              ),
+            ),
+          ),
+          if (projectTags.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: Text('Aucun projet défini.')),
+            )
+          else
+            ...projectTags.take(3).map((tag) {
+              final tagTransactions = transactions.where((tx) => tx.tags.contains(tag.name)).toList();
+              double spent = 0;
+              for (var tx in tagTransactions) {
+                if (tx.type == TransactionType.expense) spent += tx.amount;
+                if (tx.type == TransactionType.income) spent -= tx.amount;
+              }
+
+              final limit = tag.goalAmount ?? 0;
+              final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
+              final isOverBudget = limit > 0 && spent > limit;
+
+              return InkWell(
+                onTap: () => onTagTap(tag),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                tag.icon != null 
+                                  ? IconData(int.parse(tag.icon!), fontFamily: 'MaterialIcons') 
+                                  : Icons.rocket_launch,
+                                size: 14,
+                                color: tag.color != null ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) : theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(tag.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
+                          Text(
+                            formatAmount(spent),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: isOverBudget ? Colors.red : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (limit > 0) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 6,
+                            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                            valueColor: AlwaysStoppedAnimation(isOverBudget ? Colors.red : theme.colorScheme.primary),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Budget: ${formatAmount(limit)}',
+                              style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                            ),
+                            Text(
+                              '${(progress * 100).toStringAsFixed(0)}%',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isOverBudget ? Colors.red : theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                         Text(
+                          'Sans limite de budget',
+                          style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }),
+          if (isEditMode)
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  // TODO: Add new project
+                },
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('AJOUTER UN PROJET', style: TextStyle(fontSize: 11)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

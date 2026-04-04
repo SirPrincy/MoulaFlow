@@ -9,13 +9,13 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Wallets, Transactions, Categories, Budgets, RecurringPayments])
+@DriftDatabase(tables: [Wallets, Transactions, Categories, Budgets, RecurringPayments, Tags, TransactionTags])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTest(super.connection);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,8 +31,41 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       } else if (from == 2) {
         // Version 2 -> 3: Migration safely handled here.
-        // For now, no schema changes but we establish the pattern.
-        // Example: await m.addColumn(transactions, transactions.newField);
+      } else if (from == 3) {
+        // Version 3 -> 4: Tag migration
+        await m.createTable(tags);
+        await m.createTable(transactionTags);
+
+        // Migrate existing tags from Transactions.tags to the new table
+        final allTransactions = await select(transactions).get();
+        for (var tx in allTransactions) {
+          if (tx.tags.isNotEmpty) {
+            for (var tagName in tx.tags) {
+              // Check if tag already exists (simplistic check)
+              // Note: In a real large DB this should be optimized, but here it's fine.
+              String tagId;
+              final existingTag = await (select(tags)..where((t) => t.name.equals(tagName))).getSingleOrNull();
+              
+              if (existingTag == null) {
+                tagId = DateTime.now().millisecondsSinceEpoch.toString() + tagName.hashCode.toString();
+                await into(tags).insert(TagsCompanion.insert(
+                  id: tagId,
+                  name: tagName,
+                  type: TagType.custom,
+                  createdAt: DateTime.now(),
+                ));
+              } else {
+                tagId = existingTag.id;
+              }
+
+              // Create link
+              await into(transactionTags).insert(TransactionTagsCompanion.insert(
+                transactionId: tx.id,
+                tagId: tagId,
+              ), mode: InsertMode.insertOrIgnore);
+            }
+          }
+        }
       }
     },
   );

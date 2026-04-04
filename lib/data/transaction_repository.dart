@@ -53,15 +53,53 @@ class TransactionRepository {
     );
   }
 
+  Future<List<String>> _getTagsForTransaction(String txId) async {
+    final query = db.select(db.tags).join([
+      innerJoin(db.transactionTags, db.transactionTags.tagId.equalsExp(db.tags.id)),
+    ])
+      ..where(db.transactionTags.transactionId.equals(txId));
+    final rows = await query.get();
+    return rows.map((row) => row.readTable(db.tags).name).toList();
+  }
+
+  Stream<List<Transaction>> watchTransactionsByTag(String tagName) {
+    final query = db.select(db.transactions).join([
+      innerJoin(db.transactionTags, db.transactionTags.transactionId.equalsExp(db.transactions.id)),
+      innerJoin(db.tags, db.tags.id.equalsExp(db.transactionTags.tagId)),
+    ])
+      ..where(db.tags.name.equals(tagName));
+
+    return query.watch().asyncMap((rows) async {
+      final List<Transaction> result = [];
+      for (final row in rows) {
+        final entity = row.readTable(db.transactions);
+        final tags = await _getTagsForTransaction(entity.id);
+        result.add(_mapEntityToModel(entity).copyWith(tags: tags));
+      }
+      return result;
+    });
+  }
+
   Stream<List<Transaction>> watchTransactions() {
-    return db.select(db.transactions).watch().map((entities) {
-      return entities.map(_mapEntityToModel).toList();
+    // We use a stream of the transactions table and then fetch tags for each
+    return db.select(db.transactions).watch().asyncMap((entities) async {
+      final List<Transaction> result = [];
+      for (final entity in entities) {
+        final tags = await _getTagsForTransaction(entity.id);
+        result.add(_mapEntityToModel(entity).copyWith(tags: tags));
+      }
+      return result;
     });
   }
 
   Future<List<Transaction>> loadTransactions() async {
     final entities = await db.select(db.transactions).get();
-    return entities.map(_mapEntityToModel).toList();
+    final List<Transaction> result = [];
+    for (final entity in entities) {
+      final tags = await _getTagsForTransaction(entity.id);
+      result.add(_mapEntityToModel(entity).copyWith(tags: tags));
+    }
+    return result;
   }
 
   Future<void> saveTransactions(List<Transaction> transactions) async {
@@ -73,16 +111,51 @@ class TransactionRepository {
     });
   }
 
+  Future<void> _syncTags(String txId, List<String> tagNames) async {
+    // 1. Delete old links
+    await (db.delete(db.transactionTags)..where((t) => t.transactionId.equals(txId))).go();
+
+    // 2. Add new links
+    for (final name in tagNames) {
+      // Find or create tag
+      var tag = await (db.select(db.tags)..where((t) => t.name.equals(name))).getSingleOrNull();
+      if (tag == null) {
+        final newId = DateTime.now().millisecondsSinceEpoch.toString() + name.hashCode.toString();
+        await db.into(db.tags).insert(TagsCompanion.insert(
+              id: newId,
+              name: name,
+              type: TagType.custom,
+              createdAt: DateTime.now(),
+            ));
+        tag = await (db.select(db.tags)..where((t) => t.id.equals(newId))).getSingle();
+      }
+      
+      await db.into(db.transactionTags).insert(TransactionTagsCompanion.insert(
+            transactionId: txId,
+            tagId: tag.id,
+          ), mode: InsertMode.insertOrIgnore);
+    }
+  }
+
   Future<void> insertTransaction(Transaction tx) async {
-    await db.into(db.transactions).insert(_mapModelToCompanion(tx), mode: InsertMode.replace);
+    await db.transaction(() async {
+      await db.into(db.transactions).insert(_mapModelToCompanion(tx), mode: InsertMode.replace);
+      await _syncTags(tx.id, tx.tags);
+    });
   }
 
   Future<void> updateTransaction(Transaction tx) async {
-    await db.update(db.transactions).replace(_mapModelToCompanion(tx));
+    await db.transaction(() async {
+      await db.update(db.transactions).replace(_mapModelToCompanion(tx));
+      await _syncTags(tx.id, tx.tags);
+    });
   }
 
   Future<void> deleteTransaction(String id) async {
-    await (db.delete(db.transactions)..where((tbl) => tbl.id.equals(id))).go();
+    await db.transaction(() async {
+      await (db.delete(db.transactionTags)..where((t) => t.transactionId.equals(id))).go();
+      await (db.delete(db.transactions)..where((tbl) => tbl.id.equals(id))).go();
+    });
   }
 
   /// Migrates transactions to the new format if needed.
