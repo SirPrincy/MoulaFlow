@@ -52,8 +52,14 @@ class BudgetCard extends ConsumerWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: status.isOverBudget ? 4 : 2,
+      shadowColor: status.isOverBudget ? Colors.redAccent.withValues(alpha: 0.4) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: status.isOverBudget 
+          ? const BorderSide(color: Colors.redAccent, width: 1.5) 
+          : BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
+      ),
       child: InkWell(
         onTap: onTap,
         child: Padding(

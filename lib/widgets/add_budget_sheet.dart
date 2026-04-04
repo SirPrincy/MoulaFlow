@@ -12,6 +12,14 @@ class AddBudgetSheet extends ConsumerStatefulWidget {
 }
 
 class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
+  String _getPeriodName(BudgetPeriodType type) {
+    switch (type) {
+      case BudgetPeriodType.daily: return 'Quotidien';
+      case BudgetPeriodType.weekly: return 'Hebdomadaire';
+      case BudgetPeriodType.monthly: return 'Mensuel';
+      case BudgetPeriodType.custom: return 'Personnalisé';
+    }
+  }
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
@@ -35,6 +43,105 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
     _nameController.dispose();
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showCategoriesDialog(List<TransactionCategory> categories) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Catégories incluses'),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: categories.map((c) {
+                    return Card(
+                      elevation: 0,
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                          color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          leading: Checkbox(
+                            value: _selectedCategoryIds.contains(c.id),
+                            onChanged: (val) {
+                              setDialogState(() {
+                                if (val == true) {
+                                  _selectedCategoryIds.add(c.id);
+                                  if (c.subcategories.isNotEmpty) {
+                                    for (var sub in c.subcategories) {
+                                      _selectedCategoryIds.add(sub.id);
+                                    }
+                                  }
+                                } else {
+                                  _selectedCategoryIds.remove(c.id);
+                                  if (c.subcategories.isNotEmpty) {
+                                    for (var sub in c.subcategories) {
+                                      _selectedCategoryIds.remove(sub.id);
+                                    }
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                          title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          children: [
+                            if (c.subcategories.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: c.subcategories.map((subC) {
+                                      return FilterChip(
+                                        label: Text(subC.name, style: const TextStyle(fontSize: 12)),
+                                        selected: _selectedCategoryIds.contains(subC.id),
+                                        onSelected: (val) {
+                                          setDialogState(() {
+                                            if (val) {
+                                              _selectedCategoryIds.add(subC.id);
+                                              _selectedCategoryIds.add(c.id); // Also select parent
+                                            } else {
+                                              _selectedCategoryIds.remove(subC.id);
+                                            }
+                                          });
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    // Refresh the sheet's state to update the category count text
+    setState(() {});
   }
 
   void _refreshDates() {
@@ -136,6 +243,7 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
+                autofocus: true,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   labelText: 'Montant maximum',
@@ -156,7 +264,7 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                   prefixIcon: Icon(Icons.calendar_today_outlined),
                 ),
                 items: BudgetPeriodType.values
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e.name)))
+                    .map((e) => DropdownMenuItem(value: e, child: Text(_getPeriodName(e))))
                     .toList(),
                 onChanged: (v) {
                   if (v == null) return;
@@ -166,6 +274,47 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                   });
                 },
               ),
+              if (_periodType == BudgetPeriodType.custom) ...[
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _startDate = picked.start;
+                        _endDate = picked.end;
+                      });
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Plage de dates (Personnalisée)',
+                      prefixIcon: Icon(Icons.date_range),
+                    ),
+                    child: Text(
+                      '${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year} au '
+                      '${_endDate.day.toString().padLeft(2, '0')}/${_endDate.month.toString().padLeft(2, '0')}/${_endDate.year}',
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 12),
+                  child: Text(
+                    'Du ${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year} au '
+                    '${_endDate.day.toString().padLeft(2, '0')}/${_endDate.month.toString().padLeft(2, '0')}/${_endDate.year}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               Text(
                 'Wallets inclus',
@@ -205,23 +354,12 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
               if (!_includeAllCategories) ...[
                 const SizedBox(height: 8),
                 categoriesAsync.when(
-                  data: (categories) => Wrap(
-                    spacing: 8,
-                    children: categories
-                        .map((c) => FilterChip(
-                              label: Text(c.name),
-                              selected: _selectedCategoryIds.contains(c.id),
-                              onSelected: (selected) {
-                                setState(() {
-                                  if (selected) {
-                                    _selectedCategoryIds.add(c.id);
-                                  } else {
-                                    _selectedCategoryIds.remove(c.id);
-                                  }
-                                });
-                              },
-                            ))
-                        .toList(),
+                  data: (categories) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Sélectionner des catégories'),
+                    subtitle: Text('${_selectedCategoryIds.length} catégorie(s) sélectionnée(s)'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => _showCategoriesDialog(categories),
                   ),
                   loading: () => const CircularProgressIndicator(),
                   error: (e, s) => Text('Erreur: $e'),

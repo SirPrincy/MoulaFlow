@@ -110,6 +110,14 @@ class AppDrawerContent extends StatelessWidget {
                 ),
                 _buildNavItem(
                   context,
+                  Icons.pie_chart_outline,
+                  Icons.pie_chart,
+                  'Budgets',
+                  '/budgets',
+                  onBudgetsTap,
+                ),
+                _buildNavItem(
+                  context,
                   Icons.receipt_long_outlined,
                   Icons.receipt_long,
                   'Dettes',
@@ -147,14 +155,7 @@ class AppDrawerContent extends StatelessWidget {
                   '/recurring',
                   onRecurringTap,
                 ),
-                _buildNavItem(
-                  context,
-                  Icons.pie_chart_outline,
-                  Icons.pie_chart,
-                  'Budgets',
-                  '/budgets',
-                  onBudgetsTap,
-                ),
+
                 _buildNavItem(
                   context,
                   Icons.settings_outlined,
