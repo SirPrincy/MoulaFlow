@@ -47,13 +47,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
     Icons.favorite_rounded,
   ];
 
-  final List<String> _walletSuggestions = [
-    'Portefeuille',
-    'Compte Courant',
-    'Épargne',
-    'Investissements',
-    'Freelance',
-  ];
+  
 
   final List<({String label, IconData icon, WalletType type})> _walletTypes = [
     (label: 'Compte Bancaire', icon: Icons.account_balance_rounded, type: WalletType.bank),
@@ -317,20 +311,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: _walletSuggestions.map((s) => ActionChip(
-              label: Text(s),
-              onPressed: () {
-                setState(() {
-                  _walletName = s;
-                  _walletNameController.text = s;
-                });
-              },
-              backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-            )).toList(),
-          ),
+
           const SizedBox(height: 32),
           const Text('TYPE DE COMPTE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
           const SizedBox(height: 12),
