@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
 import 'package:moula_flow/providers.dart';
 
-class WelcomePage extends ConsumerWidget {
+class WelcomePage extends ConsumerStatefulWidget {
   final VoidCallback onStart;
   final VoidCallback onLogin;
 
@@ -15,7 +15,23 @@ class WelcomePage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends ConsumerState<WelcomePage> {
+  bool _isTransitioning = false;
+
+  void _handleStart() {
+    setState(() => _isTransitioning = true);
+    // Add a tiny delay to ensure the UI has time to show the loader 
+    // before the potentially heavy SetupWizardPage starts building.
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) widget.onStart();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final onboardingSeen = ref.watch(onboardingSeenProvider);
     final userName = ref.watch(userNameProvider);
     final userColor = ref.watch(userColorProvider);
@@ -53,7 +69,10 @@ class WelcomePage extends ConsumerWidget {
                   builder: (context, value, child) {
                     return Transform.scale(
                       scale: value,
-                      child: Opacity(opacity: value, child: child),
+                      child: Opacity(
+                        opacity: value.clamp(0.0, 1.0), // FIX: Clamp to prevent crash with easeOutBack
+                        child: child,
+                      ),
                     );
                   },
                   child: onboardingSeen 
@@ -98,23 +117,29 @@ class WelcomePage extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: onStart,
+                      onPressed: _isTransitioning ? null : _handleStart,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         backgroundColor: primaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Text(
-                        'C\'est parti !',
-                        style: GoogleFonts.workSans(fontSize: 18, fontWeight: FontWeight.w700),
-                      ),
+                      child: _isTransitioning 
+                        ? const SizedBox(
+                            height: 24, 
+                            width: 24, 
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                          )
+                        : Text(
+                            'C\'est parti !',
+                            style: GoogleFonts.workSans(fontSize: 18, fontWeight: FontWeight.w700),
+                          ),
                     ),
                   ),
                 ] else ...[
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: onLogin,
+                      onPressed: widget.onLogin,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         backgroundColor: primaryColor,
