@@ -27,12 +27,12 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
   
   String _walletName = '';
   double _walletBalance = 0.0;
-  WalletType _walletType = WalletType.current;
+  final WalletType _walletType = WalletType.current;
   
   // Transaction (Optional)
   String _txDescription = '';
   double _txAmount = 0.0;
-  TransactionType _txType = TransactionType.expense;
+  final TransactionType _txType = TransactionType.expense;
   bool _addFirstTransaction = false;
 
   final List<int> _availableColors = [
@@ -260,7 +260,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _availableColors.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final colorVal = _availableColors[index];
                 return GestureDetector(
@@ -364,7 +364,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
             subtitle: const Text('Optionnel, peut être skippé'),
             value: _addFirstTransaction,
             onChanged: (val) => setState(() => _addFirstTransaction = val),
-            activeColor: Color(_userColor),
+            activeThumbColor: Color(_userColor),
           ),
           if (_addFirstTransaction) ...[
              const SizedBox(height: 24),
