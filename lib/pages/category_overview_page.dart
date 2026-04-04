@@ -197,6 +197,46 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
     );
   }
 
+  Widget _buildStatChip(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required Color color,
+    required ThemeData theme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+              color: color.withValues(alpha: 0.8),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDebtCreationFlow() {
     final nameController = TextEditingController();
     final amountController = TextEditingController();
@@ -1136,8 +1176,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     final balance = _getWalletBalance(wallet.id);
                     final isDebt = wallet.type == WalletType.debt;
                     final hasTarget = wallet.targetAmount != null;
-                    final hasInterest =
-                        isDebt &&
+                    final hasInterest = isDebt &&
                         wallet.interestRate != null &&
                         wallet.interestRate! > 0;
 
@@ -1152,7 +1191,6 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       progress = (balance / effectiveTarget).clamp(0.0, 1.0);
                     }
 
-                    // Label logic for Savings/Debt
                     String mainLabel = 'Solde';
                     String targetLabel = 'Objectif';
                     Color targetColor = Colors.green;
@@ -1167,300 +1205,264 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       targetColor = Colors.teal;
                     }
 
-                    return GestureDetector(
-                      onTap: () => _showSpecializedWalletDialog(wallet: wallet),
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppStyles.kDefaultRadius,
-                          ),
-                          side: BorderSide(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.08,
-                            ),
-                          ),
+                    final isOverdue = !wallet.isSettled &&
+                        wallet.dueDate != null &&
+                        wallet.dueDate!.isBefore(DateTime.now());
+                    final accentColor = wallet.isSettled
+                        ? Colors.green
+                        : isDebt
+                            ? (wallet.isCredit ? Colors.teal : Colors.redAccent)
+                            : Colors.teal;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: theme.colorScheme.surface,
+                        border: Border.all(
+                          color: wallet.isSettled
+                              ? Colors.green.withValues(alpha: 0.3)
+                              : isOverdue
+                                  ? Colors.redAccent.withValues(alpha: 0.3)
+                                  : theme.colorScheme.onSurface.withValues(alpha: 0.08),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Column(
+                          children: [
+                            // Top accent bar
+                            Container(
+                              height: 4,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    accentColor.withValues(alpha: 0.8),
+                                    accentColor.withValues(alpha: 0.3),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
+                                  // Header row: name + actions
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              wallet.name,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 18,
-                                                letterSpacing: -0.5,
-                                              ),
-                                            ),
-                                            if (hasInterest) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2,
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    wallet.name,
+                                                    style: theme.textTheme.titleMedium?.copyWith(
+                                                      fontWeight: FontWeight.w800,
+                                                      letterSpacing: -0.5,
                                                     ),
-                                                decoration: BoxDecoration(
-                                                  color: theme
-                                                      .colorScheme
-                                                      .primary
-                                                      .withValues(alpha: 0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  '+${wallet.interestRate}%',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: theme
-                                                        .colorScheme
-                                                        .primary,
                                                   ),
                                                 ),
+                                                if (hasInterest) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    child: Text(
+                                                      '+${wallet.interestRate}%',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: theme.colorScheme.primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (wallet.isSettled) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.green.withValues(alpha: 0.12),
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    child: const Text(
+                                                      'Soldée ✓',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.green,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (isOverdue) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.redAccent.withValues(alpha: 0.12),
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    child: const Text(
+                                                      'En retard',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.redAccent,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                            if (wallet.dueDate != null) ...[
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.event_outlined,
+                                                    size: 13,
+                                                    color: isOverdue ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Échéance ${wallet.dueDate!.day.toString().padLeft(2, "0")}/${wallet.dueDate!.month.toString().padLeft(2, "0")}/${wallet.dueDate!.year}',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: isOverdue ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ],
                                         ),
-                                        if (wallet.dueDate != null)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 6.0,
+                                      ),
+                                      // Action buttons
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if ((isDebt || wallet.type == WalletType.savings) && !wallet.isSettled)
+                                            IconButton(
+                                              onPressed: () => _showTransactionModal(prefilledWalletId: wallet.id),
+                                              icon: Icon(
+                                                isDebt
+                                                    ? (wallet.isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded)
+                                                    : Icons.add_circle_outline,
+                                                size: 22,
+                                              ),
+                                              color: accentColor,
+                                              tooltip: isDebt ? (wallet.isCredit ? 'Encaisser' : 'Payer') : 'Épargner',
                                             ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.event_note,
-                                                  size: 14,
-                                                  color: theme
-                                                      .colorScheme
-                                                      .primary
-                                                      .withValues(alpha: 0.6),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'Échéance: ${wallet.dueDate!.day}/${wallet.dueDate!.month}/${wallet.dueDate!.year}',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: theme
-                                                        .colorScheme
-                                                        .onSurface
-                                                        .withValues(
-                                                          alpha: isDark
-                                                              ? 0.8
-                                                              : 0.5,
-                                                        ),
-                                                  ),
-                                                ),
-                                              ],
+                                          IconButton(
+                                            icon: Icon(
+                                              wallet.isSettled ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                              size: 22,
                                             ),
+                                            color: wallet.isSettled ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.25),
+                                            onPressed: () async {
+                                              final updatedWallet = wallet.copyWith(isSettled: !wallet.isSettled);
+                                              await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
+                                            },
+                                            tooltip: wallet.isSettled ? 'Marquer active' : 'Marquer soldée',
                                           ),
-                                      ],
-                                    ),
+                                          IconButton(
+                                            icon: const Icon(Icons.more_horiz_rounded, size: 22),
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                            onPressed: () => _showSpecializedWalletDialog(wallet: wallet),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
+                                  const SizedBox(height: 20),
+                                  // Stats row
                                   Row(
                                     children: [
-                                      if ((isDebt ||
-                                              wallet.type ==
-                                                  WalletType.savings) &&
-                                          !wallet.isSettled)
-                                        IconButton.filledTonal(
-                                          onPressed: () =>
-                                              _showTransactionModal(
-                                                prefilledWalletId: wallet.id,
-                                              ),
-                                          icon: Icon(
-                                            isDebt
-                                                ? (wallet.isCredit
-                                                      ? Icons.add
-                                                      : Icons.remove)
-                                                : Icons.add_circle_outline,
-                                            size: 20,
+                                      Expanded(
+                                        child: _buildStatChip(
+                                          context,
+                                          label: mainLabel,
+                                          value: formatAmount(balance),
+                                          color: theme.colorScheme.onSurface,
+                                          theme: theme,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      if (hasTarget)
+                                        Expanded(
+                                          child: _buildStatChip(
+                                            context,
+                                            label: targetLabel,
+                                            value: formatAmount((effectiveTarget - balance).abs()),
+                                            color: targetColor,
+                                            theme: theme,
                                           ),
-                                          tooltip: isDebt
-                                              ? (wallet.isCredit
-                                                    ? 'Encaisser'
-                                                    : 'Payer')
-                                              : 'Épargner',
-                                          color:
-                                              wallet.type == WalletType.savings
-                                              ? Colors.teal
-                                              : null,
                                         ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: Icon(
-                                          wallet.isSettled
-                                              ? Icons.check_circle
-                                              : Icons.circle_outlined,
+                                      if (!hasTarget && !isDebt)
+                                        Expanded(
+                                          child: _buildStatChip(
+                                            context,
+                                            label: 'No objectif',
+                                            value: '—',
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                            theme: theme,
+                                          ),
                                         ),
-                                        color: wallet.isSettled
-                                            ? Colors.green
-                                            : theme.colorScheme.onSurface
-                                                  .withValues(
-                                                    alpha: isDark ? 0.55 : 0.2,
-                                                  ),
-                                        onPressed: () async {
-                                          final updatedWallet = wallet.copyWith(isSettled: !wallet.isSettled);
-                                          await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
-                                        },
-                                      ),
                                     ],
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        mainLabel.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.colorScheme.onSurface
-                                              .withValues(
-                                                alpha: isDark ? 0.72 : 0.4,
-                                              ),
-                                          letterSpacing: 1,
-                                        ),
+                                  if (progress != null) ...[
+                                    const SizedBox(height: 20),
+                                    // Progress bar
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: LinearProgressIndicator(
+                                        value: progress,
+                                        minHeight: 10,
+                                        backgroundColor: accentColor.withValues(alpha: 0.1),
+                                        valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        formatAmount(balance),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 22,
-                                          letterSpacing: -0.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (hasTarget)
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          targetLabel.toUpperCase(),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.colorScheme.onSurface
-                                                .withValues(
-                                                  alpha: isDark ? 0.72 : 0.4,
-                                                ),
-                                            letterSpacing: 1,
+                                          '${(progress * 100).toStringAsFixed(0)}% ${isDebt ? "remboursé" : "atteint"}',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: accentColor,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
                                         Text(
-                                          formatAmount(
-                                            effectiveTarget - balance,
-                                          ),
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 22,
-                                            letterSpacing: -0.5,
-                                            color: targetColor,
+                                          'sur ${formatAmount(effectiveTarget)}',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: theme.colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ],
                                     ),
+                                  ],
                                 ],
                               ),
-                              if (progress != null) ...[
-                                const SizedBox(height: 20),
-                                Stack(
-                                  children: [
-                                    Container(
-                                      height: 8,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.05),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    FractionallySizedBox(
-                                      widthFactor: progress,
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 500,
-                                        ),
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: targetColor,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: targetColor.withValues(
-                                                alpha: 0.3,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${(progress * 100).toStringAsFixed(0)}% rempli',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(
-                                              alpha: isDark ? 0.82 : 0.6,
-                                            ),
-                                      ),
-                                    ),
-                                    if (hasTarget)
-                                      Text(
-                                        'sur ${formatAmount(effectiveTarget)}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                          color: theme.colorScheme.onSurface
-                                              .withValues(
-                                                alpha: isDark ? 0.72 : 0.4,
-                                              ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     );
