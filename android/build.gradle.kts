@@ -20,7 +20,6 @@ allprojects {
 // Ta logique de dossier build (on la garde)
 rootProject.layout.buildDirectory.value(rootProject.layout.buildDirectory.dir("../../build").get())
 
-subprojects {
     project.layout.buildDirectory.value(rootProject.layout.buildDirectory.get().dir(project.name))
 }
 
