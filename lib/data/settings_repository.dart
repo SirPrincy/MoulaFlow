@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_access_method.dart';
 import 'storage_keys.dart';
 
 class SettingsRepository {
@@ -14,6 +15,7 @@ class SettingsRepository {
     StorageKeys.dashboardConfig,
     StorageKeys.isDarkMode,
     StorageKeys.onboardingSeen,
+    StorageKeys.appAccessMethod,
   ];
 
   Future<bool> loadIsDarkMode() async {
@@ -34,6 +36,17 @@ class SettingsRepository {
   Future<void> saveOnboardingSeen(bool seen) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(StorageKeys.onboardingSeen, seen);
+  }
+
+  Future<AppAccessMethod> loadAppAccessMethod() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(StorageKeys.appAccessMethod);
+    return AppAccessMethodX.fromStorageValue(raw);
+  }
+
+  Future<void> saveAppAccessMethod(AppAccessMethod method) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(StorageKeys.appAccessMethod, method.storageValue);
   }
 
   Future<void> clearAllDataExceptTheme() async {

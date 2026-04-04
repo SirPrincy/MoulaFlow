@@ -8,4 +8,5 @@ class StorageKeys {
   static const String dashboardConfig = 'dashboard_config';
   static const String isDarkMode = 'isDarkMode';
   static const String onboardingSeen = 'onboardingSeen';
+  static const String appAccessMethod = 'appAccessMethod';
 }

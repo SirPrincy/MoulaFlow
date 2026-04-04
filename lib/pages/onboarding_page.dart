@@ -1,216 +1,172 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../utils/styles.dart';
-import '../widgets/app_logo.dart';
-import '../home_page.dart';
-import '../data/settings_repository.dart';
 
-class OnboardingPage extends StatelessWidget {
-  final ValueNotifier<ThemeMode> themeNotifier;
-  const OnboardingPage({super.key, required this.themeNotifier});
+class OnboardingPage extends StatefulWidget {
+  final Future<void> Function() onFinished;
 
-  Future<void> _completeOnboarding(BuildContext context) async {
-    final settingsRepo = SettingsRepository();
-    await settingsRepo.saveOnboardingSeen(true);
-    if (context.mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => HomePage(themeNotifier: themeNotifier),
-        ),
-      );
+  const OnboardingPage({
+    super.key,
+    required this.onFinished,
+  });
+
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
+  final PageController _pageController = PageController();
+
+  final List<_OnboardingStep> _steps = const [
+    _OnboardingStep(
+      icon: Icons.dashboard_customize_outlined,
+      title: 'Pilotez vos finances',
+      description:
+          'Centralisez vos comptes et visualisez votre situation en un coup d’œil.',
+    ),
+    _OnboardingStep(
+      icon: Icons.track_changes_outlined,
+      title: 'Suivez vos objectifs',
+      description:
+          'Créez des budgets, surveillez vos dépenses et restez aligné avec vos priorités.',
+    ),
+    _OnboardingStep(
+      icon: Icons.insights_outlined,
+      title: 'Décidez plus vite',
+      description:
+          'Analysez vos tendances pour prendre de meilleures décisions au quotidien.',
+    ),
+  ];
+
+  int _currentIndex = 0;
+  bool _isSubmitting = false;
+
+  bool get _isLastStep => _currentIndex == _steps.length - 1;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _finish() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    await widget.onFinished();
+    if (mounted) {
+      setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _next() async {
+    if (_isLastStep) {
+      await _finish();
+      return;
+    }
+
+    await _pageController.nextPage(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppStyles.kSurfaceLowest,
-      body: Stack(
-        children: [
-          // Background Glows
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppStyles.kPrimary.withValues(alpha: 0.05),
-              ),
-              child: BackdropFilter(
-                filter: ColorFilter.mode(
-                  AppStyles.kPrimary.withValues(alpha: 0.05),
-                  BlendMode.srcOver,
-                ),
-                child: Container(),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppStyles.kSurfaceHigh.withValues(alpha: 0.2),
-              ),
-              child: BackdropFilter(
-                filter: ColorFilter.mode(
-                  AppStyles.kSurfaceHigh.withValues(alpha: 0.2),
-                  BlendMode.srcOver,
-                ),
-                child: Container(),
-              ),
-            ),
-          ),
+    final theme = Theme.of(context);
 
-          // Main Content
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_currentIndex + 1}/${_steps.length}',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  TextButton(
+                    onPressed: _isSubmitting ? null : _finish,
+                    child: const Text('Passer'),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (index) => setState(() => _currentIndex = index),
+                  itemCount: _steps.length,
+                  itemBuilder: (context, index) {
+                    final step = _steps[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Brand Identity Component
-                          const AppLogo(size: 120, borderRadius: 24, withShadow: true),
-                          const SizedBox(height: 48),
-                          // Editorial Headline
-                          Text(
-                            'Moula Flow',
-                            style: GoogleFonts.newsreader(
-                              textStyle: const TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.w800,
-                                fontStyle: FontStyle.italic,
-                                color: AppStyles.kOnSurface,
-                                letterSpacing: -2,
-                                height: 1,
-                              ),
-                            ),
+                          CircleAvatar(
+                            radius: 44,
+                            child: Icon(step.icon, size: 42),
                           ),
                           const SizedBox(height: 24),
                           Text(
-                            'Quiet authority in the digital-first financial journal.',
+                            step.title,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.newsreader(
-                              textStyle: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w300,
-                                fontStyle: FontStyle.italic,
-                                color: AppStyles.kOnSurfaceVariant.withValues(alpha: 0.8),
-                                height: 1.4,
-                              ),
-                            ),
+                            style: theme.textTheme.headlineMedium,
                           ),
-                          const SizedBox(height: 64),
-                          // Asymmetric Detail
-                          Container(
-                            width: 2,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  AppStyles.kPrimary.withValues(alpha: 0.4),
-                                  Colors.transparent,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(1),
-                            ),
+                          const SizedBox(height: 12),
+                          Text(
+                            step.description,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyLarge,
                           ),
                         ],
                       ),
+                    );
+                  },
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  _steps.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    height: 8,
+                    width: _currentIndex == index ? 24 : 8,
+                    decoration: BoxDecoration(
+                      color: _currentIndex == index
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.primary.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-
-                // Interactive Layer
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48.0),
-                  child: Column(
-                    children: [
-                      // Primary CTA
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => _completeOnboarding(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppStyles.kOnSurface,
-                            foregroundColor: AppStyles.kSurface,
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'ENTER JOURNEY',
-                            style: GoogleFonts.workSans(
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 3,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Secondary Navigation
-                      Text(
-                        'SIGN IN TO EXISTING VAULT',
-                        style: GoogleFonts.workSans(
-                          textStyle: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 2,
-                            color: AppStyles.kOnSurfaceVariant.withValues(alpha: 0.4),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Minimal Legal Footer
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildFooterLink('PRIVACY'),
-                          const SizedBox(width: 24),
-                          _buildFooterLink('TERMS'),
-                          const SizedBox(width: 24),
-                          _buildFooterLink('SECURITY'),
-                        ],
-                      ),
-                    ],
-                  ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _isSubmitting ? null : _next,
+                  child: Text(_isLastStep ? 'Commencer' : 'Suivant'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildFooterLink(String label) {
-    return Text(
-      label,
-      style: GoogleFonts.workSans(
-        textStyle: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w400,
-          letterSpacing: 1.5,
-          color: AppStyles.kOnSurfaceVariant.withValues(alpha: 0.3),
         ),
       ),
     );
   }
+}
+
+class _OnboardingStep {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _OnboardingStep({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
 }
