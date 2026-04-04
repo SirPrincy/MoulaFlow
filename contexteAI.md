@@ -1,39 +1,35 @@
-# Contexte AI - Moula Flow (v0.03)
+# Contexte AI - Moula Flow (v0.04)
 
-## Ce qui a été fait
-- Initialisation du projet Flutter `moula_flow`.
-- **Mise à jour v0.03 (Fluidité UI Catégories & Docs)** :
-    - Refonte de `category_management_page.dart` avec `ExpansionPanelList.radio` et transitions plus stables.
-    - Actions contextualisées (ajout/modification/suppression) au niveau des catégories et sous-catégories.
-    - Harmonisation documentaire : README, docs et ajout de `docs/Design.md`.
-- **Refactoring architectural (v0.01)** : `main.dart`, `models.dart`, `home_page.dart`, `widgets.dart`, `settings_page.dart`, `category_management_page.dart`.
-- **Mise à jour v0.02 (Dashboard & Overviews)** :
-    - **Dashboard Dynamique** : Système de widgets configurables (Ordre, Visibilité : Balance, Flux, Catégories, Tendances, Récents).
-    - **Gestion de la Dette & Épargne** : Pages d'aperçu spécifiques (`category_overview_page.dart`) avec barres de progression vers objectifs et gestion de l'échéance.
-    - **Suivi des Paiements Récurrents** : Page dédiée pour filtrer les transactions marquées comme récurrentes.
-    - **Persistance Avancée** : Ajout de `DashboardRepository` pour sauvegarder la configuration utilisateur du tableau de bord.
-- **Gestion des Catégories (Hiérarchique)** :
-    - Système complet avec catégories principales et sous-catégories.
-    - Recherche en temps réel via un `showModalBottomSheet`.
-- **Formulaire de Transaction Avancé** :
-    - Champs complets (Montant, Date, Catégorie, Wallet, Tags).
-    - Support de la récurrence (flag `isRecurring`).
-- **Paramètres & "Zone de Danger"** :
-    - Thème Dark/Light persistant.
-    - Reset global des données.
+## État Actuel du Projet
+Moula Flow est passé d'une architecture simpliste à une infrastructure hautement réactive et structurée. La migration vers **Riverpod** et **Drift** est terminée (v0.04).
 
-## Ce qu'il reste à faire
-- **Automatisation des Récurrences** : Planification réelle avec notifications ou ajout automatique au changement de mois.
-- **Graphiques Avancés** : Intégration de `fl_chart` pour les tendances et diagrammes circulaires (actuellement placeholders/simplifiés).
-- **Sauvegarde Cloud/Export** : Export CSV/JSON pour la portabilité des données.
-- **Recherche Globale** : Barre de recherche sur l'ensemble des transactions.
+## Milestone v0.04 (Stabilité & Performance)
+- **Persistance Relationnelle** : Passage de `SharedPreferences` (JSON) à **Drift (SQLite)** pour une meilleure intégrité et performance des données.
+- **Réactivité Globale** : Intégration de **Riverpod** (Notifiers, AsyncNotifiers, StreamProviders) pour un état d'application synchrone et sans "prop-drilling".
+- **Refonte Navigation** : Amélioration de la stabilité de la barre latérale (Sidebar) et du tiroir (Drawer) avec correction des erreurs d'overflow.
 
-## Décisions prises
-- Architecture basée sur le pattern Repository pour isoler `shared_preferences`.
-- Pas de state management complexe (Provider/Riverpod) -> `setState` suffisant pour le moment.
-- Style minimaliste "Premium" noir/blanc avec icônes subtiles.
+## Historique des Versions
+- **v0.04** : Migration vers Drift & Riverpod. Documentation technique consolidée.
+- **v0.03** : UI Catégories (Expansion Panels), fluidité des transitions.
+- **v0.02** : Dashboard dynamique, suivi Dettes/Épargne, et objectifs financiers.
+- **v0.01** : Initialisation, architecture Repository, et tests unitaires.
 
-## Contraintes techniques respectées:
-- Flutter pur, minimal dependencies.
-- Stockage JSON local.
-- Responsive (Mobile/Desktop/Web).
+## Architecture & Organisation
+- **Data Layer** : Repositories (Transaction, Wallet, Category, Budget, Recurring) injectés via `Provider`.
+- **Domain Layer** : `BalanceService` pour le calcul temps réel des soldes et des flux.
+- **UI Layer** : Widgets réactifs (`ConsumerWidget`), navigation adaptative (Desktop/Mobile).
+
+## Décisions Techniques Clés
+- **State Management** : Utilisation de **Riverpod** pour la gestion d'état immuable et facile à tester.
+- **Database** : **Drift** pour le typage fort de la base de données SQL et les mises à jour automatiques via Streams.
+- **Design System** : Minimalisme "Premium" avec typographie contrastée (Newsreader/Work Sans).
+
+## Backlog / Prochaines Étapes
+- **Export/Import CSV** : Restauration des données et portabilité.
+- **Notifications & Scheduler** : Automatisation réelle des transactions périodiques.
+- **Analytique Avancée** : Rapports mensuels et tendances visuelles via `fl_chart`.
+
+## Contraintes Techniques
+- Flutter SDK Stable.
+- Offline-First mandatory.
+- Code generation (`build_runner`) requis pour Drift et Riverpod.
