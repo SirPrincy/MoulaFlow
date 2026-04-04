@@ -4,15 +4,15 @@ enum WalletType { current, savings, debt, project, cash, bank, mobileMoney }
 
 class Wallet {
   final String id;
-  String name;
-  double initialBalance;
-  WalletType type;
-  DateTime createdAt;
-  double? targetAmount;
-  DateTime? dueDate;
-  bool isSettled;
-  bool isCredit; // true if someone owes ME, false if I owe someone
-  double? interestRate; // Annual interest rate in percentage (%)
+  final String name;
+  final double initialBalance;
+  final WalletType type;
+  final DateTime createdAt;
+  final double? targetAmount;
+  final DateTime? dueDate;
+  final bool isSettled;
+  final bool isCredit; // true if someone owes ME, false if I owe someone
+  final double? interestRate; // Annual interest rate in percentage (%)
 
   Wallet({
     required this.id,
@@ -26,6 +26,32 @@ class Wallet {
     this.isCredit = false,
     this.interestRate,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  Wallet copyWith({
+    String? id,
+    String? name,
+    double? initialBalance,
+    WalletType? type,
+    DateTime? createdAt,
+    double? targetAmount,
+    DateTime? dueDate,
+    bool? isSettled,
+    bool? isCredit,
+    double? interestRate,
+  }) {
+    return Wallet(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      initialBalance: initialBalance ?? this.initialBalance,
+      type: type ?? this.type,
+      createdAt: createdAt ?? this.createdAt,
+      targetAmount: targetAmount != null ? targetAmount : this.targetAmount,
+      dueDate: dueDate != null ? dueDate : this.dueDate, // If we want to allow nullification it's harder, but normally this is fine
+      isSettled: isSettled ?? this.isSettled,
+      isCredit: isCredit ?? this.isCredit,
+      interestRate: interestRate != null ? interestRate : this.interestRate,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -57,18 +83,28 @@ class Wallet {
       );
 }
 
-
 class TransactionCategory {
   final String id;
-  String name;
-  List<TransactionCategory> subcategories;
+  final String name;
+  final List<TransactionCategory> subcategories;
 
   TransactionCategory({
     required this.id,
     required this.name,
     List<TransactionCategory>? subcategories,
-  }) : subcategories = subcategories ?? [];
+  }) : subcategories = subcategories ?? const [];
 
+  TransactionCategory copyWith({
+    String? id,
+    String? name,
+    List<TransactionCategory>? subcategories,
+  }) {
+    return TransactionCategory(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      subcategories: subcategories ?? this.subcategories,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -82,8 +118,7 @@ class TransactionCategory {
         name: json['name'],
         subcategories: (json['subcategories'] as List<dynamic>?)
                 ?.map((e) => TransactionCategory.fromJson(e))
-                .toList() ??
-            [],
+                .toList(),
       );
 }
 
@@ -112,11 +147,11 @@ enum TagType {
 
 class TagDefinition {
   final String id;
-  String name;
-  TagType type;
-  String? colorHex;
-  String? description;
-  DateTime createdAt;
+  final String name;
+  final TagType type;
+  final String? colorHex;
+  final String? description;
+  final DateTime createdAt;
 
   TagDefinition({
     required this.id,
@@ -126,6 +161,24 @@ class TagDefinition {
     this.description,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  TagDefinition copyWith({
+    String? id,
+    String? name,
+    TagType? type,
+    String? colorHex,
+    String? description,
+    DateTime? createdAt,
+  }) {
+    return TagDefinition(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      colorHex: colorHex != null ? colorHex : this.colorHex,
+      description: description != null ? description : this.description,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -163,7 +216,7 @@ class Transaction {
   final bool isRecurring;
   final String? relatedDebtId;
 
-  Transaction({
+  const Transaction({
     required this.id,
     required this.amount,
     required this.description,
@@ -177,6 +230,36 @@ class Transaction {
     this.isRecurring = false,
     this.relatedDebtId,
   });
+
+  Transaction copyWith({
+    String? id,
+    double? amount,
+    String? description,
+    TransactionType? type,
+    DateTime? date,
+    String? walletId,
+    String? fromWalletId,
+    String? toWalletId,
+    String? categoryId,
+    List<String>? tags,
+    bool? isRecurring,
+    String? relatedDebtId,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      type: type ?? this.type,
+      date: date ?? this.date,
+      walletId: walletId ?? this.walletId,
+      fromWalletId: fromWalletId ?? this.fromWalletId,
+      toWalletId: toWalletId ?? this.toWalletId,
+      categoryId: categoryId ?? this.categoryId,
+      tags: tags ?? this.tags,
+      isRecurring: isRecurring ?? this.isRecurring,
+      relatedDebtId: relatedDebtId ?? this.relatedDebtId,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -196,7 +279,7 @@ class Transaction {
   factory Transaction.fromJson(Map<String, dynamic> json) {
     TransactionType tType;
     if (json.containsKey('isIncome')) {
-      tType = json['isIncome'] ? TransactionType.income : TransactionType.expense;
+      tType = (json['isIncome'] as bool) ? TransactionType.income : TransactionType.expense;
     } else {
       tType = TransactionType.values.firstWhere(
         (e) => e.name == json['type'],
@@ -214,7 +297,7 @@ class Transaction {
       fromWalletId: json['fromWalletId'],
       toWalletId: json['toWalletId'],
       categoryId: json['categoryId'],
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       isRecurring: json['isRecurring'] ?? false,
       relatedDebtId: json['relatedDebtId'],
     );
@@ -225,15 +308,15 @@ enum RecurrenceFrequency { once, daily, weekly, monthly, yearly }
 
 class RecurringPayment {
   final String id;
-  String name;
-  double amount;
-  TransactionType type;
-  String? categoryId;
-  String? walletId;
-  RecurrenceFrequency frequency;
-  DateTime startDate;
-  DateTime nextDueDate;
-  bool isActive;
+  final String name;
+  final double amount;
+  final TransactionType type;
+  final String? categoryId;
+  final String? walletId;
+  final RecurrenceFrequency frequency;
+  final DateTime startDate;
+  final DateTime nextDueDate;
+  final bool isActive;
 
   RecurringPayment({
     required this.id,
@@ -247,6 +330,32 @@ class RecurringPayment {
     required this.nextDueDate,
     this.isActive = true,
   });
+
+  RecurringPayment copyWith({
+    String? id,
+    String? name,
+    double? amount,
+    TransactionType? type,
+    String? categoryId,
+    String? walletId,
+    RecurrenceFrequency? frequency,
+    DateTime? startDate,
+    DateTime? nextDueDate,
+    bool? isActive,
+  }) {
+    return RecurringPayment(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      categoryId: categoryId ?? this.categoryId,
+      walletId: walletId ?? this.walletId,
+      frequency: frequency ?? this.frequency,
+      startDate: startDate ?? this.startDate,
+      nextDueDate: nextDueDate ?? this.nextDueDate,
+      isActive: isActive ?? this.isActive,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -281,25 +390,25 @@ enum BudgetRepeatFrequency { none, weekly, monthly }
 
 class BudgetPlan {
   final String id;
-  String name;
-  BudgetPeriodType periodType;
-  DateTime startDate;
-  DateTime endDate;
-  List<String> walletIds;
-  List<String> categoryIds;
-  bool includeAllCategories;
-  List<String> tags;
-  List<String> excludedTags;
-  List<String> includedTagTypes;
-  List<String> excludedTagTypes;
-  double amount;
-  bool enableAlerts;
-  bool enableProgressiveAdjustment;
-  String? dependencyBudgetId;
-  double? dependencyPercentLimit;
-  BudgetRepeatFrequency repeatFrequency;
-  double repeatAdjustmentPercent;
-  DateTime createdAt;
+  final String name;
+  final BudgetPeriodType periodType;
+  final DateTime startDate;
+  final DateTime endDate;
+  final List<String> walletIds;
+  final List<String> categoryIds;
+  final bool includeAllCategories;
+  final List<String> tags;
+  final List<String> excludedTags;
+  final List<String> includedTagTypes;
+  final List<String> excludedTagTypes;
+  final double amount;
+  final bool enableAlerts;
+  final bool enableProgressiveAdjustment;
+  final String? dependencyBudgetId;
+  final double? dependencyPercentLimit;
+  final BudgetRepeatFrequency repeatFrequency;
+  final double repeatAdjustmentPercent;
+  final DateTime createdAt;
 
   BudgetPlan({
     required this.id,
@@ -323,6 +432,52 @@ class BudgetPlan {
     this.repeatAdjustmentPercent = 0,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  BudgetPlan copyWith({
+    String? id,
+    String? name,
+    BudgetPeriodType? periodType,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? walletIds,
+    List<String>? categoryIds,
+    bool? includeAllCategories,
+    List<String>? tags,
+    List<String>? excludedTags,
+    List<String>? includedTagTypes,
+    List<String>? excludedTagTypes,
+    double? amount,
+    bool? enableAlerts,
+    bool? enableProgressiveAdjustment,
+    String? dependencyBudgetId,
+    double? dependencyPercentLimit,
+    BudgetRepeatFrequency? repeatFrequency,
+    double? repeatAdjustmentPercent,
+    DateTime? createdAt,
+  }) {
+    return BudgetPlan(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      periodType: periodType ?? this.periodType,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      walletIds: walletIds ?? this.walletIds,
+      categoryIds: categoryIds ?? this.categoryIds,
+      includeAllCategories: includeAllCategories ?? this.includeAllCategories,
+      tags: tags ?? this.tags,
+      excludedTags: excludedTags ?? this.excludedTags,
+      includedTagTypes: includedTagTypes ?? this.includedTagTypes,
+      excludedTagTypes: excludedTagTypes ?? this.excludedTagTypes,
+      amount: amount ?? this.amount,
+      enableAlerts: enableAlerts ?? this.enableAlerts,
+      enableProgressiveAdjustment: enableProgressiveAdjustment ?? this.enableProgressiveAdjustment,
+      dependencyBudgetId: dependencyBudgetId ?? this.dependencyBudgetId,
+      dependencyPercentLimit: dependencyPercentLimit ?? this.dependencyPercentLimit,
+      repeatFrequency: repeatFrequency ?? this.repeatFrequency,
+      repeatAdjustmentPercent: repeatAdjustmentPercent ?? this.repeatAdjustmentPercent,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -399,7 +554,7 @@ class BudgetStatus {
   final List<Transaction> transactions;
   final BudgetProjection projection;
 
-  BudgetStatus({
+  const BudgetStatus({
     required this.plan,
     required this.spent,
     required this.percentage,

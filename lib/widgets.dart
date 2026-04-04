@@ -5,3 +5,4 @@ export 'widgets/transaction_tile.dart';
 export 'widgets/dialogs.dart';
 export 'widgets/app_menu_bar.dart';
 export 'widgets/app_side_menu.dart';
+export 'widgets/wallet_form.dart';

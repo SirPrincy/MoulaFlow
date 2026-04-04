@@ -32,7 +32,7 @@ void main() {
 
     // 3. Act: Clear existing
     await prefs.clear();
-    expect(prefs.getString('userName'), isNull);
+    expect(prefs.getString('userName'), null);
 
     // 4. Act: Import
     await settingsRepo.importBinaryBackup(backupBytes);

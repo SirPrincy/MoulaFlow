@@ -11,11 +11,6 @@ class SettingsRepository {
   SettingsRepository([this._db]);
 
   static const List<String> _allExportableKeys = [
-    StorageKeys.wallets,
-    StorageKeys.transactions,
-    StorageKeys.categories,
-    StorageKeys.tags,
-    StorageKeys.recurringPayments,
     StorageKeys.dashboardConfig,
     StorageKeys.isDarkMode,
     StorageKeys.onboardingSeen,

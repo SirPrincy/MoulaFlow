@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/providers.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
+import 'package:moula_flow/widgets/wallet_form.dart';
 import 'package:uuid/uuid.dart';
 
 class SetupWizardPage extends ConsumerStatefulWidget {
@@ -25,10 +26,8 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
   int _userColor = 0xFF6366F1; // Default to Indigo
   int _userAvatar = Icons.person_rounded.codePoint;
   
-  String _walletName = '';
-  double _walletBalance = 0.0;
-  WalletType _walletType = WalletType.current;
-  
+  Wallet? _setupWallet;
+
   final List<int> _availableColors = [
     0xFF6366F1, // Indigo
     0xFFEC4899, // Pink
@@ -47,21 +46,9 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
     Icons.favorite_rounded,
   ];
 
-  
-
-  final List<({String label, IconData icon, WalletType type})> _walletTypes = [
-    (label: 'Compte Bancaire', icon: Icons.account_balance_rounded, type: WalletType.bank),
-    (label: 'Livret Épargne', icon: Icons.savings_rounded, type: WalletType.savings),
-    (label: 'Espèces', icon: Icons.payments_rounded, type: WalletType.cash),
-    (label: 'Mobile Money', icon: Icons.phone_android_rounded, type: WalletType.mobileMoney),
-  ];
-
-  final TextEditingController _walletNameController = TextEditingController();
-
   @override
   void dispose() {
     _pageController.dispose();
-    _walletNameController.dispose();
     super.dispose();
   }
 
@@ -103,14 +90,18 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
       ref.read(userAvatarProvider.notifier).update(_userAvatar);
 
       // 2. Create Wallet
-      final finalWalletName = _walletName.isEmpty ? 'Compte Principal' : _walletName;
-      final wallet = Wallet(
-        id: const Uuid().v4(),
-        name: finalWalletName,
-        initialBalance: _walletBalance,
-        type: _walletType,
-      );
-      await ref.read(walletRepositoryProvider).insertWallet(wallet);
+      if (_setupWallet != null) {
+        await ref.read(walletRepositoryProvider).insertWallet(_setupWallet!);
+      } else {
+        // Fallback just in case
+        final wallet = Wallet(
+          id: const Uuid().v4(),
+          name: 'Compte Principal',
+          initialBalance: 0.0,
+          type: WalletType.current,
+        );
+        await ref.read(walletRepositoryProvider).insertWallet(wallet);
+      }
 
       // 3. Mark Onboarding as seen
       await widget.onFinished();
@@ -182,20 +173,21 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
                       icon: const Icon(Icons.arrow_back_ios_new_rounded),
                     ),
                   const Spacer(),
-                  SizedBox(
-                    width: 160,
-                    child: FilledButton(
-                      onPressed: _isSubmitting ? null : _next,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: Color(_userColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  if (_currentStep != 2) // Hide Next button on Wallet step, form handles it
+                    SizedBox(
+                      width: 160,
+                      child: FilledButton(
+                        onPressed: _isSubmitting ? null : _next,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          backgroundColor: Color(_userColor),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: _isSubmitting 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(_currentStep == 3 ? 'C\'est parti' : 'Suivant'),
                       ),
-                      child: _isSubmitting 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : Text(_currentStep == 3 ? 'C\'est parti' : 'Suivant'),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -290,71 +282,16 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
   }
 
   Widget _buildWalletStep() {
-    final theme = Theme.of(context);
-    final primaryColor = Color(_userColor);
-
     return _WizardStepContainer(
       icon: Icons.account_balance_wallet_rounded,
       title: 'Créez votre\npremier compte',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _walletNameController,
-            onChanged: (val) => _walletName = val,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              labelText: 'NOM DU COMPTE',
-              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-              hintText: 'ex: Compte Principal',
-              floatingLabelBehavior: FloatingLabelBehavior.always,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-          const Text('TYPE DE COMPTE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _walletTypes.map((item) {
-              final isSelected = _walletType == item.type;
-              return GestureDetector(
-                onTap: () => setState(() => _walletType = item.type),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? primaryColor.withValues(alpha: 0.1) : theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: isSelected ? Border.all(color: primaryColor, width: 2) : Border.all(color: Colors.transparent),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(item.icon, size: 20, color: isSelected ? primaryColor : theme.colorScheme.onSurface),
-                      const SizedBox(width: 8),
-                      Text(item.label, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, color: isSelected ? primaryColor : theme.colorScheme.onSurface)),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 32),
-          TextField(
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (val) => _walletBalance = double.tryParse(val.replaceAll(',', '.')) ?? 0.0,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              labelText: 'SOLDE INITIAL',
-              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-              suffixText: '€',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
+      child: WalletForm(
+        onSave: (wallet) {
+          setState(() {
+            _setupWallet = wallet;
+          });
+          _next();
+        },
       ),
     );
   }
