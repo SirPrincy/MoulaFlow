@@ -46,53 +46,39 @@ final recurringPaymentsProvider = StreamProvider<List<RecurringPayment>>((ref) {
 
 final budgetPlanningServiceProvider = Provider((ref) => BudgetPlanningService());
 
-final budgetStatusProvider = Provider.family<AsyncValue<BudgetStatus>, String>((ref, budgetId) {
-  final budgetsAsync = ref.watch(budgetsProvider);
-  final transactionsAsync = ref.watch(transactionsProvider);
+final budgetStatusProvider = FutureProvider.autoDispose.family<BudgetStatus, String>((ref, budgetId) async {
+  final budgets = await ref.watch(budgetsProvider.future);
+  final transactions = await ref.watch(transactionsProvider.future);
   final service = ref.watch(budgetPlanningServiceProvider);
 
-  return budgetsAsync.when(
-    data: (budgets) {
-      final plan = budgets.cast<BudgetPlan?>().firstWhere((b) => b?.id == budgetId, orElse: () => null);
-      if (plan == null) return AsyncError('Budget not found', StackTrace.current);
-      
-      final currentTransactionsAsync = transactionsAsync;
-      
-      return currentTransactionsAsync.when(
-        data: (transactions) {
-          final filtered = service.filterTransactions(
-            transactions: transactions,
-            start: plan.startDate,
-            end: plan.endDate,
-            walletIds: plan.walletIds.toSet(),
-            categoryIds: plan.categoryIds.toSet(),
-            tags: plan.tags.toSet(),
-            excludedTags: plan.excludedTags.toSet(),
-          );
-          final spent = service.computeSpent(filtered);
-          final projection = service.projectBudget(
-            spent: spent,
-            totalBudget: plan.amount,
-            start: plan.startDate,
-            end: plan.endDate,
-            now: DateTime.now(),
-          );
-          
-          return AsyncValue.data(BudgetStatus(
-            plan: plan,
-            spent: spent,
-            percentage: plan.amount > 0 ? spent / plan.amount : 0,
-            remaining: (plan.amount - spent).clamp(0, double.infinity),
-            transactions: filtered,
-            projection: projection,
-          ));
-        },
-        loading: () => const AsyncValue.loading(),
-        error: (e, s) => AsyncValue.error(e, s),
-      );
-    },
-    loading: () => const AsyncValue.loading(),
-    error: (e, s) => AsyncValue.error(e, s),
+  final plan = budgets.cast<BudgetPlan?>().firstWhere((b) => b?.id == budgetId, orElse: () => null);
+  if (plan == null) throw Exception('Budget not found: $budgetId');
+
+  final filtered = service.filterTransactions(
+    transactions: transactions,
+    start: plan.startDate,
+    end: plan.endDate,
+    walletIds: plan.walletIds.toSet(),
+    categoryIds: plan.categoryIds.toSet(),
+    tags: plan.tags.toSet(),
+    excludedTags: plan.excludedTags.toSet(),
+  );
+  final spent = service.computeSpent(filtered);
+  final projection = service.projectBudget(
+    spent: spent,
+    totalBudget: plan.amount,
+    start: plan.startDate,
+    end: plan.endDate,
+    now: DateTime.now(),
+  );
+
+  return BudgetStatus(
+    plan: plan,
+    spent: spent,
+    percentage: plan.amount > 0 ? spent / plan.amount : 0,
+    remaining: (plan.amount - spent).clamp(0, double.infinity),
+    transactions: filtered,
+    projection: projection,
   );
 });
 
