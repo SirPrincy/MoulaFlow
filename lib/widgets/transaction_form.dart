@@ -378,28 +378,14 @@ class _TransactionFormState extends State<TransactionForm> {
                 ],
               ),
             ] else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedWalletId,
-                      items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name))).toList(),
-                      onChanged: (val) => setState(() => _selectedWalletId = val),
-                      decoration: _inputDeco('Wallet', ''),
-                      dropdownColor: theme.colorScheme.surface,
-                      icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
-                      style: textStyle.copyWith(fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    onPressed: () {
-                      Navigator.of(context).pop({'action': 'create_wallet'});
-                    },
-                    icon: const Icon(Icons.add_home_work_outlined, size: 20),
-                    tooltip: 'Nouveau Wallet',
-                  ),
-                ],
+              DropdownButtonFormField<String>(
+                initialValue: _selectedWalletId,
+                items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name))).toList(),
+                onChanged: (val) => setState(() => _selectedWalletId = val),
+                decoration: _inputDeco('Wallet', ''),
+                dropdownColor: theme.colorScheme.surface,
+                icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
+                style: textStyle.copyWith(fontSize: 16),
               ),
               const SizedBox(height: 16),
               InkWell(

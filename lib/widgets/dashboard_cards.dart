@@ -61,7 +61,6 @@ class BalanceSummaryCard extends StatelessWidget {
   final List<Wallet> wallets;
   final Set<String> selectedWalletIds;
   final Function(String?) onWalletTap;
-  final Function(Wallet?) onEditWallet;
   final double Function(String) getWalletBalance;
   final bool isEditMode;
 
@@ -71,7 +70,6 @@ class BalanceSummaryCard extends StatelessWidget {
     required this.wallets,
     required this.selectedWalletIds,
     required this.onWalletTap,
-    required this.onEditWallet,
     required this.getWalletBalance,
     this.isEditMode = false,
   });
@@ -133,11 +131,8 @@ class BalanceSummaryCard extends StatelessWidget {
             height: 110,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: wallets.length + 1,
+              itemCount: wallets.length,
               itemBuilder: (context, index) {
-                if (index == wallets.length) {
-                  return _buildAddItem(context, theme, isDark);
-                }
                 final wallet = wallets[index];
                 return _buildWalletItem(context, wallet, theme, isDark);
               },
@@ -148,31 +143,7 @@ class BalanceSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAddItem(BuildContext context, ThemeData theme, bool isDark) {
-    return GestureDetector(
-      onTap: () => onEditWallet(null),
-      child: Container(
-        width: 80,
-        margin: const EdgeInsets.only(right: 10),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-          border: Border.all(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
-            width: 1.5,
-            strokeAlign: BorderSide.strokeAlignInside,
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.add,
-            size: 22,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildWalletItem(BuildContext context, Wallet wallet, ThemeData theme, bool isDark) {
     final isSelected = selectedWalletIds.contains(wallet.id);
@@ -196,7 +167,6 @@ class BalanceSummaryCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => onWalletTap(wallet.id),
-      onLongPress: () => onEditWallet(wallet),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 130,
@@ -267,6 +237,8 @@ class WalletFilterBar extends StatelessWidget {
   final Set<String> selectedWalletIds;
   final Function(String?) onWalletTap;
   final double Function(String) getWalletBalance;
+  final VoidCallback? onAddWallet;
+  final Function(Wallet)? onEditWallet;
 
   const WalletFilterBar({
     super.key,
@@ -275,6 +247,8 @@ class WalletFilterBar extends StatelessWidget {
     required this.selectedWalletIds,
     required this.onWalletTap,
     required this.getWalletBalance,
+    this.onAddWallet,
+    this.onEditWallet,
   });
 
   static IconData _typeIcon(WalletType t) {
@@ -354,10 +328,23 @@ class WalletFilterBar extends StatelessWidget {
                     isSelected: isSelected,
                     isDark: isDark,
                     onTap: () => onWalletTap(w.id),
+                    onLongPress: onEditWallet != null ? () => onEditWallet!(w) : null,
                     theme: theme,
                   ),
                 );
               }),
+              if (onAddWallet != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _WalletChip(
+                    label: 'Ajouter',
+                    icon: Icons.add_rounded,
+                    isSelected: false,
+                    isDark: isDark,
+                    onTap: onAddWallet!,
+                    theme: theme,
+                  ),
+                ),
             ],
           ),
         ),
@@ -375,6 +362,7 @@ class _WalletChip extends StatelessWidget {
   final bool isSelected;
   final bool isDark;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final ThemeData theme;
 
   const _WalletChip({
@@ -385,6 +373,7 @@ class _WalletChip extends StatelessWidget {
     required this.onTap,
     required this.theme,
     this.sublabel,
+    this.onLongPress,
   });
 
   @override
@@ -394,6 +383,7 @@ class _WalletChip extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

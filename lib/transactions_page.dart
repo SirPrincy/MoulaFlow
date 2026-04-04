@@ -111,155 +111,221 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     final initialBalanceController = TextEditingController(
       text: wallet != null ? wallet.initialBalance.toStringAsFixed(2) : '0.00',
     );
+    WalletType selectedType = wallet?.type ?? WalletType.current;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: theme.colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-          ),
-          title: Text(
-            wallet == null ? 'Nouveau Wallet' : 'Modifier Wallet',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                decoration: InputDecoration(
-                  labelText: 'Nom du Wallet',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppStyles.kDefaultRadius,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: theme.colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+              ),
+              title: Text(
+                wallet == null ? 'Nouveau Wallet' : 'Modifier Wallet',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Nom du Wallet',
+                        prefixIcon: const Icon(Icons.edit_note),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      autofocus: wallet == null,
                     ),
-                  ),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: initialBalanceController,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Solde initial',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            if (wallet != null)
-              TextButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: theme.colorScheme.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: initialBalanceController,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
                       ),
-                      title: Text(
-                        'Supprimer ce Wallet ?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
+                      decoration: InputDecoration(
+                        labelText: 'Solde initial',
+                        prefixIcon: const Icon(Icons.account_balance),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      content: Text(
-                        'Toutes les transactions et transferts liés seront définitivement supprimés.',
-                        style: TextStyle(color: theme.colorScheme.onSurface),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text(
-                            'Annuler',
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            final txRepo = ref.read(transactionRepositoryProvider);
-                            final txsToRemove = _transactions.where(
-                              (tx) => tx.walletId == wallet.id || tx.fromWalletId == wallet.id || tx.toWalletId == wallet.id
-                            ).toList();
-                            for (var tx in txsToRemove) {
-                              await txRepo.deleteTransaction(tx.id);
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<WalletType>(
+                      initialValue: selectedType,
+                      items: WalletType.values
+                          .where(
+                            (t) =>
+                                t != WalletType.debt && t != WalletType.project,
+                          )
+                          .map((type) {
+                            IconData icon;
+                            String label;
+                            switch (type) {
+                              case WalletType.current:
+                                icon = Icons.account_balance_wallet;
+                                label = 'Courant';
+                                break;
+                              case WalletType.savings:
+                                icon = Icons.savings;
+                                label = 'Épargne';
+                                break;
+                              case WalletType.cash:
+                                icon = Icons.payments;
+                                label = 'Cash';
+                                break;
+                              case WalletType.bank:
+                                icon = Icons.account_balance;
+                                label = 'Banque';
+                                break;
+                              case WalletType.mobileMoney:
+                                icon = Icons.phone_android;
+                                label = 'Mobile Money';
+                                break;
+                              case WalletType.debt:
+                                icon = Icons.money_off;
+                                label = 'Dette';
+                                break;
+                              case WalletType.project:
+                                icon = Icons.flag;
+                                label = 'Projet';
+                                break;
                             }
-                            await ref.read(walletRepositoryProvider).deleteWallet(wallet.id);
-                            
-                            setState(() {
-                              _selectedWalletIds.remove(wallet.id);
-                            });
-                            
-                            if (!context.mounted) return;
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            Navigator.pop(context);
-                          },
-                          child: const Text(
-                            'Supprimer',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 20,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    label,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          })
+                          .toList(),
+                      onChanged: (val) =>
+                          setDialogState(() => selectedType = val!),
+                      decoration: InputDecoration(
+                        labelText: 'Type de Wallet',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      ],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                      dropdownColor: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  );
-                },
-                child: const Text(
-                  'Supprimer',
-                  style: TextStyle(color: Colors.red),
+                  ],
                 ),
               ),
-            TextButton(
-              onPressed: () async {
-                if (nameController.text.trim().isNotEmpty) {
-                  final initialBalance =
-                      double.tryParse(
-                        initialBalanceController.text.replaceAll(',', '.'),
-                      ) ??
-                      0.0;
-                  if (wallet == null) {
-                    final newWallet = Wallet(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: nameController.text.trim(),
-                      initialBalance: initialBalance,
-                    );
-                    await ref.read(walletRepositoryProvider).insertWallet(newWallet);
-                  } else {
-                    wallet.name = nameController.text.trim();
-                    wallet.initialBalance = initialBalance;
-                    await ref.read(walletRepositoryProvider).updateWallet(wallet);
-                  }
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(
-                'Valider',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+              actions: [
+                if (wallet != null)
+                  TextButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Supprimer ?'),
+                          content: const Text(
+                            'Toutes les transactions liées seront perdues.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Annuler'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final txRepo = ref.read(transactionRepositoryProvider);
+                                final txsToRemove = _transactions.where(
+                                  (tx) =>
+                                      tx.walletId == wallet.id ||
+                                      tx.fromWalletId == wallet.id ||
+                                      tx.toWalletId == wallet.id,
+                                ).toList();
+                                for (var tx in txsToRemove) {
+                                  await txRepo.deleteTransaction(tx.id);
+                                }
+                                await ref.read(walletRepositoryProvider).deleteWallet(wallet.id);
+                                setState(() {
+                                  _selectedWalletIds.remove(wallet.id);
+                                });
+                                if (!mounted || !ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                Navigator.pop(context);
+                              },
+                              child: const Text(
+                                'Supprimer',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Supprimer',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annuler'),
                 ),
-              ),
-            ),
-          ],
+                FilledButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isNotEmpty) {
+                      final initialBalance =
+                          double.tryParse(
+                            initialBalanceController.text.replaceAll(',', '.'),
+                          ) ??
+                          0.0;
+                      if (wallet == null) {
+                        final newWallet = Wallet(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: nameController.text.trim(),
+                          initialBalance: initialBalance,
+                          type: selectedType,
+                        );
+                        await ref.read(walletRepositoryProvider).insertWallet(newWallet);
+                      } else {
+                        wallet.name = nameController.text.trim();
+                        wallet.initialBalance = initialBalance;
+                        wallet.type = selectedType;
+                        await ref.read(walletRepositoryProvider).updateWallet(wallet);
+                      }
+                      if (context.mounted) Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Enregistrer'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -324,6 +390,8 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                 }
               }),
               getWalletBalance: _getWalletBalance,
+              onAddWallet: () => _showWalletDialog(),
+              onEditWallet: (w) => _showWalletDialog(wallet: w),
             ),
             Expanded(
               child: displayedTxs.isEmpty
