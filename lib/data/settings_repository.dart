@@ -132,15 +132,21 @@ class SettingsRepository {
     var offset = 16;
 
     // 1. Meta Segment
+    if (offset + 4 > bytes.length) throw const FormatException('Données de segment méta manquantes.');
     final metaLen = data.getInt32(offset);
     offset += 4;
+    
+    if (offset + metaLen > bytes.length) throw const FormatException('Taille de segment méta invalide.');
     final metaBytes = bytes.sublist(offset, offset + metaLen);
     offset += metaLen;
     final meta = jsonDecode(utf8.decode(metaBytes)) as Map<String, dynamic>;
 
     // 2. DB Segment
+    if (offset + 4 > bytes.length) throw const FormatException('Données de segment DB manquantes.');
     final dbLen = data.getInt32(offset);
     offset += 4;
+    
+    if (offset + dbLen > bytes.length) throw const FormatException('Taille de segment DB invalide.');
     final dbBytes = bytes.sublist(offset, offset + dbLen);
 
     // Apply Meta (SharedPreferences)

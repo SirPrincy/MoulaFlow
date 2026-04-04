@@ -15,7 +15,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTest(super.connection);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -23,14 +23,16 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      if (from < to) {
-        // Simple for development: Recreate everything on schema change
-        // You would typically handle each version upgrade specifically 
-        // in a production app.
+      if (from < 2) {
+        // Recreate everything for very old versions (destructive)
         for (final table in allTables) {
           await m.drop(table);
         }
         await m.createAll();
+      } else if (from == 2) {
+        // Version 2 -> 3: Migration safely handled here.
+        // For now, no schema changes but we establish the pattern.
+        // Example: await m.addColumn(transactions, transactions.newField);
       }
     },
   );
@@ -46,6 +48,10 @@ class AppDatabase extends _$AppDatabase {
   static Future<String> getDbFilePath() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     return p.join(dbFolder.path, 'moula_flow.sqlite');
+  }
+
+  Future<void> hardClose() async {
+    await close();
   }
 }
 

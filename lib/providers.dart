@@ -11,6 +11,7 @@ import 'package:moula_flow/data/settings_repository.dart';
 import 'package:moula_flow/data/dashboard_repository.dart';
 import 'package:moula_flow/data/app_access_method.dart';
 import 'package:moula_flow/domain/budget_planning_service.dart';
+import 'package:moula_flow/utils/app_constants.dart';
 import 'package:flutter/material.dart';
 
 final databaseProvider = Provider((ref) => AppDatabase());
@@ -143,7 +144,7 @@ class UserNameNotifier extends Notifier<String?> {
   UserNameNotifier([this._initial]);
 
   @override
-  String? build() => _initial;
+  String? build() => _initial ?? AppConstants.defaultUserName;
   
   void update(String? name) {
     state = name;
@@ -173,7 +174,7 @@ class UserAvatarNotifier extends Notifier<int> {
   UserAvatarNotifier([this._initial]);
 
   @override
-  int build() => _initial ?? 59475;
+  int build() => _initial ?? AppConstants.defaultUserAvatar;
   
   void update(int codePoint) {
     state = codePoint;

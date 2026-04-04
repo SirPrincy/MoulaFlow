@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/providers.dart';
+import 'package:moula_flow/utils/app_constants.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
 import 'package:moula_flow/widgets/wallet_form.dart';
 import 'package:uuid/uuid.dart';
@@ -80,8 +81,8 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
       final settings = ref.read(settingsRepositoryProvider);
       
       // 1. Save Profile
-      await settings.saveUserName(_userName.isEmpty ? 'Utilisateur' : _userName);
-      ref.read(userNameProvider.notifier).update(_userName);
+      await settings.saveUserName(_userName.isEmpty ? AppConstants.defaultUserName : _userName);
+      ref.read(userNameProvider.notifier).update(_userName.isEmpty ? AppConstants.defaultUserName : _userName);
       
       await settings.saveUserColor(_userColor);
       ref.read(userColorProvider.notifier).update(_userColor);
@@ -304,7 +305,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
           Icon(IconData(_userAvatar, fontFamily: 'MaterialIcons'), size: 100, color: Color(_userColor)),
           const SizedBox(height: 24),
           Text(
-            'Parfait, ${_userName.isEmpty ? 'Moula' : _userName} !',
+            'Parfait, ${_userName.isEmpty ? AppConstants.defaultUserName : _userName} !',
             style: GoogleFonts.newsreader(fontSize: 32, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),

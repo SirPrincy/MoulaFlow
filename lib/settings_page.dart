@@ -320,20 +320,37 @@ Future<void> _showImportBackupDialog(
     if (trimmed.isEmpty) return;
 
     final bytes = base64Decode(trimmed);
+    
+    // 1. Safe Restore Protocol
+    // Close the active database connection
+    final db = ref.read(databaseProvider);
+    await db.hardClose();
+    
+    // Replace the database file and SharedPrefs
     await settingsRepo.importBinaryBackup(bytes);
     
-    // Invalidate providers to refresh data
+    // 2. Refresh State
+    // Invalidate the database provider itself to force a new connection on next access
+    ref.invalidate(databaseProvider);
+    
+    // Invalidate all data-dependent providers
     ref.invalidate(walletsProvider);
     ref.invalidate(transactionsProvider);
     ref.invalidate(categoriesProvider);
     ref.invalidate(budgetsProvider);
     ref.invalidate(recurringPaymentsProvider);
+    ref.invalidate(dashboardConfigProvider);
     
-    // Re-initialize theme and name
+    // Refresh theme and user profile providers
     final newName = await settingsRepo.loadUserName();
     final isDark = await settingsRepo.loadIsDarkMode();
+    final userColor = await settingsRepo.loadUserColor();
+    final userAvatar = await settingsRepo.loadUserAvatar();
+    
     ref.read(userNameProvider.notifier).update(newName);
     ref.read(themeModeProvider.notifier).update(isDark ? ThemeMode.dark : ThemeMode.light);
+    if (userColor != null) ref.read(userColorProvider.notifier).update(userColor);
+    if (userAvatar != null) ref.read(userAvatarProvider.notifier).update(userAvatar);
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

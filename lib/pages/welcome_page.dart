@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
 import 'package:moula_flow/providers.dart';
+import 'package:moula_flow/utils/app_constants.dart';
 
 class WelcomePage extends ConsumerStatefulWidget {
   final VoidCallback onStart;
@@ -100,7 +101,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                       const SizedBox(height: 32),
                       
                       Text(
-                        onboardingSeen ? 'Bonsoir ${userName ?? 'Moula'}' : 'Moula Flow',
+                        onboardingSeen ? 'Bonsoir ${userName ?? AppConstants.defaultUserName}' : 'Moula Flow',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.newsreader(
                           fontSize: onboardingSeen ? 36 : 42,

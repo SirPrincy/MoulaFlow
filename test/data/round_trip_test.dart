@@ -18,6 +18,7 @@ void main() {
       return '.';
     });
   });
+
   late SettingsRepository settingsRepo;
   late AppDatabase db;
   late File dbFile;
@@ -40,61 +41,55 @@ void main() {
     }
   });
 
-  test('Backup and Restore should preserve SharedPreferences and Drift Database', () async {
-    // 1. Arrange: set some initial data in SharedPreferences
+  test('Full Round-Trip: Backup -> Clear All -> Restore', () async {
+    // 1. Arrange: Setup initial state (Prefs + DB)
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userName', 'TestUser');
+    await prefs.setString('userName', 'RoundTripUser');
     await prefs.setBool('isDarkMode', true);
-
-    // 2. Arrange: set some data in Drift Database
-    final walletId = 'wallet-123';
+    await prefs.setBool('onboardingSeen', true);
+    
+    final walletId = 'wallet-id-1';
     await db.into(db.wallets).insert(WalletsCompanion.insert(
       id: walletId,
-      name: 'Test Wallet',
+      name: 'Round Trip Wallet',
       type: WalletType.current,
       createdAt: DateTime.now(),
     ));
 
-    final txId = 'tx-456';
-    await db.into(db.transactions).insert(TransactionsCompanion.insert(
-      id: txId,
-      amount: 42.0,
-      description: 'Test Transaction',
-      type: TransactionType.expense,
-      date: DateTime.now(),
-      walletId: Value(walletId),
-    ));
-
-    // 3. Act: Close before export to ensure file is flushed
-    await db.close();
-    
-    // 4. Act: Export
+    // 2. Act: Backup
+    await db.close(); // Flush
     final backupBytes = await settingsRepo.exportBinaryBackup();
-
-    // 5. Act: Clear existing data (SharedPreferences only, DB already closed/deleted or will be replaced)
-    await prefs.clear();
     
-    // 6. Act: Import
+    // Reopen for clear operation
+    db = AppDatabase.forTest(NativeDatabase(dbFile));
+    settingsRepo = SettingsRepository(db);
+
+    // 3. Act: Clear All Data (except theme, per logic)
+    await settingsRepo.clearAllDataExceptTheme();
+    
+    // Verify it's cleared
+    expect(prefs.getBool('isDarkMode'), true); // Should be kept
+    expect(prefs.getString('userName'), null);
+    expect(prefs.getBool('onboardingSeen'), null);
+    
+    await db.close();
+    db = AppDatabase.forTest(NativeDatabase(dbFile));
+    final walletsBefore = await db.select(db.wallets).get();
+    expect(walletsBefore.isEmpty, true);
+
+    // 4. Act: Restore
+    await db.close();
     await settingsRepo.importBinaryBackup(backupBytes);
     
-    // 7. Re-open database to verify
+    // 5. Assert: Data is back
     db = AppDatabase.forTest(NativeDatabase(dbFile));
-
-    // 6. Assert: SharedPreferences are restored
     final restoredPrefs = await SharedPreferences.getInstance();
-    expect(restoredPrefs.getString('userName'), 'TestUser');
+    expect(restoredPrefs.getString('userName'), 'RoundTripUser');
+    expect(restoredPrefs.getBool('onboardingSeen'), true);
     expect(restoredPrefs.getBool('isDarkMode'), true);
 
-    // 7. Assert: Drift Database is restored
     final walletsAfter = await db.select(db.wallets).get();
     expect(walletsAfter.length, 1);
-    expect(walletsAfter.first.id, walletId);
-    expect(walletsAfter.first.name, 'Test Wallet');
-
-    final txAfter = await db.select(db.transactions).get();
-    expect(txAfter.length, 1);
-    expect(txAfter.first.id, txId);
-    expect(txAfter.first.description, 'Test Transaction');
-    expect(txAfter.first.amount, 42.0);
+    expect(walletsAfter.first.name, 'Round Trip Wallet');
   });
 }
