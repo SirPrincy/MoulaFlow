@@ -3,8 +3,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moula_flow/data/settings_repository.dart';
 import 'package:moula_flow/data/database/app_database.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/services.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() {
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+      return '.';
+    });
+  });
   late SettingsRepository settingsRepo;
   late AppDatabase db;
 
