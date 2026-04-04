@@ -73,10 +73,10 @@ class BudgetDetailPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   if (status.transactions.isEmpty)
-                    const Center(
+                    Center(
                       child: Padding(
-                        padding: EdgeInsets.all(40.0),
-                        child: Text('Aucune transaction pour ce budget.', style: TextStyle(color: Colors.grey)),
+                        padding: const EdgeInsets.all(40.0),
+                        child: Text('Aucune transaction pour ce budget.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
                       ),
                     )
                   else
@@ -184,7 +184,10 @@ class BudgetDetailPage extends ConsumerWidget {
                 status.isOverBudget
                     ? 'Dépassement de ${formatAmount(status.spent - status.plan.amount)}'
                     : 'Reste ${formatAmount(status.remaining)}',
-                style: theme.textTheme.bodySmall?.copyWith(color: isOver ? Colors.redAccent : Colors.grey),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isOver ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),

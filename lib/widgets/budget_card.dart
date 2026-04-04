@@ -82,8 +82,9 @@ class BudgetCard extends ConsumerWidget {
                         ),
                         Text(
                           formattedDays,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -120,7 +121,10 @@ class BudgetCard extends ConsumerWidget {
                       ),
                       Text(
                         formatAmount(status.plan.amount),
-                        style: theme.textTheme.bodySmall,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -142,7 +146,7 @@ class BudgetCard extends ConsumerWidget {
                   Icon(
                     status.isOverBudget ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
                     size: 16,
-                    color: status.isOverBudget ? Colors.redAccent : Colors.grey,
+                    color: status.isOverBudget ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -150,8 +154,9 @@ class BudgetCard extends ConsumerWidget {
                       status.isOverBudget
                           ? 'Budget dépassé de ${formatAmount(status.spent - status.plan.amount)}'
                           : 'Reste ${formatAmount(status.remaining)} à dépenser',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: status.isOverBudget ? Colors.redAccent : Colors.grey,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: status.isOverBudget ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),

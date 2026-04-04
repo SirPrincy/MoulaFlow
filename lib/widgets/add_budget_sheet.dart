@@ -259,12 +259,23 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
               const SizedBox(height: 16),
               DropdownButtonFormField<BudgetPeriodType>(
                 initialValue: _periodType,
+                isExpanded: true,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Période',
                   prefixIcon: Icon(Icons.calendar_today_outlined),
                 ),
                 items: BudgetPeriodType.values
-                    .map((e) => DropdownMenuItem(value: e, child: Text(_getPeriodName(e))))
+                    .map((e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(
+                            _getPeriodName(e),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) {
                   if (v == null) return;
@@ -309,8 +320,9 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                     'Du ${_startDate.day.toString().padLeft(2, '0')}/${_startDate.month.toString().padLeft(2, '0')}/${_startDate.year} au '
                     '${_endDate.day.toString().padLeft(2, '0')}/${_endDate.month.toString().padLeft(2, '0')}/${_endDate.year}',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                 ),

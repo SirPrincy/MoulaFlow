@@ -37,19 +37,23 @@ class BudgetPlannerPage extends ConsumerWidget {
                 Icon(
                   Icons.account_balance_wallet_outlined,
                   size: 80,
-                  color: Colors.grey.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Aucun budget défini',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.grey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
                       ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Créez votre premier budget pour suivre vos dépenses.',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
