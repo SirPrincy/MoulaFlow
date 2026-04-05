@@ -122,16 +122,16 @@ class TransactionCategory {
       );
 }
 
-String formatAmount(double amount) {
-  String formatted = amount.abs().toStringAsFixed(2);
+String formatAmount(double amount, {String symbol = 'Ar', int decimalDigits = 2}) {
+  String formatted = amount.abs().toStringAsFixed(decimalDigits);
   List<String> parts = formatted.split('.');
   String integerPart = parts[0];
-  String fractionalPart = parts[1];
+  String fractionalPart = parts.length > 1 ? parts[1] : '';
 
   RegExp reg = RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))");
   integerPart = integerPart.replaceAllMapped(reg, (Match match) => "${match[1]} ");
   
-  String res = "$integerPart,$fractionalPart €";
+  String res = decimalDigits > 0 ? "$integerPart,$fractionalPart $symbol" : "$integerPart $symbol";
   return amount < 0 ? "- $res" : res;
 }
 

@@ -92,4 +92,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportCSVSubtitle => 'Extract transactions for Excel';
+
+  @override
+  String get localizationAndFormat => 'LOCALIZATION & FORMAT';
+
+  @override
+  String get language => 'Language';
 }

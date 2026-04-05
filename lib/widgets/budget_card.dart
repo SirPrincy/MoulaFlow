@@ -19,7 +19,7 @@ class BudgetCard extends ConsumerWidget {
     final statusAsync = ref.watch(budgetStatusProvider(budgetId));
 
     return statusAsync.when(
-      data: (status) => _buildCard(context, status),
+      data: (status) => _buildCard(context, status, ref),
       loading: () => _buildSkeleton(context),
       error: (e, s) => _buildError(context, e),
     );
@@ -56,7 +56,9 @@ class BudgetCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildCard(BuildContext context, BudgetStatus status) {
+  Widget _buildCard(BuildContext context, BudgetStatus status, WidgetRef ref) {
+    final currencySymbol = ref.watch(currencySymbolProvider);
+    final decimalDigits = ref.watch(decimalDigitsProvider);
     final theme = Theme.of(context);
 
     Color accentColor;
@@ -233,7 +235,7 @@ class BudgetCard extends ConsumerWidget {
                           child: _buildStat(
                             context,
                             label: 'Dépensé',
-                            value: formatAmount(status.spent),
+                            value: formatAmount(status.spent, symbol: currencySymbol, decimalDigits: decimalDigits),
                             color: accentColor,
                             theme: theme,
                           ),
@@ -244,8 +246,8 @@ class BudgetCard extends ConsumerWidget {
                             context,
                             label: status.isOverBudget ? 'Dépassement' : 'Restant',
                             value: status.isOverBudget
-                                ? formatAmount(status.spent - status.plan.amount)
-                                : formatAmount(status.remaining),
+                                ? formatAmount(status.spent - status.plan.amount, symbol: currencySymbol, decimalDigits: decimalDigits)
+                                : formatAmount(status.remaining, symbol: currencySymbol, decimalDigits: decimalDigits),
                             color: status.isOverBudget
                                 ? Colors.redAccent
                                 : theme.colorScheme.onSurfaceVariant,
@@ -257,7 +259,7 @@ class BudgetCard extends ConsumerWidget {
                           child: _buildStat(
                             context,
                             label: 'Budget',
-                            value: formatAmount(status.plan.amount),
+                            value: formatAmount(status.plan.amount, symbol: currencySymbol, decimalDigits: decimalDigits),
                             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             theme: theme,
                           ),

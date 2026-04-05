@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers.dart';
 import '../models.dart';
 import '../utils/styles.dart';
 
-class TransactionTile extends StatelessWidget {
+class TransactionTile extends ConsumerWidget {
   final Transaction tx;
   final String categoryName;
   final String walletCaption;
@@ -23,10 +25,12 @@ class TransactionTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
+    final currencySymbol = ref.watch(currencySymbolProvider);
+    final decimalDigits = ref.watch(decimalDigitsProvider);
     String sign = '';
     Color amountColor = theme.colorScheme.onSurface;
 
@@ -111,7 +115,7 @@ class TransactionTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '$sign${formatAmount(tx.amount)}',
+                  '$sign${formatAmount(tx.amount, symbol: currencySymbol, decimalDigits: decimalDigits)}',
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: amountColor, letterSpacing: -0.5),
                 ),
               ],

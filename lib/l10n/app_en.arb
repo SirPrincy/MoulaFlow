@@ -26,5 +26,7 @@
   "editProfile": "Edit Profile",
   "userName": "Username",
   "exportCSV": "Export CSV",
-  "exportCSVSubtitle": "Extract transactions for Excel"
+  "exportCSVSubtitle": "Extract transactions for Excel",
+  "localizationAndFormat": "LOCALIZATION & FORMAT",
+  "language": "Language"
 }

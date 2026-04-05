@@ -16,4 +16,5 @@ class StorageKeys {
   static const String currencySymbol = 'currencySymbol';
   static const String decimalDigits = 'decimalDigits';
   static const String biometricsEnabled = 'biometricsEnabled';
+  static const String languageCode = 'languageCode';
 }

@@ -250,6 +250,22 @@ class BiometricsEnabledNotifier extends Notifier<bool> {
 }
 final biometricsEnabledProvider = NotifierProvider<BiometricsEnabledNotifier, bool>(BiometricsEnabledNotifier.new);
 
+class LocaleNotifier extends Notifier<Locale?> {
+  final String? _initial;
+  LocaleNotifier([this._initial]);
+
+  @override
+  Locale? build() => _initial != null ? Locale(_initial) : null;
+  
+  void update(String? languageCode) {
+    state = languageCode != null ? Locale(languageCode) : null;
+    if (languageCode != null) {
+      ref.read(settingsRepositoryProvider).saveLanguageCode(languageCode);
+    }
+  }
+}
+final localeProvider = NotifierProvider<LocaleNotifier, Locale?>(LocaleNotifier.new);
+
 // Dashboard Config AsyncNotifier
 class DashboardNotifier extends AsyncNotifier<DashboardConfig> {
   @override

@@ -8,6 +8,7 @@ import 'package:moula_flow/data/export_service.dart';
 
 import 'category_management_page.dart';
 import 'data/settings_repository.dart';
+import 'data/app_access_method.dart';
 import 'responsive_layout.dart';
 import 'utils/styles.dart';
 
@@ -36,6 +37,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final userAvatar = ref.watch(userAvatarProvider);
     final accentColor = ref.watch(accentColorProvider);
     final biometricsEnabled = ref.watch(biometricsEnabledProvider);
+    final locale = ref.watch(localeProvider);
+    final currencySymbol = ref.watch(currencySymbolProvider);
+    final decimalDigits = ref.watch(decimalDigitsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -59,9 +63,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 24),
 
             // --- APPEARANCE SECTION ---
-            _buildSectionHeader(l10n.accentColor),
             _buildAccentColorPicker(ref, accentColor),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
+            // --- LOCALIZATION & FORMATTING ---
+            _buildSectionHeader(l10n.localizationAndFormat),
+            _buildSettingsContainer(
+              child: Column(
+                children: [
+                  _buildLanguagePicker(ref, locale),
+                  const Divider(height: 1, indent: 56),
+                  _buildCurrencySettings(ref, currencySymbol, decimalDigits, accentColor, l10n),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             _buildSettingsContainer(
               child: SwitchListTile(
                 title: Text(
@@ -102,6 +118,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 activeThumbColor: accentColor,
                 onChanged: (value) {
                   ref.read(biometricsEnabledProvider.notifier).update(value);
+                  ref.read(appAccessMethodProvider.notifier).update(
+                        value ? AppAccessMethod.biometric : AppAccessMethod.none,
+                      );
                 },
                 secondary: Icon(Icons.fingerprint, color: accentColor),
               ),
@@ -332,9 +351,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
           IconButton(
-            onPressed: () {
-              // TODO: Open Profile Edit Dialog
-            },
+            onPressed: () => _showProfileEditDialog(context, ref, name, color, avatar),
             icon: const Icon(Icons.edit_outlined, color: Colors.white),
             style: IconButton.styleFrom(
               backgroundColor: Colors.white.withValues(alpha: 0.2),
@@ -635,6 +652,185 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   // --- INSÈRE LA FONCTION ICI ---
+  // --- NEW SETTINGS UI HELPERS ---
+
+  Widget _buildLanguagePicker(WidgetRef ref, Locale? currentLocale) {
+    final l10n = AppLocalizations.of(context)!;
+    final isEn = currentLocale?.languageCode == 'en';
+    
+    return ListTile(
+      leading: Icon(Icons.language, color: Theme.of(context).colorScheme.primary),
+      title: Text(
+        l10n.language,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildLanguageChip(ref, 'FR', !isEn, 'fr'),
+          const SizedBox(width: 8),
+          _buildLanguageChip(ref, 'EN', isEn, 'en'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageChip(WidgetRef ref, String label, bool isSelected, String code) {
+    final accentColor = ref.watch(accentColorProvider);
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (val) {
+        if (val) ref.read(localeProvider.notifier).update(code);
+      },
+      selectedColor: accentColor.withValues(alpha: 0.2),
+      checkmarkColor: accentColor,
+      labelStyle: TextStyle(
+        color: isSelected ? accentColor : null,
+        fontWeight: isSelected ? FontWeight.bold : null,
+      ),
+    );
+  }
+
+  Widget _buildCurrencySettings(
+    WidgetRef ref, 
+    String currency, 
+    int decimals, 
+    Color accent, 
+    AppLocalizations l10n
+  ) {
+    return Column(
+      children: [
+        ListTile(
+          leading: Icon(Icons.payments_outlined, color: accent),
+          title: Text(
+            l10n.currencySymbol,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          trailing: SizedBox(
+            width: 80,
+            child: TextField(
+              textAlign: TextAlign.end,
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                fillColor: Colors.transparent,
+              ),
+              controller: TextEditingController(text: currency)..selection = TextSelection.fromPosition(TextPosition(offset: currency.length)),
+              onChanged: (val) => ref.read(currencySymbolProvider.notifier).update(val),
+            ),
+          ),
+        ),
+        ListTile(
+          leading: Icon(Icons.numbers_outlined, color: accent),
+          title: Text(
+            l10n.decimalDigits,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove),
+                onPressed: decimals > 0 ? () => ref.read(decimalDigitsProvider.notifier).update(decimals - 1) : null,
+              ),
+              Text('$decimals', style: const TextStyle(fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: decimals < 4 ? () => ref.read(decimalDigitsProvider.notifier).update(decimals + 1) : null,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showProfileEditDialog(
+    BuildContext context, 
+    WidgetRef ref, 
+    String? currentName, 
+    int currentColor, 
+    int currentAvatar
+  ) async {
+    final nameController = TextEditingController(text: currentName);
+    int selectedColor = currentColor;
+    int selectedAvatar = currentAvatar;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Modifier le profil'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Nom d\'utilisateur'),
+                ),
+                const SizedBox(height: 24),
+                const Text('Couleur de profil', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    0xFF6200EE, 0xFF00C853, 0xFFFFB300, 0xFFEF5350, 0xFF78909C, 0xFFE91E63
+                  ].map((c) => GestureDetector(
+                    onTap: () => setDialogState(() => selectedColor = c),
+                    child: Container(
+                      width: 35,
+                      height: 35,
+                      decoration: BoxDecoration(
+                        color: Color(c),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selectedColor == c ? Colors.black : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  )).toList(),
+                ),
+                const SizedBox(height: 24),
+                const Text('Avatar', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [59475, 58713, 58241, 57744, 58160].map((a) => IconButton(
+                    icon: Icon(_getAvatarIcon(a)),
+                    color: selectedAvatar == a ? Color(selectedColor) : null,
+                    onPressed: () => setDialogState(() => selectedAvatar = a),
+                    style: IconButton.styleFrom(
+                      backgroundColor: selectedAvatar == a ? Color(selectedColor).withValues(alpha: 0.1) : null,
+                    ),
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(userNameProvider.notifier).update(nameController.text);
+                ref.read(userColorProvider.notifier).update(selectedColor);
+                ref.read(userAvatarProvider.notifier).update(selectedAvatar);
+                Navigator.pop(context);
+              },
+              child: const Text('Enregistrer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   IconData _getAvatarIcon(int codePoint) {
     switch (codePoint) {
       case 59475:

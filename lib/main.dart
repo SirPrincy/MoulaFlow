@@ -23,6 +23,7 @@ void main() async {
   final currencySymbol = await settingsRepo.loadCurrencySymbol();
   final decimalDigits = await settingsRepo.loadDecimalDigits();
   final biometricsEnabled = await settingsRepo.loadBiometricsEnabled();
+  final languageCode = await settingsRepo.loadLanguageCode();
 
   runApp(ProviderScope(
     observers: const [AppProviderObserver()],
@@ -37,6 +38,7 @@ void main() async {
       currencySymbolProvider.overrideWith(() => CurrencySymbolNotifier(currencySymbol)),
       decimalDigitsProvider.overrideWith(() => DecimalDigitsNotifier(decimalDigits)),
       biometricsEnabledProvider.overrideWith(() => BiometricsEnabledNotifier(biometricsEnabled)),
+      localeProvider.overrideWith(() => LocaleNotifier(languageCode)),
     ],
     child: const MoulaFlowApp(),
   ));
@@ -49,6 +51,7 @@ class MoulaFlowApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentMode = ref.watch(themeModeProvider);
     final accentColor = ref.watch(accentColorProvider);
+    final locale = ref.watch(localeProvider);
 
     final lightColorScheme = ColorScheme.light(
       primary: accentColor,
@@ -78,6 +81,7 @@ class MoulaFlowApp extends ConsumerWidget {
         Locale('fr', ''),
         Locale('en', ''),
       ],
+      locale: locale,
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.white,

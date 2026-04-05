@@ -22,6 +22,7 @@ class SettingsRepository {
     StorageKeys.currencySymbol,
     StorageKeys.decimalDigits,
     StorageKeys.biometricsEnabled,
+    StorageKeys.languageCode,
   ];
 
   Future<bool> loadIsDarkMode() async {
@@ -123,6 +124,16 @@ class SettingsRepository {
   Future<void> saveBiometricsEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(StorageKeys.biometricsEnabled, enabled);
+  }
+
+  Future<String?> loadLanguageCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(StorageKeys.languageCode);
+  }
+
+  Future<void> saveLanguageCode(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(StorageKeys.languageCode, code);
   }
 
   Future<void> clearAllDataExceptTheme() async {

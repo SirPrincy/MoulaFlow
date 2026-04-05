@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import '../models.dart';
+import '../providers.dart';
 import '../data/dashboard_repository.dart';
 import '../utils/styles.dart';
 import '../utils/app_icons.dart';
@@ -59,7 +61,7 @@ abstract class DashboardCard extends StatelessWidget {
 }
 
 /// 1. Solde Total & Wallets — Dashboard card
-class BalanceSummaryCard extends StatelessWidget {
+class BalanceSummaryCard extends ConsumerWidget {
   final double totalBalance;
   final List<Wallet> wallets;
   final Set<String> selectedWalletIds;
@@ -78,7 +80,9 @@ class BalanceSummaryCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currencySymbol = ref.watch(currencySymbolProvider);
+    final decimalDigits = ref.watch(decimalDigitsProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -121,7 +125,7 @@ class BalanceSummaryCard extends StatelessWidget {
 
           // Total Balance
           Text(
-            formatAmount(totalBalance),
+            formatAmount(totalBalance, symbol: currencySymbol, decimalDigits: decimalDigits),
             style: TextStyle(
               fontSize: 34,
               fontWeight: FontWeight.w900,
@@ -140,7 +144,7 @@ class BalanceSummaryCard extends StatelessWidget {
               itemCount: wallets.length,
               itemBuilder: (context, index) {
                 final wallet = wallets[index];
-                return _buildWalletItem(context, wallet, theme, isDark);
+                return _buildWalletItem(context, wallet, theme, isDark, currencySymbol, decimalDigits);
               },
             ),
           ),
@@ -151,7 +155,7 @@ class BalanceSummaryCard extends StatelessWidget {
 
 
 
-  Widget _buildWalletItem(BuildContext context, Wallet wallet, ThemeData theme, bool isDark) {
+  Widget _buildWalletItem(BuildContext context, Wallet wallet, ThemeData theme, bool isDark, String symbol, int decimals) {
     final isSelected = selectedWalletIds.contains(wallet.id);
     final activeText = isDark ? Colors.black : Colors.white;
     final activeBg = isDark ? Colors.white : Colors.black;
@@ -219,7 +223,7 @@ class BalanceSummaryCard extends StatelessWidget {
               ],
             ),
             Text(
-              formatAmount(getWalletBalance(wallet.id)),
+              formatAmount(getWalletBalance(wallet.id), symbol: symbol, decimalDigits: decimals),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
@@ -237,7 +241,7 @@ class BalanceSummaryCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 /// Compact wallet filter bar — used in the Transactions page
 // ---------------------------------------------------------------------------
-class WalletFilterBar extends StatelessWidget {
+class WalletFilterBar extends ConsumerWidget {
   final double totalBalance;
   final List<Wallet> wallets;
   final Set<String> selectedWalletIds;
@@ -267,7 +271,9 @@ class WalletFilterBar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currencySymbol = ref.watch(currencySymbolProvider);
+    final decimalDigits = ref.watch(decimalDigitsProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final allSelected = selectedWalletIds.isEmpty;
@@ -296,7 +302,7 @@ class WalletFilterBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    formatAmount(totalBalance),
+                    formatAmount(totalBalance, symbol: currencySymbol, decimalDigits: decimalDigits),
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
@@ -333,7 +339,7 @@ class WalletFilterBar extends StatelessWidget {
                   child: _WalletChip(
                     label: w.name,
                     icon: _typeIcon(w.type),
-                    sublabel: formatAmount(getWalletBalance(w.id)),
+                    sublabel: formatAmount(getWalletBalance(w.id), symbol: currencySymbol, decimalDigits: decimalDigits),
                     isSelected: isSelected,
                     isDark: isDark,
                     onTap: () => onWalletTap(w.id),
@@ -449,45 +455,51 @@ class FlowCard extends DashboardCard {
 
   @override
   Widget build(BuildContext context) {
-    final total = income + expenses;
-    final inPercent = total == 0 ? 0.0 : (income / total);
-    
-    return buildContainer(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          buildHeader(context, 'Flux Mensuel'),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer(
+      builder: (context, ref, _) {
+        final symbol = ref.watch(currencySymbolProvider);
+        final decimals = ref.watch(decimalDigitsProvider);
+        final total = income + expenses;
+        final inPercent = total == 0 ? 0.0 : (income / total);
+        
+        return buildContainer(
+          context,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildFlowStat('Revenus', income, Colors.green),
-              _buildFlowStat('Dépenses', expenses, Colors.red),
+              buildHeader(context, 'Flux Mensuel'),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFlowStat('Revenus', income, Colors.green, symbol, decimals),
+                  _buildFlowStat('Dépenses', expenses, Colors.red, symbol, decimals),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: inPercent,
+                  minHeight: 8,
+                  backgroundColor: Colors.red.withValues(alpha: 0.2),
+                  valueColor: const AlwaysStoppedAnimation(Colors.green),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: inPercent,
-              minHeight: 8,
-              backgroundColor: Colors.red.withValues(alpha: 0.2),
-              valueColor: const AlwaysStoppedAnimation(Colors.green),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildFlowStat(String label, double amount, Color color) {
+  Widget _buildFlowStat(String label, double amount, Color color, String symbol, int decimals) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 4),
-        Text(formatAmount(amount), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+        Text(formatAmount(amount, symbol: symbol, decimalDigits: decimals), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
       ],
     );
   }
@@ -501,73 +513,79 @@ class WealthTrendCard extends DashboardCard {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    // Find min and max for scaling
-    double minVal = history.isEmpty ? 0 : history.reduce(math.min);
-    double maxVal = history.isEmpty ? 100 : history.reduce(math.max);
-    
-    // Add some padding to the range
-    final range = maxVal - minVal;
-    minVal = (minVal - range * 0.1).floorToDouble();
-    maxVal = (maxVal + range * 0.1).ceilToDouble();
-    if (minVal == maxVal) maxVal += 10;
+    return Consumer(
+      builder: (context, ref, _) {
+        final symbol = ref.watch(currencySymbolProvider);
+        final decimals = ref.watch(decimalDigitsProvider);
+        final theme = Theme.of(context);
+        
+        // Find min and max for scaling
+        double minVal = history.isEmpty ? 0 : history.reduce(math.min);
+        double maxVal = history.isEmpty ? 100 : history.reduce(math.max);
+        
+        // Add some padding to the range
+        final range = maxVal - minVal;
+        minVal = (minVal - range * 0.1).floorToDouble();
+        maxVal = (maxVal + range * 0.1).ceilToDouble();
+        if (minVal == maxVal) maxVal += 10;
 
-    return buildContainer(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          buildHeader(context, 'Évolution (7 jours)'),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 140,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: (history.length - 1).toDouble(),
-                minY: minVal,
-                maxY: maxVal,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-                    isCurved: true,
-                    color: theme.colorScheme.primary,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary.withValues(alpha: 0.3),
-                          theme.colorScheme.primary.withValues(alpha: 0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+        return buildContainer(
+          context,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(context, 'Évolution (7 jours)'),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 140,
+                child: LineChart(
+                  LineChartData(
+                    gridData: const FlGridData(show: false),
+                    titlesData: const FlTitlesData(show: false),
+                    borderData: FlBorderData(show: false),
+                    minX: 0,
+                    maxX: (history.length - 1).toDouble(),
+                    minY: minVal,
+                    maxY: maxVal,
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                        isCurved: true,
+                        color: theme.colorScheme.primary,
+                        barWidth: 3,
+                        isStrokeCapRound: true,
+                        dotData: const FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primary.withValues(alpha: 0.3),
+                              theme.colorScheme.primary.withValues(alpha: 0.0),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Derniers 7 jours', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                  Text(
+                    formatAmount(history.last, symbol: symbol, decimalDigits: decimals),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Derniers 7 jours', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
-              Text(
-                formatAmount(history.last),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -588,40 +606,46 @@ class CategoryChartCard extends DashboardCard {
 
   @override
   Widget build(BuildContext context) {
-    final sortedEntries = categorySpending.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    final topEntries = sortedEntries.take(4).toList();
+    return Consumer(
+      builder: (context, ref, _) {
+        final symbol = ref.watch(currencySymbolProvider);
+        final decimals = ref.watch(decimalDigitsProvider);
+        final sortedEntries = categorySpending.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+        final topEntries = sortedEntries.take(4).toList();
 
-    return buildContainer(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          buildHeader(
-            context, 
-            'Top Dépenses',
-            trailing: isEditMode ? _buildStyleToggle() : null,
-          ),
-          SizedBox(
-            height: 180,
-            child: _buildChart(topEntries),
-          ),
-          const SizedBox(height: 16),
-          ...topEntries.map((e) {
-            final color = Colors.primaries[sortedEntries.indexOf(e) % Colors.primaries.length].withValues(alpha: 0.7);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6.0),
-              child: Row(
-                children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12))),
-                  Text(formatAmount(e.value), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                ],
+        return buildContainer(
+          context,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(
+                context, 
+                'Top Dépenses',
+                trailing: isEditMode ? _buildStyleToggle() : null,
               ),
-            );
-          }),
-        ],
-      ),
+              SizedBox(
+                height: 180,
+                child: _buildChart(topEntries),
+              ),
+              const SizedBox(height: 16),
+              ...topEntries.map((e) {
+                final color = Colors.primaries[sortedEntries.indexOf(e) % Colors.primaries.length].withValues(alpha: 0.7);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Row(
+                    children: [
+                      Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12))),
+                      Text(formatAmount(e.value, symbol: symbol, decimalDigits: decimals), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -729,59 +753,65 @@ class RecentTransactionsCard extends DashboardCard {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final lastFive = transactions.take(5).toList();
+    return Consumer(
+      builder: (context, ref, _) {
+        final symbol = ref.watch(currencySymbolProvider);
+        final decimals = ref.watch(decimalDigitsProvider);
+        final theme = Theme.of(context);
+        final lastFive = transactions.take(5).toList();
 
-    return buildContainer(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          buildHeader(
-            context, 
-            'Opérations Récentes', 
-            trailing: InkWell(
-              onTap: onTap, 
-              child: Row(
-                children: [
-                  Text('VOIR TOUT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward, size: 12),
-                ],
+        return buildContainer(
+          context,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(
+                context, 
+                'Opérations Récentes', 
+                trailing: InkWell(
+                  onTap: onTap, 
+                  child: Row(
+                    children: [
+                      Text('VOIR TOUT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward, size: 12),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              if (lastFive.isEmpty)
+                const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('Aucune opération.')))
+              else
+                ...lastFive.map((tx) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.05), shape: BoxShape.circle),
+                        child: Icon(_getIconForType(tx.type), size: 16),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(tx.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1),
+                            Text(getCategoryName(tx.categoryId), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        formatAmount(tx.amount, symbol: symbol, decimalDigits: decimals),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tx.type == TransactionType.income ? Colors.green : null),
+                      ),
+                    ],
+                  ),
+                )),
+            ],
           ),
-          if (lastFive.isEmpty)
-            const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('Aucune opération.')))
-          else
-            ...lastFive.map((tx) => Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.05), shape: BoxShape.circle),
-                    child: Icon(_getIconForType(tx.type), size: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(tx.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1),
-                        Text(getCategoryName(tx.categoryId), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    formatAmount(tx.amount),
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tx.type == TransactionType.income ? Colors.green : null),
-                  ),
-                ],
-              ),
-            )),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -810,138 +840,144 @@ class ProjectsSummaryCard extends DashboardCard {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    // Filter tags that are projects or have a budget
-    final projectTags = tags.where((t) => t.type == TagType.project || t.goalAmount != null).toList();
+    return Consumer(
+      builder: (context, ref, _) {
+        final symbol = ref.watch(currencySymbolProvider);
+        final decimals = ref.watch(decimalDigitsProvider);
+        final theme = Theme.of(context);
+        
+        // Filter tags that are projects or have a budget
+        final projectTags = tags.where((t) => t.type == TagType.project || t.goalAmount != null).toList();
 
-    return buildContainer(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          buildHeader(
-            context, 
-            'PROJETS RÉCENTS',
-            trailing: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ProjectManagementPage()),
-                );
-              },
-              child: Row(
-                children: [
-                  Text('TOUT VOIR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward, size: 12),
-                ],
-              ),
-            ),
-          ),
-          if (projectTags.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: Text('Aucun projet défini.')),
-            )
-          else
-            ...projectTags.take(3).map((tag) {
-              final tagTransactions = transactions.where((tx) => tx.tags.contains(tag.name)).toList();
-              double spent = 0;
-              for (var tx in tagTransactions) {
-                if (tx.type == TransactionType.expense) spent += tx.amount;
-                if (tx.type == TransactionType.income) spent -= tx.amount;
-              }
-
-              final limit = tag.goalAmount ?? 0;
-              final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
-              final isOverBudget = limit > 0 && spent > limit;
-
-              return InkWell(
-                onTap: () => onTagTap(tag),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        return buildContainer(
+          context,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(
+                context, 
+                'PROJETS RÉCENTS',
+                trailing: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProjectManagementPage()),
+                    );
+                  },
+                  child: Row(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                tag.icon != null 
-                                  ? AppIcons.getIconFromStr(tag.icon!) 
-                                  : Icons.rocket_launch,
-                                size: 14,
-                                color: tag.color != null ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) : theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(tag.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            ],
-                          ),
-                          Text(
-                            formatAmount(spent),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              color: isOverBudget ? Colors.red : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (limit > 0) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 6,
-                            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                            valueColor: AlwaysStoppedAnimation(isOverBudget ? Colors.red : theme.colorScheme.primary),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Budget: ${formatAmount(limit)}',
-                              style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
-                            ),
-                            Text(
-                              '${(progress * 100).toStringAsFixed(0)}%',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isOverBudget ? Colors.red : theme.colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                         Text(
-                          'Sans limite de budget',
-                          style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
-                        ),
-                      ],
+                      Text('TOUT VOIR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward, size: 12),
                     ],
                   ),
                 ),
-              );
-            }),
-          if (isEditMode)
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  TagEditDialog.show(context, initialType: TagType.project);
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('AJOUTER UN PROJET', style: TextStyle(fontSize: 11)),
               ),
-            ),
-        ],
-      ),
+              if (projectTags.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text('Aucun projet défini.')),
+                )
+              else
+                ...projectTags.take(3).map((tag) {
+                  final tagTransactions = transactions.where((tx) => tx.tags.contains(tag.name)).toList();
+                  double spent = 0;
+                  for (var tx in tagTransactions) {
+                    if (tx.type == TransactionType.expense) spent += tx.amount;
+                    if (tx.type == TransactionType.income) spent -= tx.amount;
+                  }
+
+                  final limit = tag.goalAmount ?? 0;
+                  final progress = limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
+                  final isOverBudget = limit > 0 && spent > limit;
+
+                  return InkWell(
+                    onTap: () => onTagTap(tag),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    tag.icon != null 
+                                      ? AppIcons.getIconFromStr(tag.icon!) 
+                                      : Icons.rocket_launch,
+                                    size: 14,
+                                    color: tag.color != null ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) : theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(tag.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                ],
+                              ),
+                              Text(
+                                formatAmount(spent, symbol: symbol, decimalDigits: decimals),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  color: isOverBudget ? Colors.red : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (limit > 0) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 6,
+                                backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                                valueColor: AlwaysStoppedAnimation(isOverBudget ? Colors.red : theme.colorScheme.primary),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Budget: ${formatAmount(limit, symbol: symbol, decimalDigits: decimals)}',
+                                  style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                                ),
+                                Text(
+                                  '${(progress * 100).toStringAsFixed(0)}%',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isOverBudget ? Colors.red : theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                             Text(
+                              'Sans limite de budget',
+                              style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              if (isEditMode)
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      TagEditDialog.show(context, initialType: TagType.project);
+                    },
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('AJOUTER UN PROJET', style: TextStyle(fontSize: 11)),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

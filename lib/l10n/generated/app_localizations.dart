@@ -265,6 +265,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Extraire les transactions pour Excel'**
   String get exportCSVSubtitle;
+
+  /// No description provided for @localizationAndFormat.
+  ///
+  /// In fr, this message translates to:
+  /// **'LOCALISATION & FORMAT'**
+  String get localizationAndFormat;
+
+  /// No description provided for @language.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue'**
+  String get language;
 }
 
 class _AppLocalizationsDelegate
