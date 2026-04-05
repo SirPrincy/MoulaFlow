@@ -104,11 +104,13 @@ class BalanceSummaryCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'PATRIMOINE GLOBAL',
+                totalBalance < 0 ? 'DÉCOUVERT' : 'PATRIMOINE GLOBAL',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                  color: totalBalance < 0 
+                      ? Colors.red 
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.45),
                   letterSpacing: 1.4,
                 ),
               ),
@@ -120,10 +122,11 @@ class BalanceSummaryCard extends StatelessWidget {
           // Total Balance
           Text(
             formatAmount(totalBalance),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 34,
               fontWeight: FontWeight.w900,
               letterSpacing: -1.5,
+              color: totalBalance < 0 ? Colors.red : null,
             ),
           ),
 
@@ -281,21 +284,24 @@ class WalletFilterBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'SOLDE TOTAL',
+                    totalBalance < 0 ? 'DÉCOUVERT TOTAL' : 'SOLDE TOTAL',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.3,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      color: totalBalance < 0 
+                          ? Colors.red 
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     formatAmount(totalBalance),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
+                      color: totalBalance < 0 ? Colors.red : null,
                     ),
                   ),
                 ],
