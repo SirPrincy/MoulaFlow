@@ -223,9 +223,10 @@ class Transaction {
   final String? walletId;
   final String? fromWalletId;
   final String? toWalletId;
-  final String? categoryId;
   final List<String> tags;
+  final String? categoryId;
   final String? relatedDebtId;
+  final String? recurringPaymentId;
 
   const Transaction({
     required this.id,
@@ -239,6 +240,7 @@ class Transaction {
     this.categoryId,
     this.tags = const [],
     this.relatedDebtId,
+    this.recurringPaymentId,
   });
 
   Transaction copyWith({
@@ -253,6 +255,7 @@ class Transaction {
     String? categoryId,
     List<String>? tags,
     String? relatedDebtId,
+    String? recurringPaymentId,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -266,22 +269,26 @@ class Transaction {
       categoryId: categoryId ?? this.categoryId,
       tags: tags ?? this.tags,
       relatedDebtId: relatedDebtId ?? this.relatedDebtId,
+      recurringPaymentId: recurringPaymentId ?? this.recurringPaymentId,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'amount': amount,
-        'description': description,
-        'type': type.name,
-        'date': date.toIso8601String(),
-        'walletId': walletId,
-        'fromWalletId': fromWalletId,
-        'toWalletId': toWalletId,
-        'categoryId': categoryId,
-        'tags': tags,
-        'relatedDebtId': relatedDebtId,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'amount': amount,
+      'description': description,
+      'type': type.name,
+      'date': date.toIso8601String(),
+      'walletId': walletId,
+      'fromWalletId': fromWalletId,
+      'toWalletId': toWalletId,
+      'tags': tags,
+      'categoryId': categoryId,
+      'relatedDebtId': relatedDebtId,
+      'recurringPaymentId': recurringPaymentId,
+    };
+  }
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
     TransactionType tType;
@@ -343,6 +350,22 @@ class RecurringPayment {
     required this.nextDueDate,
     this.isActive = true,
   });
+
+  DateTime getNextDueDate() {
+    if (frequency == RecurrenceFrequency.once) return nextDueDate;
+    switch (frequency) {
+      case RecurrenceFrequency.daily:
+        return nextDueDate.add(const Duration(days: 1));
+      case RecurrenceFrequency.weekly:
+        return nextDueDate.add(const Duration(days: 7));
+      case RecurrenceFrequency.monthly:
+        return DateTime(nextDueDate.year, nextDueDate.month + 1, nextDueDate.day);
+      case RecurrenceFrequency.yearly:
+        return DateTime(nextDueDate.year + 1, nextDueDate.month, nextDueDate.day);
+      default:
+        return nextDueDate;
+    }
+  }
 
   RecurringPayment copyWith({
     String? id,

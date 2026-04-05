@@ -44,6 +44,7 @@ class Transactions extends Table {
   TextColumn get categoryId => text().nullable()();
   TextColumn get tags => text().map(const StringListConverter()).withDefault(const Constant(''))();
   TextColumn get relatedDebtId => text().nullable()();
+  TextColumn get recurringPaymentId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

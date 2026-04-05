@@ -32,6 +32,7 @@ class TransactionRepository {
       categoryId: entity.categoryId,
       tags: entity.tags,
       relatedDebtId: entity.relatedDebtId,
+      recurringPaymentId: entity.recurringPaymentId,
     );
   }
 
@@ -48,6 +49,7 @@ class TransactionRepository {
       categoryId: Value(tx.categoryId),
       tags: Value(tx.tags),
       relatedDebtId: Value(tx.relatedDebtId),
+      recurringPaymentId: Value(tx.recurringPaymentId),
     );
   }
 

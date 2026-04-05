@@ -6,6 +6,7 @@ import '../home_page.dart';
 import '../security/app_access_gate.dart';
 import 'setup_wizard_page.dart';
 import 'welcome_page.dart';
+import '../domain/recurring_payment_service.dart';
 
 class AppLaunchFlowPage extends ConsumerStatefulWidget {
   const AppLaunchFlowPage({super.key});
@@ -23,6 +24,7 @@ class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
     ref.read(onboardingSeenProvider.notifier).update(true);
 
     if (!mounted) return;
+    await _processRecurring();
     await _attemptAccess();
   }
 
@@ -32,11 +34,33 @@ class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
     final granted = await gate.authorize(context);
     if (!mounted || !granted) return;
 
+    await _processRecurring();
+
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => const HomePage(),
       ),
     );
+  }
+
+  Future<void> _processRecurring() async {
+    try {
+      final processed = await ref.read(recurringPaymentServiceProvider).checkAndProcessPayments();
+      // Wait a bit to ensure the SnackBar can be seen or let the HomePage handle it
+      if (processed > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$processed paiement(s) récurrent(s) traité(s) automatiquement.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error processing recurring: $e');
+    }
   }
 
   void _startSetup() {

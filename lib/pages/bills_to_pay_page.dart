@@ -104,6 +104,8 @@ class _BillsToPayPageState extends ConsumerState<BillsToPayPage> {
       date: DateTime.now(),
       walletId: p.walletId,
       categoryId: p.categoryId,
+      recurringPaymentId: p.id,
+      tags: p.tags,
     );
 
     setState(() {
@@ -116,30 +118,7 @@ class _BillsToPayPageState extends ConsumerState<BillsToPayPage> {
       if (p.frequency == RecurrenceFrequency.once) {
         newIsActive = false;
       } else {
-        switch (p.frequency) {
-          case RecurrenceFrequency.daily:
-            newNextDueDate = p.nextDueDate.add(const Duration(days: 1));
-            break;
-          case RecurrenceFrequency.weekly:
-            newNextDueDate = p.nextDueDate.add(const Duration(days: 7));
-            break;
-          case RecurrenceFrequency.monthly:
-            newNextDueDate = DateTime(
-              p.nextDueDate.year,
-              p.nextDueDate.month + 1,
-              p.nextDueDate.day,
-            );
-            break;
-          case RecurrenceFrequency.yearly:
-            newNextDueDate = DateTime(
-              p.nextDueDate.year + 1,
-              p.nextDueDate.month,
-              p.nextDueDate.day,
-            );
-            break;
-          default:
-            break;
-        }
+        newNextDueDate = p.getNextDueDate();
       }
       
       final updatedPayment = p.copyWith(

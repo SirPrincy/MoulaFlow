@@ -746,6 +746,17 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _recurringPaymentIdMeta =
+      const VerificationMeta('recurringPaymentId');
+  @override
+  late final GeneratedColumn<String> recurringPaymentId =
+      GeneratedColumn<String>(
+        'recurring_payment_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -759,6 +770,7 @@ class $TransactionsTable extends Transactions
     categoryId,
     tags,
     relatedDebtId,
+    recurringPaymentId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -843,6 +855,15 @@ class $TransactionsTable extends Transactions
         ),
       );
     }
+    if (data.containsKey('recurring_payment_id')) {
+      context.handle(
+        _recurringPaymentIdMeta,
+        recurringPaymentId.isAcceptableOrUnknown(
+          data['recurring_payment_id']!,
+          _recurringPaymentIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -900,6 +921,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}related_debt_id'],
       ),
+      recurringPaymentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurring_payment_id'],
+      ),
     );
   }
 
@@ -927,6 +952,7 @@ class TransactionEntity extends DataClass
   final String? categoryId;
   final List<String> tags;
   final String? relatedDebtId;
+  final String? recurringPaymentId;
   const TransactionEntity({
     required this.id,
     required this.amount,
@@ -939,6 +965,7 @@ class TransactionEntity extends DataClass
     this.categoryId,
     required this.tags,
     this.relatedDebtId,
+    this.recurringPaymentId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -972,6 +999,9 @@ class TransactionEntity extends DataClass
     if (!nullToAbsent || relatedDebtId != null) {
       map['related_debt_id'] = Variable<String>(relatedDebtId);
     }
+    if (!nullToAbsent || recurringPaymentId != null) {
+      map['recurring_payment_id'] = Variable<String>(recurringPaymentId);
+    }
     return map;
   }
 
@@ -998,6 +1028,9 @@ class TransactionEntity extends DataClass
       relatedDebtId: relatedDebtId == null && nullToAbsent
           ? const Value.absent()
           : Value(relatedDebtId),
+      recurringPaymentId: recurringPaymentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurringPaymentId),
     );
   }
 
@@ -1020,6 +1053,9 @@ class TransactionEntity extends DataClass
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       tags: serializer.fromJson<List<String>>(json['tags']),
       relatedDebtId: serializer.fromJson<String?>(json['relatedDebtId']),
+      recurringPaymentId: serializer.fromJson<String?>(
+        json['recurringPaymentId'],
+      ),
     );
   }
   @override
@@ -1039,6 +1075,7 @@ class TransactionEntity extends DataClass
       'categoryId': serializer.toJson<String?>(categoryId),
       'tags': serializer.toJson<List<String>>(tags),
       'relatedDebtId': serializer.toJson<String?>(relatedDebtId),
+      'recurringPaymentId': serializer.toJson<String?>(recurringPaymentId),
     };
   }
 
@@ -1054,6 +1091,7 @@ class TransactionEntity extends DataClass
     Value<String?> categoryId = const Value.absent(),
     List<String>? tags,
     Value<String?> relatedDebtId = const Value.absent(),
+    Value<String?> recurringPaymentId = const Value.absent(),
   }) => TransactionEntity(
     id: id ?? this.id,
     amount: amount ?? this.amount,
@@ -1068,6 +1106,9 @@ class TransactionEntity extends DataClass
     relatedDebtId: relatedDebtId.present
         ? relatedDebtId.value
         : this.relatedDebtId,
+    recurringPaymentId: recurringPaymentId.present
+        ? recurringPaymentId.value
+        : this.recurringPaymentId,
   );
   TransactionEntity copyWithCompanion(TransactionsCompanion data) {
     return TransactionEntity(
@@ -1092,6 +1133,9 @@ class TransactionEntity extends DataClass
       relatedDebtId: data.relatedDebtId.present
           ? data.relatedDebtId.value
           : this.relatedDebtId,
+      recurringPaymentId: data.recurringPaymentId.present
+          ? data.recurringPaymentId.value
+          : this.recurringPaymentId,
     );
   }
 
@@ -1108,7 +1152,8 @@ class TransactionEntity extends DataClass
           ..write('toWalletId: $toWalletId, ')
           ..write('categoryId: $categoryId, ')
           ..write('tags: $tags, ')
-          ..write('relatedDebtId: $relatedDebtId')
+          ..write('relatedDebtId: $relatedDebtId, ')
+          ..write('recurringPaymentId: $recurringPaymentId')
           ..write(')'))
         .toString();
   }
@@ -1126,6 +1171,7 @@ class TransactionEntity extends DataClass
     categoryId,
     tags,
     relatedDebtId,
+    recurringPaymentId,
   );
   @override
   bool operator ==(Object other) =>
@@ -1141,7 +1187,8 @@ class TransactionEntity extends DataClass
           other.toWalletId == this.toWalletId &&
           other.categoryId == this.categoryId &&
           other.tags == this.tags &&
-          other.relatedDebtId == this.relatedDebtId);
+          other.relatedDebtId == this.relatedDebtId &&
+          other.recurringPaymentId == this.recurringPaymentId);
 }
 
 class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
@@ -1156,6 +1203,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
   final Value<String?> categoryId;
   final Value<List<String>> tags;
   final Value<String?> relatedDebtId;
+  final Value<String?> recurringPaymentId;
   final Value<int> rowid;
   const TransactionsCompanion({
     this.id = const Value.absent(),
@@ -1169,6 +1217,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     this.categoryId = const Value.absent(),
     this.tags = const Value.absent(),
     this.relatedDebtId = const Value.absent(),
+    this.recurringPaymentId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -1183,6 +1232,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     this.categoryId = const Value.absent(),
     this.tags = const Value.absent(),
     this.relatedDebtId = const Value.absent(),
+    this.recurringPaymentId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        amount = Value(amount),
@@ -1201,6 +1251,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     Expression<String>? categoryId,
     Expression<String>? tags,
     Expression<String>? relatedDebtId,
+    Expression<String>? recurringPaymentId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1215,6 +1266,8 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
       if (categoryId != null) 'category_id': categoryId,
       if (tags != null) 'tags': tags,
       if (relatedDebtId != null) 'related_debt_id': relatedDebtId,
+      if (recurringPaymentId != null)
+        'recurring_payment_id': recurringPaymentId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1231,6 +1284,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     Value<String?>? categoryId,
     Value<List<String>>? tags,
     Value<String?>? relatedDebtId,
+    Value<String?>? recurringPaymentId,
     Value<int>? rowid,
   }) {
     return TransactionsCompanion(
@@ -1245,6 +1299,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
       categoryId: categoryId ?? this.categoryId,
       tags: tags ?? this.tags,
       relatedDebtId: relatedDebtId ?? this.relatedDebtId,
+      recurringPaymentId: recurringPaymentId ?? this.recurringPaymentId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1289,6 +1344,9 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     if (relatedDebtId.present) {
       map['related_debt_id'] = Variable<String>(relatedDebtId.value);
     }
+    if (recurringPaymentId.present) {
+      map['recurring_payment_id'] = Variable<String>(recurringPaymentId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1309,6 +1367,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
           ..write('categoryId: $categoryId, ')
           ..write('tags: $tags, ')
           ..write('relatedDebtId: $relatedDebtId, ')
+          ..write('recurringPaymentId: $recurringPaymentId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4656,6 +4715,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<String?> categoryId,
       Value<List<String>> tags,
       Value<String?> relatedDebtId,
+      Value<String?> recurringPaymentId,
       Value<int> rowid,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
@@ -4671,6 +4731,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String?> categoryId,
       Value<List<String>> tags,
       Value<String?> relatedDebtId,
+      Value<String?> recurringPaymentId,
       Value<int> rowid,
     });
 
@@ -4769,6 +4830,11 @@ class $$TransactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get recurringPaymentId => $composableBuilder(
+    column: $table.recurringPaymentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> transactionTagsRefs(
     Expression<bool> Function($$TransactionTagsTableFilterComposer f) f,
   ) {
@@ -4858,6 +4924,11 @@ class $$TransactionsTableOrderingComposer
     column: $table.relatedDebtId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get recurringPaymentId => $composableBuilder(
+    column: $table.recurringPaymentId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -4909,6 +4980,11 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<String> get relatedDebtId => $composableBuilder(
     column: $table.relatedDebtId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recurringPaymentId => $composableBuilder(
+    column: $table.recurringPaymentId,
     builder: (column) => column,
   );
 
@@ -4977,6 +5053,7 @@ class $$TransactionsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<List<String>> tags = const Value.absent(),
                 Value<String?> relatedDebtId = const Value.absent(),
+                Value<String?> recurringPaymentId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
@@ -4990,6 +5067,7 @@ class $$TransactionsTableTableManager
                 categoryId: categoryId,
                 tags: tags,
                 relatedDebtId: relatedDebtId,
+                recurringPaymentId: recurringPaymentId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5005,6 +5083,7 @@ class $$TransactionsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<List<String>> tags = const Value.absent(),
                 Value<String?> relatedDebtId = const Value.absent(),
+                Value<String?> recurringPaymentId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
@@ -5018,6 +5097,7 @@ class $$TransactionsTableTableManager
                 categoryId: categoryId,
                 tags: tags,
                 relatedDebtId: relatedDebtId,
+                recurringPaymentId: recurringPaymentId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
