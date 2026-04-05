@@ -5,6 +5,8 @@ import '../models.dart';
 import '../data/dashboard_repository.dart';
 import '../utils/styles.dart';
 import '../utils/app_icons.dart';
+import '../pages/project_management_page.dart';
+import 'tag_edit_dialog.dart';
 
 /// Base class for all dashboard widget cards.
 abstract class DashboardCard extends StatelessWidget {
@@ -817,7 +819,10 @@ class ProjectsSummaryCard extends DashboardCard {
             'PROJETS RÉCENTS',
             trailing: InkWell(
               onTap: () {
-                // TODO: View all projects
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProjectManagementPage()),
+                );
               },
               child: Row(
                 children: [
@@ -923,7 +928,7 @@ class ProjectsSummaryCard extends DashboardCard {
             Center(
               child: TextButton.icon(
                 onPressed: () {
-                  // TODO: Add new project
+                  TagEditDialog.show(context, initialType: TagType.project);
                 },
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('AJOUTER UN PROJET', style: TextStyle(fontSize: 11)),

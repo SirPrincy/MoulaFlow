@@ -19,7 +19,9 @@ class RecurringPaymentRepository {
   }
 
   Future<void> insertRecurringPayment(RecurringPayment p) async {
-    await db.into(db.recurringPayments).insert(_mapModelToCompanion(p), mode: InsertMode.replace);
+    await db
+        .into(db.recurringPayments)
+        .insert(_mapModelToCompanion(p), mode: InsertMode.replace);
   }
 
   Future<void> updateRecurringPayment(RecurringPayment p) async {

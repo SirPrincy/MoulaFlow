@@ -5,6 +5,7 @@ import '../providers.dart';
 import '../utils/styles.dart';
 import '../utils/app_icons.dart';
 import '../widgets/transaction_tile.dart';
+import '../widgets/tag_edit_dialog.dart';
 
 class TagProjectPage extends ConsumerStatefulWidget {
   final TagDefinition tag;
@@ -18,20 +19,39 @@ class TagProjectPage extends ConsumerStatefulWidget {
 class _TagProjectPageState extends ConsumerState<TagProjectPage> {
   @override
   Widget build(BuildContext context) {
+    final tagsAsync = ref.watch(tagsProvider);
     final transactionsAsync = ref.watch(transactionsProvider);
     final theme = Theme.of(context);
+
+    // Watch for tag updates or deletion
+    final currentTag = tagsAsync.when(
+      data: (tags) {
+        final found = tags.cast<TagDefinition?>().firstWhere((t) => t?.id == widget.tag.id, orElse: () => null);
+        if (found == null) {
+          // Tag was deleted, pop page after build
+          Future.microtask(() {
+            if (context.mounted) Navigator.of(context).pop();
+          });
+          return widget.tag; // Return old tag for this build
+        }
+        return found;
+      },
+      loading: () => widget.tag,
+      error: (_, _) => widget.tag,
+    );
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: Text(widget.tag.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(currentTag.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () {
-              // TODO: Implement tag/project editor
+              TagEditDialog.show(context, tag: currentTag);
             },
           ),
         ],
@@ -40,7 +60,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erreur: $err')),
         data: (allTransactions) {
-          final projectTransactions = allTransactions.where((tx) => tx.tags.contains(widget.tag.name)).toList();
+          final projectTransactions = allTransactions.where((tx) => tx.tags.contains(currentTag.name)).toList();
           final categories = ref.watch(categoriesProvider).value ?? [];
           final wallets = ref.watch(walletsProvider).value ?? [];
 
@@ -70,7 +90,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
             if (tx.type == TransactionType.income) totalSpent -= tx.amount;
           }
 
-          final limit = widget.tag.goalAmount ?? 0;
+          final limit = currentTag.goalAmount ?? 0;
           final progress = limit > 0 ? (totalSpent / limit).clamp(0.0, 1.0) : 0.0;
           final isOverBudget = limit > 0 && totalSpent > limit;
 
@@ -82,7 +102,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeaderCard(theme, totalSpent, limit, progress, isOverBudget),
+                      _buildHeaderCard(theme, currentTag, totalSpent, limit, progress, isOverBudget),
                       const SizedBox(height: 32),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -126,7 +146,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                         categoryName: getCatName(tx.categoryId),
                         walletCaption: getWalletName(tx.walletId ?? tx.fromWalletId),
                         onTap: () {
-                          // Handle tap
+                          // TODO: Edit transaction logic if needed
                         },
                         onDismissed: () {
                           // Handle dismissal
@@ -144,14 +164,16 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
     );
   }
 
-  Widget _buildHeaderCard(ThemeData theme, double spent, double limit, double progress, bool isOverBudget) {
+  Widget _buildHeaderCard(ThemeData theme, TagDefinition tag, double spent, double limit, double progress, bool isOverBudget) {
+    final color = tag.color != null ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) : theme.colorScheme.primary;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isOverBudget ? Colors.red.withValues(alpha: 0.1) : theme.colorScheme.primary.withValues(alpha: 0.05),
+        color: isOverBudget ? Colors.red.withValues(alpha: 0.1) : color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius * 1.5),
         border: Border.all(
-          color: isOverBudget ? Colors.red.withValues(alpha: 0.2) : theme.colorScheme.primary.withValues(alpha: 0.1),
+          color: isOverBudget ? Colors.red.withValues(alpha: 0.2) : color.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -162,12 +184,12 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isOverBudget ? Colors.red : theme.colorScheme.primary,
+                  color: isOverBudget ? Colors.red : color,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  widget.tag.icon != null 
-                    ? AppIcons.getIconFromStr(widget.tag.icon!) 
+                  tag.icon != null 
+                    ? AppIcons.getIconFromStr(tag.icon!) 
                     : Icons.rocket_launch,
                   color: Colors.white,
                   size: 24,
@@ -177,13 +199,14 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                   Text(
                     'Coût Total',
                     style: TextStyle(
                       fontSize: 14,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     formatAmount(spent),
                     style: const TextStyle(
@@ -209,7 +232,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                   '${(progress * 100).toStringAsFixed(0)}%',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isOverBudget ? Colors.red : theme.colorScheme.primary,
+                    color: isOverBudget ? Colors.red : color,
                   ),
                 ),
               ],
@@ -220,8 +243,8 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 10,
-                backgroundColor: isOverBudget ? Colors.red.withValues(alpha: 0.1) : theme.colorScheme.primary.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation(isOverBudget ? Colors.red : theme.colorScheme.primary),
+                backgroundColor: isOverBudget ? Colors.red.withValues(alpha: 0.1) : color.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation(isOverBudget ? Colors.red : color),
               ),
             ),
             if (isOverBudget) ...[
