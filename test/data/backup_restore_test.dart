@@ -11,12 +11,20 @@ import 'package:moula_flow/models.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late Directory tempDir;
   setUpAll(() {
+    tempDir = Directory.systemTemp.createTempSync('moula_backup_restore_');
     const channel = MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-      return '.';
+      return tempDir.path;
     });
+  });
+
+  tearDownAll(() {
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
   });
   late SettingsRepository settingsRepo;
   late AppDatabase db;
@@ -67,6 +75,7 @@ void main() {
 
     // 3. Act: Close before export to ensure file is flushed
     await db.close();
+    await Future.delayed(const Duration(milliseconds: 100));
     
     // 4. Act: Export
     final backupBytes = await settingsRepo.exportBinaryBackup();
@@ -76,6 +85,7 @@ void main() {
     
     // 6. Act: Import
     await settingsRepo.importBinaryBackup(backupBytes);
+    await Future.delayed(const Duration(milliseconds: 100));
     
     // 7. Re-open database to verify
     db = AppDatabase.forTest(NativeDatabase(dbFile));

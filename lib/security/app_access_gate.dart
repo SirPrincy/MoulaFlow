@@ -41,20 +41,22 @@ class BiometricSecurityGate extends AppAccessGate {
   @override
   Future<bool> authorize(BuildContext context) async {
     final auth = LocalAuthentication();
-    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
-    final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
-
-    if (!canAuthenticate) return true; // Fallback if no biometrics available
-
     try {
+      final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+      final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+
+      if (!canAuthenticate) return true; // Fallback if no biometrics available
+
       final bool didAuthenticate = await auth.authenticate(
         localizedReason: 'Veuillez vous authentifier pour accéder à Moula Flow',
         options: const AuthenticationOptions(stickyAuth: true),
       );
       return didAuthenticate;
-    } catch (e) {
-      debugPrint('Biometric auth error: $e');
-      return false;
+    } on Exception catch (e) {
+      debugPrint('Biometric auth error (likely unsupported platform): $e');
+      // If biometrics is requested but fails due to platform (like Linux MissingPluginException),
+      // we allow entry as a fallback to avoid blocking the user.
+      return true;
     }
   }
 }

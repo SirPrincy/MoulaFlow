@@ -10,12 +10,20 @@ import 'package:moula_flow/models.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late Directory tempDir;
   setUpAll(() {
+    tempDir = Directory.systemTemp.createTempSync('moula_round_trip_');
     const channel = MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-      return '.';
+      return tempDir.path;
     });
+  });
+
+  tearDownAll(() {
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
   });
 
   late SettingsRepository settingsRepo;
@@ -57,6 +65,7 @@ void main() {
 
     // 2. Act: Backup
     await db.close(); // Flush
+    await Future.delayed(const Duration(milliseconds: 100));
     final backupBytes = await settingsRepo.exportBinaryBackup();
     
     // Reopen for clear operation
@@ -72,13 +81,16 @@ void main() {
     expect(prefs.getBool('onboardingSeen'), null);
     
     await db.close();
+    await Future.delayed(const Duration(milliseconds: 100));
     db = AppDatabase.forTest(NativeDatabase(dbFile));
     final walletsBefore = await db.select(db.wallets).get();
     expect(walletsBefore.isEmpty, true);
 
     // 4. Act: Restore
     await db.close();
+    await Future.delayed(const Duration(milliseconds: 100));
     await settingsRepo.importBinaryBackup(backupBytes);
+    await Future.delayed(const Duration(milliseconds: 100));
     
     // 5. Assert: Data is back
     db = AppDatabase.forTest(NativeDatabase(dbFile));
