@@ -194,6 +194,62 @@ class UserAvatarNotifier extends Notifier<int> {
 }
 final userAvatarProvider = NotifierProvider<UserAvatarNotifier, int>(UserAvatarNotifier.new);
 
+class AccentColorNotifier extends Notifier<Color> {
+  final int? _initial;
+  AccentColorNotifier([this._initial]);
+
+  @override
+  Color build() => Color(_initial ?? 0xFFBCC2FF); // Default Moula Primary
+  
+  void update(Color color) {
+    state = color;
+    ref.read(settingsRepositoryProvider).saveAccentColor(color.value);
+  }
+}
+final accentColorProvider = NotifierProvider<AccentColorNotifier, Color>(AccentColorNotifier.new);
+
+class CurrencySymbolNotifier extends Notifier<String> {
+  final String? _initial;
+  CurrencySymbolNotifier([this._initial]);
+
+  @override
+  String build() => _initial ?? 'Ar';
+  
+  void update(String symbol) {
+    state = symbol;
+    ref.read(settingsRepositoryProvider).saveCurrencySymbol(symbol);
+  }
+}
+final currencySymbolProvider = NotifierProvider<CurrencySymbolNotifier, String>(CurrencySymbolNotifier.new);
+
+class DecimalDigitsNotifier extends Notifier<int> {
+  final int? _initial;
+  DecimalDigitsNotifier([this._initial]);
+
+  @override
+  int build() => _initial ?? 2;
+  
+  void update(int digits) {
+    state = digits;
+    ref.read(settingsRepositoryProvider).saveDecimalDigits(digits);
+  }
+}
+final decimalDigitsProvider = NotifierProvider<DecimalDigitsNotifier, int>(DecimalDigitsNotifier.new);
+
+class BiometricsEnabledNotifier extends Notifier<bool> {
+  final bool? _initial;
+  BiometricsEnabledNotifier([this._initial]);
+
+  @override
+  bool build() => _initial ?? false;
+  
+  void update(bool enabled) {
+    state = enabled;
+    ref.read(settingsRepositoryProvider).saveBiometricsEnabled(enabled);
+  }
+}
+final biometricsEnabledProvider = NotifierProvider<BiometricsEnabledNotifier, bool>(BiometricsEnabledNotifier.new);
+
 // Dashboard Config AsyncNotifier
 class DashboardNotifier extends AsyncNotifier<DashboardConfig> {
   @override

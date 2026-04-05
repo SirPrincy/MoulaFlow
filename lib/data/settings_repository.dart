@@ -18,6 +18,10 @@ class SettingsRepository {
     StorageKeys.userName,
     StorageKeys.userColor,
     StorageKeys.userAvatar,
+    StorageKeys.accentColor,
+    StorageKeys.currencySymbol,
+    StorageKeys.decimalDigits,
+    StorageKeys.biometricsEnabled,
   ];
 
   Future<bool> loadIsDarkMode() async {
@@ -79,6 +83,46 @@ class SettingsRepository {
   Future<void> saveUserAvatar(int codePoint) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(StorageKeys.userAvatar, codePoint);
+  }
+
+  Future<int?> loadAccentColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(StorageKeys.accentColor);
+  }
+
+  Future<void> saveAccentColor(int color) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(StorageKeys.accentColor, color);
+  }
+
+  Future<String?> loadCurrencySymbol() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(StorageKeys.currencySymbol);
+  }
+
+  Future<void> saveCurrencySymbol(String symbol) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(StorageKeys.currencySymbol, symbol);
+  }
+
+  Future<int?> loadDecimalDigits() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(StorageKeys.decimalDigits);
+  }
+
+  Future<void> saveDecimalDigits(int digits) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(StorageKeys.decimalDigits, digits);
+  }
+
+  Future<bool> loadBiometricsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(StorageKeys.biometricsEnabled) ?? false;
+  }
+
+  Future<void> saveBiometricsEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(StorageKeys.biometricsEnabled, enabled);
   }
 
   Future<void> clearAllDataExceptTheme() async {

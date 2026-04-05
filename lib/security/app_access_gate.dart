@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import '../data/app_access_method.dart';
 
 abstract class AppAccessGate {
@@ -34,6 +35,30 @@ class PasswordSecurityGate extends AppAccessGate {
   }
 }
 
+class BiometricSecurityGate extends AppAccessGate {
+  const BiometricSecurityGate();
+
+  @override
+  Future<bool> authorize(BuildContext context) async {
+    final auth = LocalAuthentication();
+    final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+    final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+
+    if (!canAuthenticate) return true; // Fallback if no biometrics available
+
+    try {
+      final bool didAuthenticate = await auth.authenticate(
+        localizedReason: 'Veuillez vous authentifier pour accéder à Moula Flow',
+        options: const AuthenticationOptions(stickyAuth: true),
+      );
+      return didAuthenticate;
+    } catch (e) {
+      debugPrint('Biometric auth error: $e');
+      return false;
+    }
+  }
+}
+
 class AppAccessGateFactory {
   const AppAccessGateFactory();
 
@@ -42,6 +67,7 @@ class AppAccessGateFactory {
       AppAccessMethod.none => const NoSecurityGate(),
       AppAccessMethod.pin => const PinSecurityGate(),
       AppAccessMethod.password => const PasswordSecurityGate(),
+      AppAccessMethod.biometric => const BiometricSecurityGate(),
     };
   }
 }

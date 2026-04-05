@@ -12,4 +12,8 @@ class StorageKeys {
   static const String userName = 'userName';
   static const String userColor = 'userColor';
   static const String userAvatar = 'userAvatar';
+  static const String accentColor = 'accentColor';
+  static const String currencySymbol = 'currencySymbol';
+  static const String decimalDigits = 'decimalDigits';
+  static const String biometricsEnabled = 'biometricsEnabled';
 }

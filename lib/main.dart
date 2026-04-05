@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'data/settings_repository.dart';
-import 'pages/app_launch_flow_page.dart';
-import 'utils/styles.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:moula_flow/data/settings_repository.dart';
+import 'package:moula_flow/pages/app_launch_flow_page.dart';
+import 'package:moula_flow/utils/styles.dart';
 import 'package:moula_flow/providers.dart';
-import 'utils/app_provider_observer.dart';
+import 'package:moula_flow/utils/app_provider_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,10 @@ void main() async {
   final userName = await settingsRepo.loadUserName();
   final userColor = await settingsRepo.loadUserColor();
   final userAvatar = await settingsRepo.loadUserAvatar();
+  final accentColor = await settingsRepo.loadAccentColor();
+  final currencySymbol = await settingsRepo.loadCurrencySymbol();
+  final decimalDigits = await settingsRepo.loadDecimalDigits();
+  final biometricsEnabled = await settingsRepo.loadBiometricsEnabled();
 
   runApp(ProviderScope(
     observers: const [AppProviderObserver()],
@@ -28,6 +33,10 @@ void main() async {
       userNameProvider.overrideWith(() => UserNameNotifier(userName)),
       userColorProvider.overrideWith(() => UserColorNotifier(userColor)),
       userAvatarProvider.overrideWith(() => UserAvatarNotifier(userAvatar)),
+      accentColorProvider.overrideWith(() => AccentColorNotifier(accentColor)),
+      currencySymbolProvider.overrideWith(() => CurrencySymbolNotifier(currencySymbol)),
+      decimalDigitsProvider.overrideWith(() => DecimalDigitsNotifier(decimalDigits)),
+      biometricsEnabledProvider.overrideWith(() => BiometricsEnabledNotifier(biometricsEnabled)),
     ],
     child: const MoulaFlowApp(),
   ));
@@ -39,17 +48,18 @@ class MoulaFlowApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentMode = ref.watch(themeModeProvider);
+    final accentColor = ref.watch(accentColorProvider);
 
-    const lightColorScheme = ColorScheme.light(
-      primary: Color(0xFF5B5FC7),
-      secondary: Color(0xFF5B5FC7),
+    final lightColorScheme = ColorScheme.light(
+      primary: accentColor,
+      secondary: accentColor,
       surface: Color(0xFFFFFFFF),
       onSurface: Color(0xFF1A1A1A),
     );
 
-    const darkColorScheme = ColorScheme.dark(
-      primary: AppStyles.kPrimary,
-      secondary: AppStyles.kPrimary,
+    final darkColorScheme = ColorScheme.dark(
+      primary: accentColor,
+      secondary: accentColor,
       surface: AppStyles.kSurface,
       onSurface: AppStyles.kOnSurface,
     );
@@ -58,11 +68,20 @@ class MoulaFlowApp extends ConsumerWidget {
       title: 'Moula Flow',
       debugShowCheckedModeBanner: false,
       themeMode: currentMode,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('fr', ''),
+        Locale('en', ''),
+      ],
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.white,
         colorScheme: lightColorScheme,
-        // ... (Keep the rest of light theme)
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -103,7 +122,7 @@ class MoulaFlowApp extends ConsumerWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.black, width: 1.5),
+            borderSide: BorderSide(color: lightColorScheme.primary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
@@ -140,7 +159,6 @@ class MoulaFlowApp extends ConsumerWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121212),
         colorScheme: darkColorScheme,
-        // ... (Keep the rest of dark theme)
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF121212),
           foregroundColor: Colors.white,
@@ -181,7 +199,7 @@ class MoulaFlowApp extends ConsumerWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.white, width: 1.5),
+            borderSide: BorderSide(color: darkColorScheme.primary, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
