@@ -99,6 +99,23 @@ class _RecurringPaymentsPageState extends ConsumerState<RecurringPaymentsPage> w
     _loadData();
   }
 
+  String _getWalletName(String? id) {
+    if (id == null) return 'Aucun';
+    final w = _wallets.firstWhere((element) => element.id == id, orElse: () => Wallet(id: '?', name: 'Wallet inconnu'));
+    return w.name;
+  }
+
+  String _getCategoryName(String? id) {
+    if (id == null) return 'Autre';
+    for (var mainCat in _categories) {
+      if (mainCat.id == id) return mainCat.name;
+      for (var subCat in mainCat.subcategories) {
+        if (subCat.id == id) return subCat.name;
+      }
+    }
+    return 'Autre';
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthlyImpact = _calculateMonthlyImpact();
@@ -165,21 +182,30 @@ class _RecurringPaymentsPageState extends ConsumerState<RecurringPaymentsPage> w
     final theme = Theme.of(context);
     final isNegative = impact < 0;
 
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isNegative 
-            ? [theme.colorScheme.errorContainer, theme.colorScheme.errorContainer.withValues(alpha: 0.7)]
-            : [theme.colorScheme.primaryContainer, theme.colorScheme.primaryContainer.withValues(alpha: 0.7)],
+            ? [
+                isDark ? theme.colorScheme.errorContainer.withValues(alpha: 0.3) : theme.colorScheme.errorContainer,
+                isDark ? theme.colorScheme.errorContainer.withValues(alpha: 0.1) : theme.colorScheme.errorContainer.withValues(alpha: 0.7),
+              ]
+            : [
+                isDark ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3) : theme.colorScheme.primaryContainer,
+                isDark ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1) : theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
+              ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
+        border: isDark ? Border.all(color: (isNegative ? Colors.red : Colors.blue).withValues(alpha: 0.15)) : null,
         boxShadow: [
           BoxShadow(
-            color: (isNegative ? Colors.red : Colors.blue).withValues(alpha: 0.1),
-            blurRadius: 20,
+            color: (isNegative ? Colors.red : Colors.blue).withValues(alpha: isDark ? 0.05 : 0.1),
+            blurRadius: 30,
             offset: const Offset(0, 10),
           )
         ],
@@ -231,7 +257,6 @@ class _RecurringPaymentsPageState extends ConsumerState<RecurringPaymentsPage> w
 
   Widget _buildPaymentTile(BuildContext context, RecurringPayment p) {
     final theme = Theme.of(context);
-    final nextDate = '${p.nextDueDate.day}/${p.nextDueDate.month}/${p.nextDueDate.year}';
     
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -284,7 +309,9 @@ class _RecurringPaymentsPageState extends ConsumerState<RecurringPaymentsPage> w
                 children: [
                   _buildSubTag(context, Icons.calendar_today_rounded, p.frequency.name.toUpperCase()),
                   const SizedBox(width: 8),
-                  _buildSubTag(context, Icons.event_repeat_rounded, 'Échéance: $nextDate'),
+                  _buildSubTag(context, Icons.account_balance_wallet_outlined, _getWalletName(p.walletId)),
+                  const SizedBox(width: 8),
+                  _buildSubTag(context, Icons.category_outlined, _getCategoryName(p.categoryId)),
                   const Spacer(),
                   if (p.executionMode == RecurringExecutionMode.auto)
                     Icon(Icons.bolt, size: 16, color: Colors.amber[700]),

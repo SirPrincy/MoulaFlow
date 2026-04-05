@@ -64,6 +64,9 @@ class _RecurringPaymentFormState extends ConsumerState<RecurringPaymentForm> {
       if (widget.wallets.isNotEmpty) {
         _selectedWalletId = widget.wallets.first.id;
       }
+      if (widget.categories.isNotEmpty) {
+        _selectedCategoryId = widget.categories.first.id;
+      }
     }
   }
 
@@ -222,12 +225,15 @@ class _RecurringPaymentFormState extends ConsumerState<RecurringPaymentForm> {
               },
               borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
               child: InputDecorator(
-                decoration: _inputDeco('Catégorie', ''),
+                decoration: _inputDeco('Catégorie *', ''),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_selectedCategoryId == null ? 'Sélectionner...' : _getCategoryName(_selectedCategoryId!)),
-                    const Icon(Icons.keyboard_arrow_right),
+                    Text(
+                      _selectedCategoryId == null ? 'Sélectionner...' : _getCategoryName(_selectedCategoryId!),
+                      style: TextStyle(fontWeight: _selectedCategoryId != null ? FontWeight.w600 : FontWeight.normal),
+                    ),
+                    const Icon(Icons.keyboard_arrow_right, size: 20, color: Colors.grey),
                   ],
                 ),
               ),

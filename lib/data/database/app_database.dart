@@ -15,7 +15,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTest(super.connection);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +66,9 @@ class AppDatabase extends _$AppDatabase {
             }
           }
         }
+      } else if (from == 4) {
+        // Version 4 -> 5: Added executionMode to RecurringPayments
+        await m.addColumn(recurringPayments, recurringPayments.executionMode);
       }
     },
   );
