@@ -135,7 +135,6 @@ class TagManagementService {
         toWalletId: tx.toWalletId,
         categoryId: tx.categoryId,
         tags: normalized,
-        isRecurring: tx.isRecurring,
         relatedDebtId: tx.relatedDebtId,
       );
     }).toList();
@@ -163,7 +162,6 @@ class TagManagementService {
         toWalletId: tx.toWalletId,
         categoryId: tx.categoryId,
         tags: _uniqueTagNames(updatedTags),
-        isRecurring: tx.isRecurring,
         relatedDebtId: tx.relatedDebtId,
       );
     }).toList();
@@ -185,7 +183,6 @@ class TagManagementService {
         toWalletId: tx.toWalletId,
         categoryId: tx.categoryId,
         tags: updatedTags,
-        isRecurring: tx.isRecurring,
         relatedDebtId: tx.relatedDebtId,
       );
     }).toList();

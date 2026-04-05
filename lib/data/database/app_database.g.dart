@@ -735,21 +735,6 @@ class $TransactionsTable extends Transactions
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       ).withConverter<List<String>>($TransactionsTable.$convertertags);
-  static const VerificationMeta _isRecurringMeta = const VerificationMeta(
-    'isRecurring',
-  );
-  @override
-  late final GeneratedColumn<bool> isRecurring = GeneratedColumn<bool>(
-    'is_recurring',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_recurring" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _relatedDebtIdMeta = const VerificationMeta(
     'relatedDebtId',
   );
@@ -773,7 +758,6 @@ class $TransactionsTable extends Transactions
     toWalletId,
     categoryId,
     tags,
-    isRecurring,
     relatedDebtId,
   ];
   @override
@@ -850,15 +834,6 @@ class $TransactionsTable extends Transactions
         categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
       );
     }
-    if (data.containsKey('is_recurring')) {
-      context.handle(
-        _isRecurringMeta,
-        isRecurring.isAcceptableOrUnknown(
-          data['is_recurring']!,
-          _isRecurringMeta,
-        ),
-      );
-    }
     if (data.containsKey('related_debt_id')) {
       context.handle(
         _relatedDebtIdMeta,
@@ -921,10 +896,6 @@ class $TransactionsTable extends Transactions
           data['${effectivePrefix}tags'],
         )!,
       ),
-      isRecurring: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_recurring'],
-      )!,
       relatedDebtId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}related_debt_id'],
@@ -955,7 +926,6 @@ class TransactionEntity extends DataClass
   final String? toWalletId;
   final String? categoryId;
   final List<String> tags;
-  final bool isRecurring;
   final String? relatedDebtId;
   const TransactionEntity({
     required this.id,
@@ -968,7 +938,6 @@ class TransactionEntity extends DataClass
     this.toWalletId,
     this.categoryId,
     required this.tags,
-    required this.isRecurring,
     this.relatedDebtId,
   });
   @override
@@ -1000,7 +969,6 @@ class TransactionEntity extends DataClass
         $TransactionsTable.$convertertags.toSql(tags),
       );
     }
-    map['is_recurring'] = Variable<bool>(isRecurring);
     if (!nullToAbsent || relatedDebtId != null) {
       map['related_debt_id'] = Variable<String>(relatedDebtId);
     }
@@ -1027,7 +995,6 @@ class TransactionEntity extends DataClass
           ? const Value.absent()
           : Value(categoryId),
       tags: Value(tags),
-      isRecurring: Value(isRecurring),
       relatedDebtId: relatedDebtId == null && nullToAbsent
           ? const Value.absent()
           : Value(relatedDebtId),
@@ -1052,7 +1019,6 @@ class TransactionEntity extends DataClass
       toWalletId: serializer.fromJson<String?>(json['toWalletId']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       tags: serializer.fromJson<List<String>>(json['tags']),
-      isRecurring: serializer.fromJson<bool>(json['isRecurring']),
       relatedDebtId: serializer.fromJson<String?>(json['relatedDebtId']),
     );
   }
@@ -1072,7 +1038,6 @@ class TransactionEntity extends DataClass
       'toWalletId': serializer.toJson<String?>(toWalletId),
       'categoryId': serializer.toJson<String?>(categoryId),
       'tags': serializer.toJson<List<String>>(tags),
-      'isRecurring': serializer.toJson<bool>(isRecurring),
       'relatedDebtId': serializer.toJson<String?>(relatedDebtId),
     };
   }
@@ -1088,7 +1053,6 @@ class TransactionEntity extends DataClass
     Value<String?> toWalletId = const Value.absent(),
     Value<String?> categoryId = const Value.absent(),
     List<String>? tags,
-    bool? isRecurring,
     Value<String?> relatedDebtId = const Value.absent(),
   }) => TransactionEntity(
     id: id ?? this.id,
@@ -1101,7 +1065,6 @@ class TransactionEntity extends DataClass
     toWalletId: toWalletId.present ? toWalletId.value : this.toWalletId,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     tags: tags ?? this.tags,
-    isRecurring: isRecurring ?? this.isRecurring,
     relatedDebtId: relatedDebtId.present
         ? relatedDebtId.value
         : this.relatedDebtId,
@@ -1126,9 +1089,6 @@ class TransactionEntity extends DataClass
           ? data.categoryId.value
           : this.categoryId,
       tags: data.tags.present ? data.tags.value : this.tags,
-      isRecurring: data.isRecurring.present
-          ? data.isRecurring.value
-          : this.isRecurring,
       relatedDebtId: data.relatedDebtId.present
           ? data.relatedDebtId.value
           : this.relatedDebtId,
@@ -1148,7 +1108,6 @@ class TransactionEntity extends DataClass
           ..write('toWalletId: $toWalletId, ')
           ..write('categoryId: $categoryId, ')
           ..write('tags: $tags, ')
-          ..write('isRecurring: $isRecurring, ')
           ..write('relatedDebtId: $relatedDebtId')
           ..write(')'))
         .toString();
@@ -1166,7 +1125,6 @@ class TransactionEntity extends DataClass
     toWalletId,
     categoryId,
     tags,
-    isRecurring,
     relatedDebtId,
   );
   @override
@@ -1183,7 +1141,6 @@ class TransactionEntity extends DataClass
           other.toWalletId == this.toWalletId &&
           other.categoryId == this.categoryId &&
           other.tags == this.tags &&
-          other.isRecurring == this.isRecurring &&
           other.relatedDebtId == this.relatedDebtId);
 }
 
@@ -1198,7 +1155,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
   final Value<String?> toWalletId;
   final Value<String?> categoryId;
   final Value<List<String>> tags;
-  final Value<bool> isRecurring;
   final Value<String?> relatedDebtId;
   final Value<int> rowid;
   const TransactionsCompanion({
@@ -1212,7 +1168,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     this.toWalletId = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.tags = const Value.absent(),
-    this.isRecurring = const Value.absent(),
     this.relatedDebtId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1227,7 +1182,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     this.toWalletId = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.tags = const Value.absent(),
-    this.isRecurring = const Value.absent(),
     this.relatedDebtId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1246,7 +1200,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     Expression<String>? toWalletId,
     Expression<String>? categoryId,
     Expression<String>? tags,
-    Expression<bool>? isRecurring,
     Expression<String>? relatedDebtId,
     Expression<int>? rowid,
   }) {
@@ -1261,7 +1214,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
       if (toWalletId != null) 'to_wallet_id': toWalletId,
       if (categoryId != null) 'category_id': categoryId,
       if (tags != null) 'tags': tags,
-      if (isRecurring != null) 'is_recurring': isRecurring,
       if (relatedDebtId != null) 'related_debt_id': relatedDebtId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1278,7 +1230,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
     Value<String?>? toWalletId,
     Value<String?>? categoryId,
     Value<List<String>>? tags,
-    Value<bool>? isRecurring,
     Value<String?>? relatedDebtId,
     Value<int>? rowid,
   }) {
@@ -1293,7 +1244,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
       toWalletId: toWalletId ?? this.toWalletId,
       categoryId: categoryId ?? this.categoryId,
       tags: tags ?? this.tags,
-      isRecurring: isRecurring ?? this.isRecurring,
       relatedDebtId: relatedDebtId ?? this.relatedDebtId,
       rowid: rowid ?? this.rowid,
     );
@@ -1336,9 +1286,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
         $TransactionsTable.$convertertags.toSql(tags.value),
       );
     }
-    if (isRecurring.present) {
-      map['is_recurring'] = Variable<bool>(isRecurring.value);
-    }
     if (relatedDebtId.present) {
       map['related_debt_id'] = Variable<String>(relatedDebtId.value);
     }
@@ -1361,7 +1308,6 @@ class TransactionsCompanion extends UpdateCompanion<TransactionEntity> {
           ..write('toWalletId: $toWalletId, ')
           ..write('categoryId: $categoryId, ')
           ..write('tags: $tags, ')
-          ..write('isRecurring: $isRecurring, ')
           ..write('relatedDebtId: $relatedDebtId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2894,6 +2840,41 @@ class $RecurringPaymentsTable extends RecurringPayments
       ).withConverter<RecurrenceFrequency>(
         $RecurringPaymentsTable.$converterfrequency,
       );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String> tags =
+      GeneratedColumn<String>(
+        'tags',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      ).withConverter<List<String>>($RecurringPaymentsTable.$convertertags);
+  @override
+  late final GeneratedColumnWithTypeConverter<RecurringExecutionMode, int>
+  executionMode =
+      GeneratedColumn<int>(
+        'execution_mode',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      ).withConverter<RecurringExecutionMode>(
+        $RecurringPaymentsTable.$converterexecutionMode,
+      );
   static const VerificationMeta _startDateMeta = const VerificationMeta(
     'startDate',
   );
@@ -2940,6 +2921,9 @@ class $RecurringPaymentsTable extends RecurringPayments
     categoryId,
     walletId,
     frequency,
+    description,
+    tags,
+    executionMode,
     startDate,
     nextDueDate,
     isActive,
@@ -2987,6 +2971,15 @@ class $RecurringPaymentsTable extends RecurringPayments
       context.handle(
         _walletIdMeta,
         walletId.isAcceptableOrUnknown(data['wallet_id']!, _walletIdMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
       );
     }
     if (data.containsKey('start_date')) {
@@ -3055,6 +3048,22 @@ class $RecurringPaymentsTable extends RecurringPayments
           data['${effectivePrefix}frequency'],
         )!,
       ),
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      tags: $RecurringPaymentsTable.$convertertags.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}tags'],
+        )!,
+      ),
+      executionMode: $RecurringPaymentsTable.$converterexecutionMode.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}execution_mode'],
+        )!,
+      ),
       startDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}start_date'],
@@ -3079,6 +3088,12 @@ class $RecurringPaymentsTable extends RecurringPayments
       const EnumIndexConverter<TransactionType>(TransactionType.values);
   static JsonTypeConverter2<RecurrenceFrequency, int, int> $converterfrequency =
       const EnumIndexConverter<RecurrenceFrequency>(RecurrenceFrequency.values);
+  static TypeConverter<List<String>, String> $convertertags =
+      const StringListConverter();
+  static JsonTypeConverter2<RecurringExecutionMode, int, int>
+  $converterexecutionMode = const EnumIndexConverter<RecurringExecutionMode>(
+    RecurringExecutionMode.values,
+  );
 }
 
 class RecurringPaymentEntity extends DataClass
@@ -3090,6 +3105,9 @@ class RecurringPaymentEntity extends DataClass
   final String? categoryId;
   final String? walletId;
   final RecurrenceFrequency frequency;
+  final String description;
+  final List<String> tags;
+  final RecurringExecutionMode executionMode;
   final DateTime startDate;
   final DateTime nextDueDate;
   final bool isActive;
@@ -3101,6 +3119,9 @@ class RecurringPaymentEntity extends DataClass
     this.categoryId,
     this.walletId,
     required this.frequency,
+    required this.description,
+    required this.tags,
+    required this.executionMode,
     required this.startDate,
     required this.nextDueDate,
     required this.isActive,
@@ -3127,6 +3148,17 @@ class RecurringPaymentEntity extends DataClass
         $RecurringPaymentsTable.$converterfrequency.toSql(frequency),
       );
     }
+    map['description'] = Variable<String>(description);
+    {
+      map['tags'] = Variable<String>(
+        $RecurringPaymentsTable.$convertertags.toSql(tags),
+      );
+    }
+    {
+      map['execution_mode'] = Variable<int>(
+        $RecurringPaymentsTable.$converterexecutionMode.toSql(executionMode),
+      );
+    }
     map['start_date'] = Variable<DateTime>(startDate);
     map['next_due_date'] = Variable<DateTime>(nextDueDate);
     map['is_active'] = Variable<bool>(isActive);
@@ -3146,6 +3178,9 @@ class RecurringPaymentEntity extends DataClass
           ? const Value.absent()
           : Value(walletId),
       frequency: Value(frequency),
+      description: Value(description),
+      tags: Value(tags),
+      executionMode: Value(executionMode),
       startDate: Value(startDate),
       nextDueDate: Value(nextDueDate),
       isActive: Value(isActive),
@@ -3169,6 +3204,11 @@ class RecurringPaymentEntity extends DataClass
       frequency: $RecurringPaymentsTable.$converterfrequency.fromJson(
         serializer.fromJson<int>(json['frequency']),
       ),
+      description: serializer.fromJson<String>(json['description']),
+      tags: serializer.fromJson<List<String>>(json['tags']),
+      executionMode: $RecurringPaymentsTable.$converterexecutionMode.fromJson(
+        serializer.fromJson<int>(json['executionMode']),
+      ),
       startDate: serializer.fromJson<DateTime>(json['startDate']),
       nextDueDate: serializer.fromJson<DateTime>(json['nextDueDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
@@ -3189,6 +3229,11 @@ class RecurringPaymentEntity extends DataClass
       'frequency': serializer.toJson<int>(
         $RecurringPaymentsTable.$converterfrequency.toJson(frequency),
       ),
+      'description': serializer.toJson<String>(description),
+      'tags': serializer.toJson<List<String>>(tags),
+      'executionMode': serializer.toJson<int>(
+        $RecurringPaymentsTable.$converterexecutionMode.toJson(executionMode),
+      ),
       'startDate': serializer.toJson<DateTime>(startDate),
       'nextDueDate': serializer.toJson<DateTime>(nextDueDate),
       'isActive': serializer.toJson<bool>(isActive),
@@ -3203,6 +3248,9 @@ class RecurringPaymentEntity extends DataClass
     Value<String?> categoryId = const Value.absent(),
     Value<String?> walletId = const Value.absent(),
     RecurrenceFrequency? frequency,
+    String? description,
+    List<String>? tags,
+    RecurringExecutionMode? executionMode,
     DateTime? startDate,
     DateTime? nextDueDate,
     bool? isActive,
@@ -3214,6 +3262,9 @@ class RecurringPaymentEntity extends DataClass
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     walletId: walletId.present ? walletId.value : this.walletId,
     frequency: frequency ?? this.frequency,
+    description: description ?? this.description,
+    tags: tags ?? this.tags,
+    executionMode: executionMode ?? this.executionMode,
     startDate: startDate ?? this.startDate,
     nextDueDate: nextDueDate ?? this.nextDueDate,
     isActive: isActive ?? this.isActive,
@@ -3229,6 +3280,13 @@ class RecurringPaymentEntity extends DataClass
           : this.categoryId,
       walletId: data.walletId.present ? data.walletId.value : this.walletId,
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      executionMode: data.executionMode.present
+          ? data.executionMode.value
+          : this.executionMode,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       nextDueDate: data.nextDueDate.present
           ? data.nextDueDate.value
@@ -3247,6 +3305,9 @@ class RecurringPaymentEntity extends DataClass
           ..write('categoryId: $categoryId, ')
           ..write('walletId: $walletId, ')
           ..write('frequency: $frequency, ')
+          ..write('description: $description, ')
+          ..write('tags: $tags, ')
+          ..write('executionMode: $executionMode, ')
           ..write('startDate: $startDate, ')
           ..write('nextDueDate: $nextDueDate, ')
           ..write('isActive: $isActive')
@@ -3263,6 +3324,9 @@ class RecurringPaymentEntity extends DataClass
     categoryId,
     walletId,
     frequency,
+    description,
+    tags,
+    executionMode,
     startDate,
     nextDueDate,
     isActive,
@@ -3278,6 +3342,9 @@ class RecurringPaymentEntity extends DataClass
           other.categoryId == this.categoryId &&
           other.walletId == this.walletId &&
           other.frequency == this.frequency &&
+          other.description == this.description &&
+          other.tags == this.tags &&
+          other.executionMode == this.executionMode &&
           other.startDate == this.startDate &&
           other.nextDueDate == this.nextDueDate &&
           other.isActive == this.isActive);
@@ -3292,6 +3359,9 @@ class RecurringPaymentsCompanion
   final Value<String?> categoryId;
   final Value<String?> walletId;
   final Value<RecurrenceFrequency> frequency;
+  final Value<String> description;
+  final Value<List<String>> tags;
+  final Value<RecurringExecutionMode> executionMode;
   final Value<DateTime> startDate;
   final Value<DateTime> nextDueDate;
   final Value<bool> isActive;
@@ -3304,6 +3374,9 @@ class RecurringPaymentsCompanion
     this.categoryId = const Value.absent(),
     this.walletId = const Value.absent(),
     this.frequency = const Value.absent(),
+    this.description = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.executionMode = const Value.absent(),
     this.startDate = const Value.absent(),
     this.nextDueDate = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -3317,6 +3390,9 @@ class RecurringPaymentsCompanion
     this.categoryId = const Value.absent(),
     this.walletId = const Value.absent(),
     required RecurrenceFrequency frequency,
+    this.description = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.executionMode = const Value.absent(),
     required DateTime startDate,
     required DateTime nextDueDate,
     this.isActive = const Value.absent(),
@@ -3336,6 +3412,9 @@ class RecurringPaymentsCompanion
     Expression<String>? categoryId,
     Expression<String>? walletId,
     Expression<int>? frequency,
+    Expression<String>? description,
+    Expression<String>? tags,
+    Expression<int>? executionMode,
     Expression<DateTime>? startDate,
     Expression<DateTime>? nextDueDate,
     Expression<bool>? isActive,
@@ -3349,6 +3428,9 @@ class RecurringPaymentsCompanion
       if (categoryId != null) 'category_id': categoryId,
       if (walletId != null) 'wallet_id': walletId,
       if (frequency != null) 'frequency': frequency,
+      if (description != null) 'description': description,
+      if (tags != null) 'tags': tags,
+      if (executionMode != null) 'execution_mode': executionMode,
       if (startDate != null) 'start_date': startDate,
       if (nextDueDate != null) 'next_due_date': nextDueDate,
       if (isActive != null) 'is_active': isActive,
@@ -3364,6 +3446,9 @@ class RecurringPaymentsCompanion
     Value<String?>? categoryId,
     Value<String?>? walletId,
     Value<RecurrenceFrequency>? frequency,
+    Value<String>? description,
+    Value<List<String>>? tags,
+    Value<RecurringExecutionMode>? executionMode,
     Value<DateTime>? startDate,
     Value<DateTime>? nextDueDate,
     Value<bool>? isActive,
@@ -3377,6 +3462,9 @@ class RecurringPaymentsCompanion
       categoryId: categoryId ?? this.categoryId,
       walletId: walletId ?? this.walletId,
       frequency: frequency ?? this.frequency,
+      description: description ?? this.description,
+      tags: tags ?? this.tags,
+      executionMode: executionMode ?? this.executionMode,
       startDate: startDate ?? this.startDate,
       nextDueDate: nextDueDate ?? this.nextDueDate,
       isActive: isActive ?? this.isActive,
@@ -3412,6 +3500,21 @@ class RecurringPaymentsCompanion
         $RecurringPaymentsTable.$converterfrequency.toSql(frequency.value),
       );
     }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(
+        $RecurringPaymentsTable.$convertertags.toSql(tags.value),
+      );
+    }
+    if (executionMode.present) {
+      map['execution_mode'] = Variable<int>(
+        $RecurringPaymentsTable.$converterexecutionMode.toSql(
+          executionMode.value,
+        ),
+      );
+    }
     if (startDate.present) {
       map['start_date'] = Variable<DateTime>(startDate.value);
     }
@@ -3437,6 +3540,9 @@ class RecurringPaymentsCompanion
           ..write('categoryId: $categoryId, ')
           ..write('walletId: $walletId, ')
           ..write('frequency: $frequency, ')
+          ..write('description: $description, ')
+          ..write('tags: $tags, ')
+          ..write('executionMode: $executionMode, ')
           ..write('startDate: $startDate, ')
           ..write('nextDueDate: $nextDueDate, ')
           ..write('isActive: $isActive, ')
@@ -4549,7 +4655,6 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<String?> toWalletId,
       Value<String?> categoryId,
       Value<List<String>> tags,
-      Value<bool> isRecurring,
       Value<String?> relatedDebtId,
       Value<int> rowid,
     });
@@ -4565,7 +4670,6 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String?> toWalletId,
       Value<String?> categoryId,
       Value<List<String>> tags,
-      Value<bool> isRecurring,
       Value<String?> relatedDebtId,
       Value<int> rowid,
     });
@@ -4660,11 +4764,6 @@ class $$TransactionsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnFilters<bool> get isRecurring => $composableBuilder(
-    column: $table.isRecurring,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get relatedDebtId => $composableBuilder(
     column: $table.relatedDebtId,
     builder: (column) => ColumnFilters(column),
@@ -4755,11 +4854,6 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isRecurring => $composableBuilder(
-    column: $table.isRecurring,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get relatedDebtId => $composableBuilder(
     column: $table.relatedDebtId,
     builder: (column) => ColumnOrderings(column),
@@ -4812,11 +4906,6 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<List<String>, String> get tags =>
       $composableBuilder(column: $table.tags, builder: (column) => column);
-
-  GeneratedColumn<bool> get isRecurring => $composableBuilder(
-    column: $table.isRecurring,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get relatedDebtId => $composableBuilder(
     column: $table.relatedDebtId,
@@ -4887,7 +4976,6 @@ class $$TransactionsTableTableManager
                 Value<String?> toWalletId = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<List<String>> tags = const Value.absent(),
-                Value<bool> isRecurring = const Value.absent(),
                 Value<String?> relatedDebtId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
@@ -4901,7 +4989,6 @@ class $$TransactionsTableTableManager
                 toWalletId: toWalletId,
                 categoryId: categoryId,
                 tags: tags,
-                isRecurring: isRecurring,
                 relatedDebtId: relatedDebtId,
                 rowid: rowid,
               ),
@@ -4917,7 +5004,6 @@ class $$TransactionsTableTableManager
                 Value<String?> toWalletId = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<List<String>> tags = const Value.absent(),
-                Value<bool> isRecurring = const Value.absent(),
                 Value<String?> relatedDebtId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
@@ -4931,7 +5017,6 @@ class $$TransactionsTableTableManager
                 toWalletId: toWalletId,
                 categoryId: categoryId,
                 tags: tags,
-                isRecurring: isRecurring,
                 relatedDebtId: relatedDebtId,
                 rowid: rowid,
               ),
@@ -5694,6 +5779,9 @@ typedef $$RecurringPaymentsTableCreateCompanionBuilder =
       Value<String?> categoryId,
       Value<String?> walletId,
       required RecurrenceFrequency frequency,
+      Value<String> description,
+      Value<List<String>> tags,
+      Value<RecurringExecutionMode> executionMode,
       required DateTime startDate,
       required DateTime nextDueDate,
       Value<bool> isActive,
@@ -5708,6 +5796,9 @@ typedef $$RecurringPaymentsTableUpdateCompanionBuilder =
       Value<String?> categoryId,
       Value<String?> walletId,
       Value<RecurrenceFrequency> frequency,
+      Value<String> description,
+      Value<List<String>> tags,
+      Value<RecurringExecutionMode> executionMode,
       Value<DateTime> startDate,
       Value<DateTime> nextDueDate,
       Value<bool> isActive,
@@ -5757,6 +5848,27 @@ class $$RecurringPaymentsTableFilterComposer
   ColumnWithTypeConverterFilters<RecurrenceFrequency, RecurrenceFrequency, int>
   get frequency => $composableBuilder(
     column: $table.frequency,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String> get tags =>
+      $composableBuilder(
+        column: $table.tags,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<
+    RecurringExecutionMode,
+    RecurringExecutionMode,
+    int
+  >
+  get executionMode => $composableBuilder(
+    column: $table.executionMode,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
@@ -5820,6 +5932,21 @@ class $$RecurringPaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get executionMode => $composableBuilder(
+    column: $table.executionMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startDate => $composableBuilder(
     column: $table.startDate,
     builder: (column) => ColumnOrderings(column),
@@ -5867,6 +5994,20 @@ class $$RecurringPaymentsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<RecurrenceFrequency, int> get frequency =>
       $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<List<String>, String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<RecurringExecutionMode, int>
+  get executionMode => $composableBuilder(
+    column: $table.executionMode,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get startDate =>
       $composableBuilder(column: $table.startDate, builder: (column) => column);
@@ -5927,6 +6068,10 @@ class $$RecurringPaymentsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> walletId = const Value.absent(),
                 Value<RecurrenceFrequency> frequency = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<List<String>> tags = const Value.absent(),
+                Value<RecurringExecutionMode> executionMode =
+                    const Value.absent(),
                 Value<DateTime> startDate = const Value.absent(),
                 Value<DateTime> nextDueDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
@@ -5939,6 +6084,9 @@ class $$RecurringPaymentsTableTableManager
                 categoryId: categoryId,
                 walletId: walletId,
                 frequency: frequency,
+                description: description,
+                tags: tags,
+                executionMode: executionMode,
                 startDate: startDate,
                 nextDueDate: nextDueDate,
                 isActive: isActive,
@@ -5953,6 +6101,10 @@ class $$RecurringPaymentsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> walletId = const Value.absent(),
                 required RecurrenceFrequency frequency,
+                Value<String> description = const Value.absent(),
+                Value<List<String>> tags = const Value.absent(),
+                Value<RecurringExecutionMode> executionMode =
+                    const Value.absent(),
                 required DateTime startDate,
                 required DateTime nextDueDate,
                 Value<bool> isActive = const Value.absent(),
@@ -5965,6 +6117,9 @@ class $$RecurringPaymentsTableTableManager
                 categoryId: categoryId,
                 walletId: walletId,
                 frequency: frequency,
+                description: description,
+                tags: tags,
+                executionMode: executionMode,
                 startDate: startDate,
                 nextDueDate: nextDueDate,
                 isActive: isActive,

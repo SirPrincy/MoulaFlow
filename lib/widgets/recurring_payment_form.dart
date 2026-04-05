@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../responsive_layout.dart';
 import '../widgets.dart';
 import '../utils/styles.dart';
+import '../providers.dart';
 
-class RecurringPaymentForm extends StatefulWidget {
+class RecurringPaymentForm extends ConsumerStatefulWidget {
   final List<Wallet> wallets;
   final List<TransactionCategory> categories;
   final RecurringPayment? editingPayment;
@@ -17,15 +19,19 @@ class RecurringPaymentForm extends StatefulWidget {
   });
 
   @override
-  State<RecurringPaymentForm> createState() => _RecurringPaymentFormState();
+  ConsumerState<RecurringPaymentForm> createState() => _RecurringPaymentFormState();
 }
 
-class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
+class _RecurringPaymentFormState extends ConsumerState<RecurringPaymentForm> {
   late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
   late TextEditingController _amountController;
+  late TextEditingController _tagsController;
+  final List<String> _selectedTags = [];
   
   late TransactionType _type;
   late RecurrenceFrequency _frequency;
+  late RecurringExecutionMode _executionMode;
   String? _selectedWalletId;
   String? _selectedCategoryId;
   late DateTime _startDate;
@@ -36,17 +42,24 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
     if (widget.editingPayment != null) {
       final p = widget.editingPayment!;
       _nameController = TextEditingController(text: p.name);
+      _descriptionController = TextEditingController(text: p.description);
       _amountController = TextEditingController(text: p.amount.toStringAsFixed(2));
+      _tagsController = TextEditingController();
       _type = p.type;
       _frequency = p.frequency;
+      _executionMode = p.executionMode;
       _selectedWalletId = p.walletId;
       _selectedCategoryId = p.categoryId;
       _startDate = p.startDate;
+      _selectedTags.addAll(p.tags);
     } else {
       _nameController = TextEditingController();
+      _descriptionController = TextEditingController();
       _amountController = TextEditingController();
+      _tagsController = TextEditingController();
       _type = TransactionType.expense;
       _frequency = RecurrenceFrequency.monthly;
+      _executionMode = RecurringExecutionMode.auto;
       _startDate = DateTime.now();
       if (widget.wallets.isNotEmpty) {
         _selectedWalletId = widget.wallets.first.id;
@@ -57,7 +70,9 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     _amountController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
@@ -76,11 +91,14 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
     final payment = RecurringPayment(
       id: widget.editingPayment?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
+      description: _descriptionController.text.trim(),
       amount: amount,
       type: _type,
       walletId: _selectedWalletId,
       categoryId: _selectedCategoryId,
+      tags: _selectedTags,
       frequency: _frequency,
+      executionMode: _executionMode,
       startDate: _startDate,
       nextDueDate: widget.editingPayment?.nextDueDate ?? _startDate,
       isActive: widget.editingPayment?.isActive ?? true,
@@ -134,8 +152,14 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
 
             TextField(
               controller: _nameController,
-              decoration: _inputDeco('Nom de l\'abonnement', 'Ex: Netflix, Loyer...'),
+              decoration: _inputDeco('Nom de l\'abonnement *', 'Ex: Netflix, Loyer...'),
               style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              decoration: _inputDeco('Description', 'Détails optionnels...'),
+              style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
 
@@ -207,6 +231,74 @@ class _RecurringPaymentFormState extends State<RecurringPaymentForm> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            Text('Tags', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ..._selectedTags.map((tag) => InputChip(
+                  label: Text(tag),
+                  onDeleted: () => setState(() => _selectedTags.remove(tag)),
+                )),
+                IntrinsicWidth(
+                  child: TextField(
+                    controller: _tagsController,
+                    decoration: const InputDecoration(
+                      hintText: 'Ajouter tag...',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                    onSubmitted: (val) {
+                      final tag = val.trim();
+                      if (tag.isNotEmpty && !_selectedTags.contains(tag)) {
+                        setState(() {
+                          _selectedTags.add(tag);
+                          _tagsController.clear();
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (ref.watch(tagsProvider).hasValue) ...[
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ...ref.watch(tagsProvider).value!
+                      .where((t) => !_selectedTags.contains(t.name))
+                      .take(5)
+                      .map((t) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          avatar: Icon(Icons.add, size: 14, color: t.color != null ? Color(int.parse(t.color!.replaceAll('#', '0xFF'))) : null),
+                          label: Text(t.name),
+                          onPressed: () => setState(() => _selectedTags.add(t.name)),
+                        ),
+                      )),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            
+            // Execution Mode
+            SwitchListTile(
+              title: const Text('Validation automatique', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Ajouter au ledger sans confirmation le jour J.'),
+              value: _executionMode == RecurringExecutionMode.auto,
+              onChanged: (val) {
+                setState(() {
+                  _executionMode = val ? RecurringExecutionMode.auto : RecurringExecutionMode.manual;
+                });
+              },
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
+              activeThumbColor: theme.colorScheme.primary,
             ),
             const SizedBox(height: 32),
 

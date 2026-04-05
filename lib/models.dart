@@ -225,7 +225,6 @@ class Transaction {
   final String? toWalletId;
   final String? categoryId;
   final List<String> tags;
-  final bool isRecurring;
   final String? relatedDebtId;
 
   const Transaction({
@@ -239,7 +238,6 @@ class Transaction {
     this.toWalletId,
     this.categoryId,
     this.tags = const [],
-    this.isRecurring = false,
     this.relatedDebtId,
   });
 
@@ -254,7 +252,6 @@ class Transaction {
     String? toWalletId,
     String? categoryId,
     List<String>? tags,
-    bool? isRecurring,
     String? relatedDebtId,
   }) {
     return Transaction(
@@ -268,7 +265,6 @@ class Transaction {
       toWalletId: toWalletId ?? this.toWalletId,
       categoryId: categoryId ?? this.categoryId,
       tags: tags ?? this.tags,
-      isRecurring: isRecurring ?? this.isRecurring,
       relatedDebtId: relatedDebtId ?? this.relatedDebtId,
     );
   }
@@ -284,7 +280,6 @@ class Transaction {
         'toWalletId': toWalletId,
         'categoryId': categoryId,
         'tags': tags,
-        'isRecurring': isRecurring,
         'relatedDebtId': relatedDebtId,
       };
 
@@ -310,22 +305,25 @@ class Transaction {
       toWalletId: json['toWalletId'],
       categoryId: json['categoryId'],
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
-      isRecurring: json['isRecurring'] ?? false,
       relatedDebtId: json['relatedDebtId'],
     );
   }
 }
 
 enum RecurrenceFrequency { once, daily, weekly, monthly, yearly }
+enum RecurringExecutionMode { auto, manual }
 
 class RecurringPayment {
   final String id;
   final String name;
+  final String description;
   final double amount;
   final TransactionType type;
   final String? categoryId;
   final String? walletId;
+  final List<String> tags;
   final RecurrenceFrequency frequency;
+  final RecurringExecutionMode executionMode;
   final DateTime startDate;
   final DateTime nextDueDate;
   final bool isActive;
@@ -333,11 +331,14 @@ class RecurringPayment {
   RecurringPayment({
     required this.id,
     required this.name,
+    this.description = '',
     required this.amount,
     required this.type,
     this.categoryId,
     this.walletId,
+    this.tags = const [],
     required this.frequency,
+    this.executionMode = RecurringExecutionMode.auto,
     required this.startDate,
     required this.nextDueDate,
     this.isActive = true,
@@ -346,11 +347,14 @@ class RecurringPayment {
   RecurringPayment copyWith({
     String? id,
     String? name,
+    String? description,
     double? amount,
     TransactionType? type,
     String? categoryId,
     String? walletId,
+    List<String>? tags,
     RecurrenceFrequency? frequency,
+    RecurringExecutionMode? executionMode,
     DateTime? startDate,
     DateTime? nextDueDate,
     bool? isActive,
@@ -358,11 +362,14 @@ class RecurringPayment {
     return RecurringPayment(
       id: id ?? this.id,
       name: name ?? this.name,
+      description: description ?? this.description,
       amount: amount ?? this.amount,
       type: type ?? this.type,
       categoryId: categoryId ?? this.categoryId,
       walletId: walletId ?? this.walletId,
+      tags: tags ?? this.tags,
       frequency: frequency ?? this.frequency,
+      executionMode: executionMode ?? this.executionMode,
       startDate: startDate ?? this.startDate,
       nextDueDate: nextDueDate ?? this.nextDueDate,
       isActive: isActive ?? this.isActive,
@@ -372,11 +379,14 @@ class RecurringPayment {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'description': description,
         'amount': amount,
         'type': type.name,
         'categoryId': categoryId,
         'walletId': walletId,
+        'tags': tags,
         'frequency': frequency.name,
+        'executionMode': executionMode.name,
         'startDate': startDate.toIso8601String(),
         'nextDueDate': nextDueDate.toIso8601String(),
         'isActive': isActive,
@@ -385,11 +395,17 @@ class RecurringPayment {
   factory RecurringPayment.fromJson(Map<String, dynamic> json) => RecurringPayment(
         id: json['id'],
         name: json['name'],
+        description: json['description'] ?? '',
         amount: json['amount'].toDouble(),
         type: TransactionType.values.firstWhere((e) => e.name == json['type']),
         categoryId: json['categoryId'],
         walletId: json['walletId'],
+        tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
         frequency: RecurrenceFrequency.values.firstWhere((e) => e.name == json['frequency']),
+        executionMode: RecurringExecutionMode.values.firstWhere(
+          (e) => e.name == (json['executionMode'] ?? 'auto'),
+          orElse: () => RecurringExecutionMode.auto,
+        ),
         startDate: DateTime.parse(json['startDate']),
         nextDueDate: DateTime.parse(json['nextDueDate']),
         isActive: json['isActive'] ?? true,

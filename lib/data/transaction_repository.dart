@@ -31,7 +31,6 @@ class TransactionRepository {
       toWalletId: entity.toWalletId,
       categoryId: entity.categoryId,
       tags: entity.tags,
-      isRecurring: entity.isRecurring,
       relatedDebtId: entity.relatedDebtId,
     );
   }
@@ -48,7 +47,6 @@ class TransactionRepository {
       toWalletId: Value(tx.toWalletId),
       categoryId: Value(tx.categoryId),
       tags: Value(tx.tags),
-      isRecurring: Value(tx.isRecurring),
       relatedDebtId: Value(tx.relatedDebtId),
     );
   }

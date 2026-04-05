@@ -37,7 +37,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   String? _toWalletId;
   String? _selectedCategoryId;
   late DateTime _date;
-  bool _isRecurring = false;
 
   @override
   void initState() {
@@ -54,7 +53,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       _toWalletId = tx.toWalletId;
       _selectedCategoryId = tx.categoryId;
       _date = tx.date;
-      _isRecurring = tx.isRecurring;
+      _date = tx.date;
       _selectedTags.addAll(tx.tags);
       
       if (_selectedWalletId != null && !widget.wallets.any((w) => w.id == _selectedWalletId)) _selectedWalletId = null;
@@ -167,7 +166,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       toWalletId: tId,
       categoryId: _type == TransactionType.transfer ? null : _selectedCategoryId,
       tags: _selectedTags,
-      isRecurring: _isRecurring,
     );
 
     Navigator.of(context).pop({'action': 'save', 'tx': savedTx});
@@ -497,13 +495,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
               ),
             ],
             const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Transaction Récurrente', style: TextStyle(fontWeight: FontWeight.w600)),
-              value: _isRecurring,
-              onChanged: (val) => setState(() => _isRecurring = val),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
-              activeThumbColor: theme.colorScheme.primary,
-            ),
+            // Recurring option removed for rework
             const SizedBox(height: 32),
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

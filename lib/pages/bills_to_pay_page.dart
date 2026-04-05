@@ -104,7 +104,6 @@ class _BillsToPayPageState extends ConsumerState<BillsToPayPage> {
       date: DateTime.now(),
       walletId: p.walletId,
       categoryId: p.categoryId,
-      isRecurring: p.frequency != RecurrenceFrequency.once,
     );
 
     setState(() {

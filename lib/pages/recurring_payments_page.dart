@@ -31,9 +31,9 @@ class _RecurringPaymentsPageState extends ConsumerState<RecurringPaymentsPage> {
   }
 
   List<Transaction> get _recurringTransactionsHistory {
-    final recurring = _transactions.where((tx) => tx.isRecurring).toList();
-    recurring.sort((a, b) => b.date.compareTo(a.date));
-    return recurring;
+    // Reworking this: For now return empty or all. 
+    // The previous logic filtered by isRecurring which is removed.
+    return []; 
   }
 
   String _getWalletName(String? id) {

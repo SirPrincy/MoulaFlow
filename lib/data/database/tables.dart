@@ -43,7 +43,6 @@ class Transactions extends Table {
   TextColumn get toWalletId => text().nullable()();
   TextColumn get categoryId => text().nullable()();
   TextColumn get tags => text().map(const StringListConverter()).withDefault(const Constant(''))();
-  BoolColumn get isRecurring => boolean().withDefault(const Constant(false))();
   TextColumn get relatedDebtId => text().nullable()();
 
   @override
@@ -120,6 +119,9 @@ class RecurringPayments extends Table {
   TextColumn get categoryId => text().nullable()();
   TextColumn get walletId => text().nullable()();
   IntColumn get frequency => intEnum<RecurrenceFrequency>()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get tags => text().map(const StringListConverter()).withDefault(const Constant(''))();
+  IntColumn get executionMode => intEnum<RecurringExecutionMode>().withDefault(const Constant(0))(); // Auto by default
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get nextDueDate => dateTime()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
