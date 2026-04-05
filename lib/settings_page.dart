@@ -30,7 +30,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final isDark = themeMode == ThemeMode.dark;
     final theme = Theme.of(context);
     final settingsRepo = ref.read(settingsRepositoryProvider);
-    
+
     final userName = ref.watch(userNameProvider);
     final userColor = ref.watch(userColorProvider);
     final userAvatar = ref.watch(userAvatarProvider);
@@ -41,7 +41,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       appBar: AppBar(
         title: Text(
           l10n.settings,
-          style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
         ),
         centerTitle: true,
       ),
@@ -63,7 +66,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: SwitchListTile(
                 title: Text(
                   l10n.darkMode,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 subtitle: Text(l10n.darkModeSubtitle),
                 value: isDark,
@@ -72,7 +78,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   final newMode = value ? ThemeMode.dark : ThemeMode.light;
                   ref.read(themeModeProvider.notifier).update(newMode);
                 },
-                secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: accentColor),
+                secondary: Icon(
+                  isDark ? Icons.dark_mode : Icons.light_mode,
+                  color: accentColor,
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -83,7 +92,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: SwitchListTile(
                 title: Text(
                   l10n.biometrics,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 subtitle: Text(l10n.biometricsSubtitle),
                 value: biometricsEnabled,
@@ -103,7 +115,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 leading: Icon(Icons.category_outlined, color: accentColor),
                 title: Text(
                   l10n.manageCategories,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 subtitle: Text(l10n.manageCategoriesSubtitle),
                 trailing: const Icon(Icons.keyboard_arrow_right),
@@ -120,12 +135,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 16),
             _buildSettingsContainer(
               child: ListTile(
-                leading: _isExportingCSV 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.table_chart_outlined, color: accentColor),
+                leading: _isExportingCSV
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.table_chart_outlined, color: accentColor),
                 title: Text(
                   l10n.exportCSV,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 subtitle: Text(l10n.exportCSVSubtitle),
                 onTap: _isExportingCSV ? null : () => _handleCSVExport(),
@@ -135,28 +157,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             _buildSettingsContainer(
               child: ListTile(
                 leading: _isExportingStr
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.backup_outlined, color: accentColor),
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.backup_outlined, color: accentColor),
                 title: Text(
                   l10n.exportBackup,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 subtitle: Text(l10n.exportBackupSubtitle),
-                onTap: _isExportingStr ? null : () => _handleExportBackup(context, settingsRepo),
+                onTap: _isExportingStr
+                    ? null
+                    : () => _handleExportBackup(context, settingsRepo),
               ),
             ),
             const SizedBox(height: 16),
             _buildSettingsContainer(
               child: ListTile(
                 leading: _isImportingStr
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.restore_outlined, color: accentColor),
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.restore_outlined, color: accentColor),
                 title: Text(
                   l10n.importBackup,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
                 subtitle: Text(l10n.importBackupSubtitle),
-                onTap: _isImportingStr ? null : () => _showImportBackupDialog(context, settingsRepo, ref),
+                onTap: _isImportingStr
+                    ? null
+                    : () => _showImportBackupDialog(context, settingsRepo, ref),
               ),
             ),
             const SizedBox(height: 32),
@@ -231,15 +271,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildProfileCard(BuildContext context, String? name, int color, int avatar) {
+  Widget _buildProfileCard(
+    BuildContext context,
+    String? name,
+    int color,
+    int avatar,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(color),
-            Color(color).withValues(alpha: 0.8),
-          ],
+          colors: [Color(color), Color(color).withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -258,7 +300,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             radius: 35,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Icon(
-              IconData(avatar, fontFamily: 'MaterialIcons'),
+              _getAvatarIcon(avatar), // On appelle une fonction qu'on va créer
               size: 40,
               color: Colors.white,
             ),
@@ -334,15 +376,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: isSelected ? Colors.white : Colors.transparent,
                   width: 3,
                 ),
-                boxShadow: isSelected ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.4),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  )
-                ] : null,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
               ),
-              child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
+              child: isSelected
+                  ? const Icon(Icons.check, color: Colors.white)
+                  : null,
             ),
           );
         },
@@ -353,20 +399,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _handleCSVExport() async {
     setState(() => _isExportingCSV = true);
     try {
-      final transactions = await ref.read(transactionRepositoryProvider).loadTransactions();
+      final transactions = await ref
+          .read(transactionRepositoryProvider)
+          .loadTransactions();
       await ExportService.exportTransactionsToCSV(transactions);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur export CSV: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur export CSV: $e')));
       }
     } finally {
       setState(() => _isExportingCSV = false);
     }
   }
 
-  Future<void> _handleExportBackup(BuildContext context, SettingsRepository settingsRepo) async {
+  Future<void> _handleExportBackup(
+    BuildContext context,
+    SettingsRepository settingsRepo,
+  ) async {
     setState(() => _isExportingStr = true);
     try {
       final bytes = await settingsRepo.exportBinaryBackup();
@@ -391,13 +442,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   height: 200,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: SingleChildScrollView(
                     child: SelectableText(
                       backupStr,
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                      ),
                     ),
                   ),
                 ),
@@ -432,7 +488,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<void> _handleResetData(BuildContext context, SettingsRepository settingsRepo, AppLocalizations l10n) async {
+  Future<void> _handleResetData(
+    BuildContext context,
+    SettingsRepository settingsRepo,
+    AppLocalizations l10n,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -459,9 +519,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (confirm == true) {
       await settingsRepo.clearAllDataExceptTheme();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.dataReset)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.dataReset)));
         Navigator.pop(context);
       }
     }
@@ -521,13 +581,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (trimmed.isEmpty) return;
 
       setState(() => _isImportingStr = true);
-      
+
       final bytes = base64Decode(trimmed);
-      
+
       final db = ref.read(databaseProvider);
       await db.hardClose();
       await settingsRepo.importBinaryBackup(bytes);
-      
+
       ref.invalidate(databaseProvider);
       ref.invalidate(walletsProvider);
       ref.invalidate(transactionsProvider);
@@ -535,37 +595,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ref.invalidate(budgetsProvider);
       ref.invalidate(recurringPaymentsProvider);
       ref.invalidate(dashboardConfigProvider);
-      
+
       final newName = await settingsRepo.loadUserName();
       final isDark = await settingsRepo.loadIsDarkMode();
       final userColor = await settingsRepo.loadUserColor();
       final userAvatar = await settingsRepo.loadUserAvatar();
       final accentColor = await settingsRepo.loadAccentColor();
-      
+
       ref.read(userNameProvider.notifier).update(newName);
-      ref.read(themeModeProvider.notifier).update(isDark ? ThemeMode.dark : ThemeMode.light);
-      if (userColor != null) ref.read(userColorProvider.notifier).update(userColor);
-      if (userAvatar != null) ref.read(userAvatarProvider.notifier).update(userAvatar);
-      if (accentColor != null) ref.read(accentColorProvider.notifier).update(Color(accentColor));
+      ref
+          .read(themeModeProvider.notifier)
+          .update(isDark ? ThemeMode.dark : ThemeMode.light);
+      if (userColor != null)
+        ref.read(userColorProvider.notifier).update(userColor);
+      if (userAvatar != null)
+        ref.read(userAvatarProvider.notifier).update(userAvatar);
+      if (accentColor != null)
+        ref.read(accentColorProvider.notifier).update(Color(accentColor));
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Restauration réussie !')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Restauration réussie !')));
       Navigator.pop(context);
     } on FormatException catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Code invalide: ${e.message}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Code invalide: ${e.message}')));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     } finally {
       setState(() => _isImportingStr = false);
       controller.dispose();
     }
   }
-}
+
+  // --- INSÈRE LA FONCTION ICI ---
+  IconData _getAvatarIcon(int codePoint) {
+    switch (codePoint) {
+      case 59475:
+        return Icons.person;
+      case 58713:
+        return Icons.account_circle;
+      case 58241:
+        return Icons.face;
+      case 57744:
+        return Icons.pets;
+      case 58160:
+        return Icons.star;
+      default:
+        return Icons.person;
+    }
+  }
+} // <--- C'est la toute dernière accolade du fichier
