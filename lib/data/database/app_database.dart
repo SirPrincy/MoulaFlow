@@ -15,7 +15,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTest(super.connection);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -23,16 +23,14 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
+      // Safety: Run migrations in order
       if (from < 2) {
-        // Recreate everything for very old versions (destructive)
-        for (final table in allTables) {
-          await m.drop(table);
-        }
+        for (final table in allTables) await m.drop(table);
         await m.createAll();
-      } else if (from == 2) {
-        // Version 2 -> 3: Migration safely handled here.
-      } else if (from == 3) {
-        // Version 3 -> 4: Tag migration
+        return; // Fresh start
+      }
+
+      if (from < 4) {
         await m.createTable(tags);
         await m.createTable(transactionTags);
 
@@ -41,8 +39,6 @@ class AppDatabase extends _$AppDatabase {
         for (var tx in allTransactions) {
           if (tx.tags.isNotEmpty) {
             for (var tagName in tx.tags) {
-              // Check if tag already exists (simplistic check)
-              // Note: In a real large DB this should be optimized, but here it's fine.
               String tagId;
               final existingTag = await (select(tags)..where((t) => t.name.equals(tagName))).getSingleOrNull();
               
@@ -58,7 +54,6 @@ class AppDatabase extends _$AppDatabase {
                 tagId = existingTag.id;
               }
 
-              // Create link
               await into(transactionTags).insert(TransactionTagsCompanion.insert(
                 transactionId: tx.id,
                 tagId: tagId,
@@ -66,23 +61,33 @@ class AppDatabase extends _$AppDatabase {
             }
           }
         }
-      } else if (from == 4) {
-        // Version 4 -> 5: Added executionMode to RecurringPayments
+      }
+
+      if (from < 5) {
         await m.addColumn(recurringPayments, recurringPayments.executionMode);
       }
-      
-      // Additional safety check for Version 6
-      if (to == 6) {
-        await customStatement('UPDATE recurring_payments SET execution_mode = 0 WHERE execution_mode IS NULL');
-        await customStatement('UPDATE recurring_payments SET description = "" WHERE description IS NULL');
+
+      if (from < 6) {
+        // v6 added missing columns to RecurringPayments
+        await m.addColumn(recurringPayments, recurringPayments.description);
+        await m.addColumn(recurringPayments, recurringPayments.tags);
+        await m.addColumn(recurringPayments, recurringPayments.isActive);
+      }
+
+      if (from < 7) {
+        // v7 ensures all data is consistent and defaults are applied
+        await customStatement("UPDATE recurring_payments SET execution_mode = 0 WHERE execution_mode IS NULL");
+        await customStatement("UPDATE recurring_payments SET description = '' WHERE description IS NULL");
         await customStatement("UPDATE recurring_payments SET tags = '' WHERE tags IS NULL");
-        await customStatement('UPDATE recurring_payments SET is_active = 1 WHERE is_active IS NULL');
+        await customStatement("UPDATE recurring_payments SET is_active = 1 WHERE is_active IS NULL");
         
-        // Safety for dates - if for some reason they were null, set to now
         final nowStr = DateTime.now().toIso8601String();
         await customStatement("UPDATE recurring_payments SET start_date = '$nowStr' WHERE start_date IS NULL");
         await customStatement("UPDATE recurring_payments SET next_due_date = '$nowStr' WHERE next_due_date IS NULL");
       }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
     },
   );
 
