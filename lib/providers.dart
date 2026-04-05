@@ -54,9 +54,14 @@ final tagsProvider = StreamProvider<List<TagDefinition>>((ref) {
 final budgetPlanningServiceProvider = Provider((ref) => BudgetPlanningService());
 
 final budgetStatusProvider = FutureProvider.autoDispose.family<BudgetStatus, String>((ref, budgetId) async {
-  final budgets = await ref.watch(budgetsProvider.future);
-  final transactions = await ref.watch(transactionsProvider.future);
+  // 1. Establish synchronous dependencies first (CRITICAL for Riverpod stability)
+  final budgetsAsync = ref.watch(budgetsProvider);
+  final transactionsAsync = ref.watch(transactionsProvider);
   final service = ref.watch(budgetPlanningServiceProvider);
+
+  // 2. Resolve data (waiting for first emission if needed)
+  final List<BudgetPlan> budgets = budgetsAsync.asData?.value ?? await ref.watch(budgetsProvider.future);
+  final List<Transaction> transactions = transactionsAsync.asData?.value ?? await ref.watch(transactionsProvider.future);
 
   final plan = budgets.cast<BudgetPlan?>().firstWhere((b) => b?.id == budgetId, orElse: () => null);
   if (plan == null) throw Exception('Budget not found: $budgetId');

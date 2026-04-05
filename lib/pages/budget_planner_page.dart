@@ -67,7 +67,7 @@ class BudgetPlannerPage extends ConsumerWidget {
         }
 
         return RefreshIndicator(
-          onRefresh: () async => ref.invalidate(budgetsProvider),
+          onRefresh: () async => Future.value(),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: GridView.builder(
@@ -103,7 +103,6 @@ class BudgetPlannerPage extends ConsumerWidget {
     final sideMenu = AppSideMenu(
       currentRoute: '/budgets',
       isCollapsed: false,
-      onDataChange: () => ref.invalidate(budgetsProvider),
     );
 
     if (context.isMobileScreen) {
