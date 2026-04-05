@@ -4,8 +4,7 @@ import '../models.dart';
 import '../providers.dart';
 import '../utils/styles.dart';
 import '../utils/app_icons.dart';
-import '../widgets/transaction_tile.dart';
-import '../widgets/tag_edit_dialog.dart';
+import '../widgets.dart';
 
 class TagProjectPage extends ConsumerStatefulWidget {
   final TagDefinition tag;
@@ -104,80 +103,120 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               : 0.0;
           final isOverBudget = limit > 0 && totalSpent > limit;
 
-          return CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeaderCard(
-                        theme,
-                        currentTag,
-                        totalSpent,
-                        limit,
-                        progress,
-                        isOverBudget,
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'TRANSACTIONS LIÉES',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          Text(
-                            '${projectTransactions.length} OPS',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+          void showTransactionModal({Transaction? editingTx}) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppStyles.kDefaultRadius),
                 ),
               ),
-              if (projectTransactions.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Text('Aucune transaction pour ce projet.'),
+              builder: (context) {
+                return TransactionForm(
+                  wallets: wallets,
+                  categories: categories,
+                  editingTx: editingTx,
+                );
+              },
+            ).then((result) async {
+              if (result != null && result is Map) {
+                final action = result['action'];
+                final tx = result['tx'];
+
+                if (action == 'save') {
+                  if (editingTx != null) {
+                    await ref.read(transactionRepositoryProvider).updateTransaction(tx);
+                  } else {
+                    await ref.read(transactionRepositoryProvider).insertTransaction(tx);
+                  }
+                } else if (action == 'delete') {
+                  await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
+                }
+              }
+            });
+          }
+
+          return ResponsiveCenter(
+            maxWidth: context.contentMaxWidth,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeaderCard(
+                          theme,
+                          currentTag,
+                          totalSpent,
+                          limit,
+                          progress,
+                          isOverBudget,
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'TRANSACTIONS LIÉES',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            Text(
+                              '${projectTransactions.length} OPS',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final tx = projectTransactions[index];
-                    return TransactionTile(
-                      tx: tx,
-                      categoryName: getCatName(tx.categoryId),
-                      walletCaption: getWalletName(
-                        tx.walletId ?? tx.fromWalletId,
-                      ),
-                      onTap: () {
-                        // TODO: Edit transaction logic if needed
-                      },
-                      onDismissed: () {
-                        // Handle dismissal
-                      },
-                    );
-                  }, childCount: projectTransactions.length),
                 ),
-              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
-            ],
+                if (projectTransactions.isEmpty)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text('Aucune transaction pour ce projet.'),
+                    ),
+                  )
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final tx = projectTransactions[index];
+                      return TransactionTile(
+                        tx: tx,
+                        categoryName: getCatName(tx.categoryId),
+                        walletCaption: getWalletName(
+                          tx.walletId ?? tx.fromWalletId,
+                        ),
+                        onTap: () => showTransactionModal(editingTx: tx),
+                        onDismissed: () async {
+                          await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
+                        },
+                        confirmDismiss: (_) => showDeleteConfirmDialog(
+                          context,
+                          'Voulez-vous supprimer cette transaction ?',
+                        ),
+                      );
+                    }, childCount: projectTransactions.length),
+                  ),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+              ],
+            ),
           );
         },
       ),

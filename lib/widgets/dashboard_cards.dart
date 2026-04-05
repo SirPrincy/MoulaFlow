@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../responsive_layout.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
@@ -41,17 +43,24 @@ abstract class DashboardCard extends StatelessWidget {
 
   Widget buildContainer(BuildContext context, {required Widget child}) {
     final theme = Theme.of(context);
+    
+    // Responsive padding and shadow for a premium feel
+    final paddingValue = context.responsiveValue(compact: 20.0, medium: 24.0, expanded: 28.0);
+    final shadowOpacity = context.responsiveValue(compact: 0.03, medium: 0.02, expanded: 0.015);
+    
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(paddingValue),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: context.isCompactScreen ? 0.05 : 0.03)
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: shadowOpacity),
+            blurRadius: context.responsiveValue(compact: 20.0, medium: 30.0, expanded: 40.0),
+            offset: Offset(0, context.responsiveValue(compact: 10.0, medium: 15.0, expanded: 20.0)),
           ),
         ],
       ),
@@ -86,17 +95,23 @@ class BalanceSummaryCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Responsive padding and shadow for a premium feel
+    final paddingValue = context.responsiveValue(compact: 20.0, medium: 24.0, expanded: 28.0);
+    final shadowOpacity = context.responsiveValue(compact: 0.03, medium: 0.02, expanded: 0.015);
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(paddingValue),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: context.isCompactScreen ? 0.05 : 0.03)
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: shadowOpacity),
+            blurRadius: context.responsiveValue(compact: 20.0, medium: 30.0, expanded: 40.0),
+            offset: Offset(0, context.responsiveValue(compact: 10.0, medium: 15.0, expanded: 20.0)),
           ),
         ],
       ),

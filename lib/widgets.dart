@@ -6,3 +6,5 @@ export 'widgets/dialogs.dart';
 export 'widgets/app_menu_bar.dart';
 export 'widgets/app_side_menu.dart';
 export 'widgets/wallet_form.dart';
+export 'widgets/tag_edit_dialog.dart';
+export 'responsive_layout.dart';

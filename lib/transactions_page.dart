@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models.dart';
 import 'widgets.dart'; // This is now an export file
-import 'responsive_layout.dart';
 import 'domain/balance_service.dart';
 import 'providers.dart';
 import 'widgets/dashboard_cards.dart';
@@ -237,7 +236,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         ),
       ),
       body: ResponsiveCenter(
-        maxWidth: 800,
+        maxWidth: context.contentMaxWidth,
         child: Column(
           children: [
             WalletFilterBar(

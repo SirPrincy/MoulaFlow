@@ -53,7 +53,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         centerTitle: true,
       ),
       body: ResponsiveCenter(
-        maxWidth: 800,
+        maxWidth: context.contentMaxWidth,
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           children: [
@@ -377,7 +377,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: colors.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final color = colors[index];
           final isSelected = color.toARGB32() == currentAccent.toARGB32();
@@ -623,12 +623,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ref
           .read(themeModeProvider.notifier)
           .update(isDark ? ThemeMode.dark : ThemeMode.light);
-      if (userColor != null)
+      if (userColor != null) {
         ref.read(userColorProvider.notifier).update(userColor);
-      if (userAvatar != null)
+      }
+      if (userAvatar != null) {
         ref.read(userAvatarProvider.notifier).update(userAvatar);
-      if (accentColor != null)
+      }
+      if (accentColor != null) {
         ref.read(accentColorProvider.notifier).update(Color(accentColor));
+      }
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(
