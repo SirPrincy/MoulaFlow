@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moula_flow/providers.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:moula_flow/l10n/generated/app_localizations.dart';
 import 'package:moula_flow/data/export_service.dart';
 
 import 'category_management_page.dart';
@@ -67,7 +67,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 subtitle: Text(l10n.darkModeSubtitle),
                 value: isDark,
-                activeColor: accentColor,
+                activeThumbColor: accentColor,
                 onChanged: (value) {
                   final newMode = value ? ThemeMode.dark : ThemeMode.light;
                   ref.read(themeModeProvider.notifier).update(newMode);
@@ -87,7 +87,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 subtitle: Text(l10n.biometricsSubtitle),
                 value: biometricsEnabled,
-                activeColor: accentColor,
+                activeThumbColor: accentColor,
                 onChanged: (value) {
                   ref.read(biometricsEnabledProvider.notifier).update(value);
                 },
@@ -232,7 +232,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildProfileCard(BuildContext context, String? name, int color, int avatar) {
-    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -322,7 +321,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final color = colors[index];
-          final isSelected = color.value == currentAccent.value;
+          final isSelected = color.toARGB32() == currentAccent.toARGB32();
           return GestureDetector(
             onTap: () => ref.read(accentColorProvider.notifier).update(color),
             child: Container(

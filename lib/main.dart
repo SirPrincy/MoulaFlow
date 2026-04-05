@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:moula_flow/l10n/generated/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,8 +53,8 @@ class MoulaFlowApp extends ConsumerWidget {
     final lightColorScheme = ColorScheme.light(
       primary: accentColor,
       secondary: accentColor,
-      surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF1A1A1A),
+      surface: const Color(0xFFFFFFFF),
+      onSurface: const Color(0xFF1A1A1A),
     );
 
     final darkColorScheme = ColorScheme.dark(

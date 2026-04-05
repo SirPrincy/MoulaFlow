@@ -35,9 +35,6 @@ class ExportService {
     final String csvData = const ListToCsvConverter().convert(rows);
     
     // On mobile/desktop, share the content
-    final now = DateTime.now();
-    final fileName = 'MoulaFlow_Export_${now.year}${now.month}${now.day}.csv';
-    
     await Share.share(
       csvData,
       subject: 'MoulaFlow Transactions Export',

@@ -203,7 +203,7 @@ class AccentColorNotifier extends Notifier<Color> {
   
   void update(Color color) {
     state = color;
-    ref.read(settingsRepositoryProvider).saveAccentColor(color.value);
+    ref.read(settingsRepositoryProvider).saveAccentColor(color.toARGB32());
   }
 }
 final accentColorProvider = NotifierProvider<AccentColorNotifier, Color>(AccentColorNotifier.new);
