@@ -26,7 +26,10 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
     // Watch for tag updates or deletion
     final currentTag = tagsAsync.when(
       data: (tags) {
-        final found = tags.cast<TagDefinition?>().firstWhere((t) => t?.id == widget.tag.id, orElse: () => null);
+        final found = tags.cast<TagDefinition?>().firstWhere(
+          (t) => t?.id == widget.tag.id,
+          orElse: () => null,
+        );
         if (found == null) {
           // Tag was deleted, pop page after build
           Future.microtask(() {
@@ -43,7 +46,10 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: Text(currentTag.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          currentTag.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -60,7 +66,9 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erreur: $err')),
         data: (allTransactions) {
-          final projectTransactions = allTransactions.where((tx) => tx.tags.contains(currentTag.name)).toList();
+          final projectTransactions = allTransactions
+              .where((tx) => tx.tags.contains(currentTag.name))
+              .toList();
           final categories = ref.watch(categoriesProvider).value ?? [];
           final wallets = ref.watch(walletsProvider).value ?? [];
 
@@ -83,7 +91,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               return 'Inconnu';
             }
           }
-          
+
           double totalSpent = 0;
           for (var tx in projectTransactions) {
             if (tx.type == TransactionType.expense) totalSpent += tx.amount;
@@ -91,7 +99,9 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
           }
 
           final limit = currentTag.goalAmount ?? 0;
-          final progress = limit > 0 ? (totalSpent / limit).clamp(0.0, 1.0) : 0.0;
+          final progress = limit > 0
+              ? (totalSpent / limit).clamp(0.0, 1.0)
+              : 0.0;
           final isOverBudget = limit > 0 && totalSpent > limit;
 
           return CustomScrollView(
@@ -102,7 +112,14 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeaderCard(theme, currentTag, totalSpent, limit, progress, isOverBudget),
+                      _buildHeaderCard(
+                        theme,
+                        currentTag,
+                        totalSpent,
+                        limit,
+                        progress,
+                        isOverBudget,
+                      ),
                       const SizedBox(height: 32),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -112,7 +129,9 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -134,27 +153,28 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               if (projectTransactions.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: Text('Aucune transaction pour ce projet.')),
+                  child: Center(
+                    child: Text('Aucune transaction pour ce projet.'),
+                  ),
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final tx = projectTransactions[index];
-                      return TransactionTile(
-                        tx: tx,
-                        categoryName: getCatName(tx.categoryId),
-                        walletCaption: getWalletName(tx.walletId ?? tx.fromWalletId),
-                        onTap: () {
-                          // TODO: Edit transaction logic if needed
-                        },
-                        onDismissed: () {
-                          // Handle dismissal
-                        },
-                      );
-                    },
-                    childCount: projectTransactions.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final tx = projectTransactions[index];
+                    return TransactionTile(
+                      tx: tx,
+                      categoryName: getCatName(tx.categoryId),
+                      walletCaption: getWalletName(
+                        tx.walletId ?? tx.fromWalletId,
+                      ),
+                      onTap: () {
+                        // TODO: Edit transaction logic if needed
+                      },
+                      onDismissed: () {
+                        // Handle dismissal
+                      },
+                    );
+                  }, childCount: projectTransactions.length),
                 ),
               const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
             ],
@@ -164,16 +184,29 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
     );
   }
 
-  Widget _buildHeaderCard(ThemeData theme, TagDefinition tag, double spent, double limit, double progress, bool isOverBudget) {
-    final color = tag.color != null ? Color(int.parse(tag.color!.replaceAll('#', '0xFF'))) : theme.colorScheme.primary;
+  Widget _buildHeaderCard(
+    ThemeData theme,
+    TagDefinition tag,
+    double spent,
+    double limit,
+    double progress,
+    bool isOverBudget,
+  ) {
+    final color = tag.color != null
+        ? Color(int.parse(tag.color!.replaceAll('#', '0xFF')))
+        : theme.colorScheme.primary;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isOverBudget ? Colors.red.withValues(alpha: 0.1) : color.withValues(alpha: 0.05),
+        color: isOverBudget
+            ? Colors.red.withValues(alpha: 0.1)
+            : color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius * 1.5),
         border: Border.all(
-          color: isOverBudget ? Colors.red.withValues(alpha: 0.2) : color.withValues(alpha: 0.1),
+          color: isOverBudget
+              ? Colors.red.withValues(alpha: 0.2)
+              : color.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -188,9 +221,9 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  tag.icon != null 
-                    ? AppIcons.getIconFromStr(tag.icon!) 
-                    : Icons.rocket_launch,
+                  tag.icon != null
+                      ? AppIcons.getIconFromStr(tag.icon!)
+                      : Icons.rocket_launch,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -199,7 +232,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(
+                  Text(
                     'Coût Total',
                     style: TextStyle(
                       fontSize: 14,
@@ -226,7 +259,10 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               children: [
                 Text(
                   'Budget: ${formatAmount(limit)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
                 Text(
                   '${(progress * 100).toStringAsFixed(0)}%',
@@ -243,22 +279,34 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 10,
-                backgroundColor: isOverBudget ? Colors.red.withValues(alpha: 0.1) : color.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation(isOverBudget ? Colors.red : color),
+                backgroundColor: isOverBudget
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : color.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation(
+                  isOverBudget ? Colors.red : color,
+                ),
               ),
             ),
             if (isOverBudget) ...[
               const SizedBox(height: 12),
               Text(
                 'Attention: Budget dépassé de ${formatAmount(spent - limit)}',
-                style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ] else ...[
             const SizedBox(height: 16),
             Text(
               'Aucun budget défini pour ce projet.',
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
           ],
         ],
