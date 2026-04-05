@@ -586,11 +586,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _wallets.isEmpty
-              ? () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Créez un wallet d\'abord.')),
-                )
+        floatingActionButton: _isMobileMenuOpen 
+            ? null 
+            : FloatingActionButton.extended(
+                onPressed: _wallets.isEmpty
+                    ? () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Créez un wallet d\'abord.')),
+                      )
               : () => _showTransactionModal(),
           elevation: 0,
           backgroundColor: theme.colorScheme.primary,
