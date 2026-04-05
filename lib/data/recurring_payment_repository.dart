@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import '../models.dart';
 import 'database/app_database.dart';
 
@@ -14,8 +15,25 @@ class RecurringPaymentRepository {
   }
 
   Future<List<RecurringPayment>> loadRecurringPayments() async {
-    final entities = await db.select(db.recurringPayments).get();
-    return entities.map(_mapEntityToModel).toList();
+    try {
+      final entities = await db.select(db.recurringPayments).get();
+      return entities.map(_mapEntityToModel).toList();
+    } catch (e) {
+      // If global map fails, try to recover and log specific row errors
+      debugPrint('CRITICAL: Mapping error detected in loadRecurringPayments. Recovering...');
+      final List<RecurringPayment> validPayments = [];
+      final rawRows = await db.select(db.recurringPayments).get();
+      
+      for (final row in rawRows) {
+        try {
+          validPayments.add(_mapEntityToModel(row));
+        } catch (rowError) {
+          debugPrint('FAILED ROW (ID: ${row.id}): $rowError');
+          // We skip the bad row to keep the app working
+        }
+      }
+      return validPayments;
+    }
   }
 
   Future<void> insertRecurringPayment(RecurringPayment p) async {

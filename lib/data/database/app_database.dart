@@ -15,7 +15,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTest(super.connection);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,6 +69,19 @@ class AppDatabase extends _$AppDatabase {
       } else if (from == 4) {
         // Version 4 -> 5: Added executionMode to RecurringPayments
         await m.addColumn(recurringPayments, recurringPayments.executionMode);
+      }
+      
+      // Additional safety check for Version 6
+      if (to == 6) {
+        await customStatement('UPDATE recurring_payments SET execution_mode = 0 WHERE execution_mode IS NULL');
+        await customStatement('UPDATE recurring_payments SET description = "" WHERE description IS NULL');
+        await customStatement("UPDATE recurring_payments SET tags = '' WHERE tags IS NULL");
+        await customStatement('UPDATE recurring_payments SET is_active = 1 WHERE is_active IS NULL');
+        
+        // Safety for dates - if for some reason they were null, set to now
+        final nowStr = DateTime.now().toIso8601String();
+        await customStatement("UPDATE recurring_payments SET start_date = '$nowStr' WHERE start_date IS NULL");
+        await customStatement("UPDATE recurring_payments SET next_due_date = '$nowStr' WHERE next_due_date IS NULL");
       }
     },
   );

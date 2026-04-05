@@ -120,8 +120,8 @@ class RecurringPayments extends Table {
   TextColumn get categoryId => text().nullable()();
   TextColumn get walletId => text().nullable()();
   IntColumn get frequency => intEnum<RecurrenceFrequency>()();
-  TextColumn get description => text().withDefault(const Constant(''))();
-  TextColumn get tags => text().map(const StringListConverter()).withDefault(const Constant(''))();
+  TextColumn get description => text().nullable().withDefault(const Constant(''))();
+  TextColumn get tags => text().map(const StringListConverter()).nullable().withDefault(const Constant(''))();
   IntColumn get executionMode => intEnum<RecurringExecutionMode>().withDefault(const Constant(0))(); // Auto by default
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get nextDueDate => dateTime()();
