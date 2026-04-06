@@ -34,7 +34,7 @@ class NumericPad extends StatelessWidget {
               _buildButton(context, '1'),
               _buildButton(context, '2'),
               _buildButton(context, '3'),
-              _buildOperatorButton(context, '/', Icons.divide),
+              _buildOperatorButton(context, '/', label: '÷'),
             ],
           ),
           Row(
@@ -42,7 +42,7 @@ class NumericPad extends StatelessWidget {
               _buildButton(context, '4'),
               _buildButton(context, '5'),
               _buildButton(context, '6'),
-              _buildOperatorButton(context, '*', Icons.close),
+              _buildOperatorButton(context, '*', icon: Icons.close),
             ],
           ),
           Row(
@@ -50,7 +50,7 @@ class NumericPad extends StatelessWidget {
               _buildButton(context, '7'),
               _buildButton(context, '8'),
               _buildButton(context, '9'),
-              _buildOperatorButton(context, '-', Icons.remove),
+              _buildOperatorButton(context, '-', icon: Icons.remove),
             ],
           ),
           Row(
@@ -58,7 +58,7 @@ class NumericPad extends StatelessWidget {
               _buildButton(context, '.'),
               _buildButton(context, '0'),
               _buildButton(context, null, icon: Icons.backspace_rounded, isBackspace: true),
-              _buildOperatorButton(context, '+', Icons.add),
+              _buildOperatorButton(context, '+', icon: Icons.add),
             ],
           ),
           if (onDone != null) ...[
@@ -86,12 +86,11 @@ class NumericPad extends StatelessWidget {
     );
   }
 
-  Widget _buildOperatorButton(BuildContext context, String op, IconData icon) {
-    final theme = Theme.of(context);
-    return _buildButton(context, op, icon: icon, isOperator: true);
+  Widget _buildOperatorButton(BuildContext context, String op, {IconData? icon, String? label}) {
+    return _buildButton(context, op, icon: icon, label: label, isOperator: true);
   }
 
-  Widget _buildButton(BuildContext context, String? value, {IconData? icon, bool isBackspace = false, bool isOperator = false}) {
+  Widget _buildButton(BuildContext context, String? value, {IconData? icon, String? label, bool isBackspace = false, bool isOperator = false}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -138,9 +137,9 @@ class NumericPad extends StatelessWidget {
               child: icon != null 
                 ? Icon(icon, size: 20, color: getTextColor())
                 : Text(
-                    value ?? '',
+                    label ?? value ?? '',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.w600,
                       color: getTextColor(),
                     ),

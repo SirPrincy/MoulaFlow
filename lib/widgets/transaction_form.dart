@@ -613,7 +613,19 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     child: NumericPad(
                       onInput: _onNumberInput,
                       onBackspace: _onBackspace,
-                      onDone: () => setState(() => _isNumericPadVisible = false),
+                      onDone: () {
+                        final result = _evaluateExpression(_amountController.text);
+                        if (result != null) {
+                          setState(() {
+                            _amountController.text = result % 1 == 0 
+                                ? result.toInt().toString() 
+                                : result.toStringAsFixed(2);
+                            _isNumericPadVisible = false;
+                          });
+                        } else {
+                          setState(() => _isNumericPadVisible = false);
+                        }
+                      },
                     ),
                   )
                 : const SizedBox.shrink(),
