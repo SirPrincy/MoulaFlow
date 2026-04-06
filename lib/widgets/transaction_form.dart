@@ -6,6 +6,9 @@ import '../utils/styles.dart';
 import '../providers.dart';
 import 'category_picker.dart';
 import 'dialogs.dart';
+import 'numeric_pad.dart';
+import 'package:intl/intl.dart';
+import 'package:math_expressions/math_expressions.dart';
 
 class TransactionForm extends ConsumerStatefulWidget {
   final List<Wallet> wallets;
@@ -37,6 +40,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   String? _toWalletId;
   String? _selectedCategoryId;
   late DateTime _date;
+  bool _isNumericPadVisible = false; // Hidden by default for a cleaner look
 
   @override
   void initState() {
@@ -92,6 +96,62 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         }
       }
     }
+
+    if (widget.editingTx != null) {
+      _isNumericPadVisible = false;
+    }
+  }
+
+  void _onNumberInput(String value) {
+    setState(() {
+      final currentText = _amountController.text;
+      
+      // Allow only one decimal point per number segment
+      if (value == '.') {
+        final lastSegment = currentText.split(RegExp(r'[+\-*/]')).last;
+        if (lastSegment.contains('.')) return;
+      }
+      
+      // Handle operators: replace last operator if another is pressed
+      final operators = ['+', '-', '*', '/'];
+      if (operators.contains(value)) {
+        if (currentText.isEmpty) return; // Can't start with an operator (except maybe - but keeping it simple)
+        final lastChar = currentText.substring(currentText.length - 1);
+        if (operators.contains(lastChar)) {
+          _amountController.text = currentText.substring(0, currentText.length - 1) + value;
+          return;
+        }
+      }
+
+      if (currentText == '0' && !operators.contains(value) && value != '.') {
+        _amountController.text = value;
+      } else {
+        _amountController.text = currentText + value;
+      }
+    });
+  }
+
+  double? _evaluateExpression(String text) {
+    if (text.isEmpty) return null;
+    try {
+      // Clean the expression for math_expressions (it uses * and / as standard)
+      final expression = text.replaceAll(',', '.');
+      Parser p = Parser();
+      Expression exp = p.parse(expression);
+      ContextModel cm = ContextModel();
+      return exp.evaluate(EvaluationType.REAL, cm);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  void _onBackspace() {
+    setState(() {
+      final currentText = _amountController.text;
+      if (currentText.isNotEmpty) {
+        _amountController.text = currentText.substring(0, currentText.length - 1);
+      }
+    });
   }
 
   @override
@@ -136,7 +196,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       return;
     }
 
-    final amount = double.tryParse(amountText.replaceAll(',', '.'));
+    final amount = _evaluateExpression(amountText.replaceAll(',', '.'));
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -180,7 +240,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   }
 
   void _pickDate() async {
-    final DateTime? picked = await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(2000),
@@ -196,10 +256,34 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
          );
       },
     );
-    if (picked != null && picked != _date) {
-      setState(() {
-        _date = picked;
-      });
+    
+    if (pickedDate != null && mounted) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_date),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _date = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
     }
   }
 
@@ -332,204 +416,351 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            Row(
-              children: [
-                _buildTypeButton('Dépense', TransactionType.expense, Colors.red),
-                const SizedBox(width: 8),
-                _buildTypeButton('Revenu', TransactionType.income, Colors.green),
-                const SizedBox(width: 8),
-                _buildTypeButton('Transfert', TransactionType.transfer, isDark ? Colors.grey.shade700 : Colors.black),
-              ],
+            AppStyles.glassContainer(
+              borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Row(
+                  children: [
+                    _buildTypeButton('Dépense', TransactionType.expense, Colors.redAccent),
+                    const SizedBox(width: 4),
+                    _buildTypeButton('Revenu', TransactionType.income, Colors.greenAccent.shade700),
+                    const SizedBox(width: 4),
+                    _buildTypeButton('Transfert', TransactionType.transfer, isDark ? Colors.white24 : Colors.black87),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             
             if (_type == TransactionType.transfer) ...[
               Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _fromWalletId,
-                      items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name))).toList(),
-                      onChanged: (val) => setState(() => _fromWalletId = val),
-                      decoration: _inputDeco('De', ''),
-                      dropdownColor: theme.colorScheme.surface,
-                      icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
-                      style: textStyle.copyWith(fontSize: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('DE', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: _fromWalletId,
+                          items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name, overflow: TextOverflow.ellipsis))).toList(),
+                          onChanged: (val) => setState(() => _fromWalletId = val),
+                          decoration: _inputDeco('', ''),
+                          dropdownColor: theme.colorScheme.surface,
+                          icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
+                          style: textStyle.copyWith(fontSize: 14),
+                        ),
+                      ],
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.arrow_forward, color: isDark ? Colors.white54 : Colors.black54),
+                    padding: const EdgeInsets.fromLTRB(12, 24, 12, 0),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.swap_horiz_rounded, color: theme.colorScheme.primary, size: 24),
+                    ),
                   ),
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _toWalletId,
-                      items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name))).toList(),
-                      onChanged: (val) => setState(() => _toWalletId = val),
-                      decoration: _inputDeco('Vers', ''),
-                      dropdownColor: theme.colorScheme.surface,
-                      icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
-                      style: textStyle.copyWith(fontSize: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('VERS', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: _toWalletId,
+                          items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name, overflow: TextOverflow.ellipsis))).toList(),
+                          onChanged: (val) => setState(() => _toWalletId = val),
+                          decoration: _inputDeco('', ''),
+                          dropdownColor: theme.colorScheme.surface,
+                          icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
+                          style: textStyle.copyWith(fontSize: 14),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ] else ...[
-              DropdownButtonFormField<String>(
-                initialValue: _selectedWalletId,
-                items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name))).toList(),
-                onChanged: (val) => setState(() => _selectedWalletId = val),
-                decoration: _inputDeco('Wallet', ''),
-                dropdownColor: theme.colorScheme.surface,
-                icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
-                style: textStyle.copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: _pickCategory,
-                borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-                child: InputDecorator(
-                  decoration: _inputDeco('Catégorie *', ''),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _selectedCategoryId == null ? 'Sélectionner...' : _getCategoryName(_selectedCategoryId!),
-                        style: textStyle.copyWith(fontSize: 16, color: _selectedCategoryId == null ? (isDark ? Colors.white54 : Colors.black54) : null),
-                      ),
-                      Icon(Icons.keyboard_arrow_right, color: dropdownIconColor),
-                    ],
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('COMPTE', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedWalletId,
+                          items: widget.wallets.map<DropdownMenuItem<String>>((w) => DropdownMenuItem<String>(value: w.id, child: Text(w.name))).toList(),
+                          onChanged: (val) => setState(() => _selectedWalletId = val),
+                          decoration: _inputDeco('', ''),
+                          dropdownColor: theme.colorScheme.surface,
+                          icon: Icon(Icons.keyboard_arrow_down, color: dropdownIconColor),
+                          style: textStyle.copyWith(fontSize: 15),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('CATÉGORIE', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: _pickCategory,
+                          borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+                          child: InputDecorator(
+                            decoration: _inputDeco('', ''),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _selectedCategoryId == null ? 'Choisir...' : _getCategoryName(_selectedCategoryId!),
+                                    style: textStyle.copyWith(fontSize: 15, color: _selectedCategoryId == null ? (isDark ? Colors.white54 : Colors.black54) : null),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Icon(Icons.keyboard_arrow_right, color: dropdownIconColor, size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
             const SizedBox(height: 16),
             
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: _inputDeco('Montant *', '0.00'),
-                    cursorColor: isDark ? Colors.white : Colors.black,
-                    style: textStyle,
+            GestureDetector(
+              onTap: () => setState(() => _isNumericPadVisible = !_isNumericPadVisible),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+                  border: Border.all(
+                    color: _isNumericPadVisible 
+                      ? theme.colorScheme.primary.withValues(alpha: 0.5) 
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                    width: _isNumericPadVisible ? 2 : 1,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: InkWell(
-                    onTap: _pickDate,
-                    borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
-                    child: InputDecorator(
-                      decoration: _inputDeco('Date *', ''),
-                      child: Text(
-                        '${_date.day.toString().padLeft(2, '0')}/${_date.month.toString().padLeft(2, '0')}/${_date.year}',
-                        style: textStyle.copyWith(fontSize: 16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _amountController.text.isEmpty ? '0.00' : _amountController.text,
+                          style: textStyle.copyWith(
+                            fontSize: 42, 
+                            fontWeight: FontWeight.w900, 
+                            letterSpacing: -1,
+                            color: _amountController.text.isEmpty ? theme.colorScheme.onSurface.withValues(alpha: 0.2) : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '€', 
+                          style: textStyle.copyWith(fontSize: 24, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 32),
+                    InkWell(
+                      onTap: _pickDate,
+                      borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.calendar_today_rounded, size: 18, color: theme.colorScheme.primary),
+                            const SizedBox(width: 12),
+                            Text(
+                              DateFormat('dd MMMM yyyy, HH:mm', 'fr_FR').format(_date),
+                              style: textStyle.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(Icons.edit_calendar_rounded, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descController,
-              decoration: _inputDeco('Description (Optionnel)', 'Ex: Courses, Salaire...'),
-              cursorColor: isDark ? Colors.white : Colors.black,
-              style: textStyle.copyWith(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Text('Tags', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ..._selectedTags.map((tag) => InputChip(
-                  label: Text(tag),
-                  onDeleted: () => setState(() => _selectedTags.remove(tag)),
-                )),
-                IntrinsicWidth(
-                  child: TextField(
-                    controller: _tagsController,
-                    decoration: const InputDecoration(
-                      hintText: 'Ajouter tag...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 4),
-                    ),
-                    onSubmitted: (val) {
-                      final tag = val.trim();
-                      if (tag.isNotEmpty && !_selectedTags.contains(tag)) {
-                        setState(() {
-                          _selectedTags.add(tag);
-                          _tagsController.clear();
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (ref.watch(tagsProvider).hasValue) ...[
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ...ref.watch(tagsProvider).value!
-                      .where((t) => !_selectedTags.contains(t.name))
-                      .take(5)
-                      .map((t) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          avatar: Icon(Icons.add, size: 14, color: t.color != null ? Color(int.parse(t.color!.replaceAll('#', '0xFF'))) : null),
-                          label: Text(t.name),
-                          onPressed: () => setState(() => _selectedTags.add(t.name)),
-                        ),
-                      )),
                   ],
                 ),
               ),
-            ],
+            ),
+            
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              child: _isNumericPadVisible 
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: NumericPad(
+                      onInput: _onNumberInput,
+                      onBackspace: _onBackspace,
+                      onDone: () => setState(() => _isNumericPadVisible = false),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _descController,
+              decoration: _inputDeco('Note', 'Ajouter une description...'),
+              cursorColor: isDark ? Colors.white : Colors.black,
+              style: textStyle.copyWith(fontSize: 16, fontWeight: FontWeight.w400),
+            ),
+            const SizedBox(height: 24),
+            
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.local_offer_rounded, size: 16, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text('TAGS', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius),
+                    border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ..._selectedTags.map((tag) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(tag, style: TextStyle(fontSize: 13, color: theme.colorScheme.onPrimaryContainer, fontWeight: FontWeight.w600)),
+                                const SizedBox(width: 4),
+                                GestureDetector(
+                                  onTap: () => setState(() => _selectedTags.remove(tag)),
+                                  child: Icon(Icons.close, size: 14, color: theme.colorScheme.onPrimaryContainer),
+                                ),
+                              ],
+                            ),
+                          )),
+                          IntrinsicWidth(
+                            child: TextField(
+                              controller: _tagsController,
+                              style: const TextStyle(fontSize: 14),
+                              decoration: const InputDecoration(
+                                hintText: 'Ajouter...',
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                              ),
+                              onSubmitted: (val) {
+                                final tag = val.trim();
+                                if (tag.isNotEmpty && !_selectedTags.contains(tag)) {
+                                  setState(() {
+                                    _selectedTags.add(tag);
+                                    _tagsController.clear();
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (ref.watch(tagsProvider).hasValue) ...[
+                        const Divider(height: 24),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              ...ref.watch(tagsProvider).value!
+                                .where((t) => !_selectedTags.contains(t.name))
+                                .take(5)
+                                .map((t) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ActionChip(
+                                    visualDensity: VisualDensity.compact,
+                                    avatar: Icon(Icons.add, size: 12, color: t.color != null ? Color(int.parse(t.color!.replaceAll('#', '0xFF'))) : null),
+                                    label: Text(t.name, style: const TextStyle(fontSize: 12)),
+                                    onPressed: () => setState(() => _selectedTags.add(t.name)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    backgroundColor: Colors.transparent,
+                                    side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+                                  ),
+                                )),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             // Recurring option removed for rework
             const SizedBox(height: 32),
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ElevatedButton(
-                  onPressed: _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
-                  ),
-                  child: Text(
-                    isEditing ? 'Sauvegarder' : 'Valider',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+            const SizedBox(height: 48),
+            ElevatedButton(
+              onPressed: _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                elevation: 8,
+                shadowColor: theme.colorScheme.primary.withValues(alpha: 0.3),
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kButtonRadius)),
+              ),
+              child: Text(
+                isEditing ? 'SAUVEGARDER' : 'VALIDER LA TRANSACTION',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+            ),
+            if (isEditing) ...[
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _delete,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  foregroundColor: theme.colorScheme.error,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
                 ),
-                if (isEditing) ...[
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _delete,
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      foregroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
-                    ),
-                    child: const Text(
-                      'Supprimer cette transaction',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+                child: const Text(
+                  'Supprimer cette transaction',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
               ],
             ),
           ],
