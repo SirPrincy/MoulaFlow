@@ -797,32 +797,63 @@ class RecentTransactionsCard extends DashboardCard {
               if (lastFive.isEmpty)
                 const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Center(child: Text('Aucune opération.')))
               else
-                ...lastFive.map((tx) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.05), shape: BoxShape.circle),
-                        child: Icon(_getIconForType(tx.type), size: 16),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(tx.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1),
-                            Text(getCategoryName(tx.categoryId), style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
-                          ],
+                ...lastFive.map((tx) {
+                  final fullCatName = getCategoryName(tx.categoryId);
+                  final parts = fullCatName.split(' > ');
+                  final mainCat = parts.first;
+                  final subCat = parts.length > 1 ? parts.last : null;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.05), shape: BoxShape.circle),
+                          child: Icon(_getIconForType(tx.type), size: 16),
                         ),
-                      ),
-                      Text(
-                        formatAmount(tx.amount, symbol: symbol, decimalDigits: decimals),
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tx.type == TransactionType.income ? Colors.green : null),
-                      ),
-                    ],
-                  ),
-                )),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                subCat ?? mainCat, 
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), 
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (subCat != null)
+                                Text(
+                                  mainCat, 
+                                  style: TextStyle(
+                                    fontSize: 10, 
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              if (tx.description.isNotEmpty)
+                                Text(
+                                  tx.description, 
+                                  style: TextStyle(
+                                    fontSize: 10, 
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                    fontStyle: FontStyle.italic,
+                                  ), 
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          formatAmount(tx.amount, symbol: symbol, decimalDigits: decimals),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tx.type == TransactionType.income ? Colors.green : (tx.type == TransactionType.expense ? Colors.red : null)),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
             ],
           ),
         );

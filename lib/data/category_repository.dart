@@ -178,6 +178,12 @@ class CategoryRepository {
         TransactionCategory(id: 'cat_epargne_retraite', name: 'Retraite / PER'),
         TransactionCategory(id: 'cat_epargne_assur_vie', name: 'Assurance Vie & Placements'),
       ]),
+      TransactionCategory(id: 'cat_dettes', name: 'Dettes & Emprunts', subcategories: [
+        TransactionCategory(id: 'cat_dettes_loan_out', name: "Prêt d'argent (Sortie)"),
+        TransactionCategory(id: 'cat_dettes_repay_in', name: "Remboursement reçu (Entrée)"),
+        TransactionCategory(id: 'cat_dettes_loan_in', name: "Emprunt d'argent (Entrée)"),
+        TransactionCategory(id: 'cat_dettes_repay_out', name: "Remboursement effectué (Sortie)"),
+      ]),
       TransactionCategory(id: 'cat_impots', name: 'Impôts & Frais', subcategories: [
         TransactionCategory(id: 'cat_impots_revenu', name: 'Impôt sur le revenu'),
         TransactionCategory(id: 'cat_impots_taxes', name: 'Taxes locales (Foncière, etc.)'),

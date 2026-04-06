@@ -53,7 +53,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       _toWalletId = tx.toWalletId;
       _selectedCategoryId = tx.categoryId;
       _date = tx.date;
-      _date = tx.date;
       _selectedTags.addAll(tx.tags);
       
       if (_selectedWalletId != null && !widget.wallets.any((w) => w.id == _selectedWalletId)) _selectedWalletId = null;
@@ -76,9 +75,11 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
           if (wallet.type == WalletType.debt) {
             _type = wallet.isCredit ? TransactionType.income : TransactionType.expense;
             _descController = TextEditingController(text: wallet.isCredit ? 'Remboursement de ${wallet.name}' : 'Paiement de ${wallet.name}');
+            _selectedCategoryId = wallet.isCredit ? 'cat_dettes_repay_in' : 'cat_dettes_repay_out';
           } else if (wallet.type == WalletType.savings) {
             _type = TransactionType.income;
             _descController = TextEditingController(text: 'Épargne pour ${wallet.name}');
+            _selectedCategoryId = 'cat_epargne_livret';
           }
         }
       } else if (widget.wallets.isNotEmpty) {

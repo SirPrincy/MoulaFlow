@@ -6,7 +6,8 @@ import '../utils/styles.dart';
 
 class TransactionTile extends ConsumerWidget {
   final Transaction tx;
-  final String categoryName;
+  final String mainCategoryName;
+  final String? subCategoryName;
   final String walletCaption;
   final bool isDetailed;
   final VoidCallback onTap;
@@ -16,7 +17,8 @@ class TransactionTile extends ConsumerWidget {
   const TransactionTile({
     super.key,
     required this.tx,
-    required this.categoryName,
+    required this.mainCategoryName,
+    this.subCategoryName,
     required this.walletCaption,
     required this.onTap,
     required this.onDismissed,
@@ -75,9 +77,30 @@ class TransactionTile extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            tx.type == TransactionType.transfer ? 'Transfert' : categoryName,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: -0.2),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tx.type == TransactionType.transfer 
+                                      ? 'Transfert' 
+                                      : (subCategoryName ?? mainCategoryName),
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: -0.2),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (subCategoryName != null && tx.type != TransactionType.transfer) ...[
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    mainCategoryName,
+                                    style: TextStyle(
+                                      fontSize: 11, 
+                                      fontWeight: FontWeight.w500,
+                                      color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.6 : 0.45),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                           if (isDetailed && tx.tags.isNotEmpty) ...[
                             const SizedBox(width: 8),
@@ -97,7 +120,7 @@ class TransactionTile extends ConsumerWidget {
                         ],
                       ),
                       if (tx.description.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           tx.description,
                           style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.88 : 0.7)),

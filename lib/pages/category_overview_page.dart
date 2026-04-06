@@ -74,15 +74,8 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
     }
   }
 
-  String _getCategoryName(String? id) {
-    if (id == null) return 'Divers';
-    for (var mainCat in _categories) {
-      if (mainCat.id == id) return mainCat.name;
-      for (var subCat in mainCat.subcategories) {
-        if (subCat.id == id) return '${mainCat.name} > ${subCat.name}';
-      }
-    }
-    return 'Inconnu';
+  (String, String?) _getCategoryNames(String? id) {
+    return TransactionCategory.getNamesFromId(id, _categories);
   }
 
   double _getDebtTargetAmount(Wallet debtWallet) {
@@ -443,6 +436,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       date: issueDate,
                       walletId: transactionWallet.id,
                       relatedDebtId: debtWallet.id,
+                      categoryId: isCredit ? 'cat_dettes_loan_out' : 'cat_dettes_loan_in',
                     );
                     await ref.read(transactionRepositoryProvider).insertTransaction(tx);
                     if (mounted) {
@@ -650,6 +644,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       date: DateTime.now(),
                       walletId: transactionWallet.id,
                       relatedDebtId: debtWallet.id,
+                      categoryId: debtWallet.isCredit ? 'cat_dettes_repay_in' : 'cat_dettes_repay_out',
                     );
                     await ref.read(transactionRepositoryProvider).insertTransaction(tx);
                     if (mounted) {
@@ -1488,9 +1483,11 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                           ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
                           : _getWalletName(tx.walletId);
 
+                      final catNames = _getCategoryNames(tx.categoryId);
                       return TransactionTile(
                         tx: tx,
-                        categoryName: _getCategoryName(tx.categoryId),
+                        mainCategoryName: catNames.$1,
+                        subCategoryName: catNames.$2,
                         walletCaption: walletCaption,
                         onTap: () => _showTransactionModal(editingTx: tx),
                         onDismissed: () {},

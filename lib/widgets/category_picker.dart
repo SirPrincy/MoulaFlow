@@ -38,20 +38,64 @@ class _CategoryPickerModalState extends State<CategoryPickerModal> {
       }
     }
 
-    List<TransactionCategory> filteredMains = [];
-    if (_searchQuery.isEmpty) {
-      filteredMains = sortedCategories;
-    } else {
-      final q = _searchQuery.toLowerCase();
-      for (var mainCat in sortedCategories) {
-        if (mainCat.name.toLowerCase().contains(q)) {
-          filteredMains.add(mainCat);
-        } else {
-          final matchingSubs = mainCat.subcategories.where((sub) => sub.name.toLowerCase().contains(q)).toList();
-          if (matchingSubs.isNotEmpty) {
-            filteredMains.add(TransactionCategory(id: mainCat.id, name: mainCat.name, subcategories: matchingSubs));
+    Widget _buildCategoryList() {
+      if (_searchQuery.isEmpty) {
+        return ListView.builder(
+          itemCount: sortedCategories.length,
+          itemBuilder: (context, index) {
+            final cat = sortedCategories[index];
+            if (cat.subcategories.isEmpty) {
+              return ListTile(
+                title: Text(cat.name, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)),
+                onTap: () => Navigator.pop(context, cat.id),
+              );
+            }
+            return ExpansionTile(
+              title: Text(cat.name, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)),
+              iconColor: theme.colorScheme.onSurface,
+              collapsedIconColor: theme.colorScheme.onSurface,
+              children: cat.subcategories.map((sub) {
+                return ListTile(
+                  contentPadding: const EdgeInsets.only(left: 40, right: 16),
+                  title: Text(sub.name, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8))),
+                  onTap: () => Navigator.pop(context, sub.id),
+                );
+              }).toList(),
+            );
+          },
+        );
+      } else {
+        final q = _searchQuery.toLowerCase();
+        final List<(TransactionCategory, TransactionCategory?)> flatResults = [];
+        
+        for (var mainCat in sortedCategories) {
+          if (mainCat.name.toLowerCase().contains(q)) {
+            flatResults.add((mainCat, null));
+          }
+          for (var subCat in mainCat.subcategories) {
+            if (subCat.name.toLowerCase().contains(q)) {
+              flatResults.add((mainCat, subCat));
+            }
           }
         }
+
+        return ListView.builder(
+          itemCount: flatResults.length,
+          itemBuilder: (context, index) {
+            final (main, sub) = flatResults[index];
+            final isSub = sub != null;
+            
+            return ListTile(
+              title: Text(
+                isSub ? sub.name : main.name, 
+                style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)
+              ),
+              subtitle: isSub ? Text(main.name, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))) : null,
+              onTap: () => Navigator.pop(context, isSub ? sub.id : main.id),
+              trailing: isSub ? null : Icon(Icons.folder_open, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            );
+          },
+        );
       }
     }
 
@@ -80,6 +124,7 @@ class _CategoryPickerModalState extends State<CategoryPickerModal> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextField(
                 onChanged: (val) => setState(() => _searchQuery = val),
+                autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'Rechercher...',
                   prefixIcon: const Icon(Icons.search),
@@ -92,30 +137,7 @@ class _CategoryPickerModalState extends State<CategoryPickerModal> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                itemCount: filteredMains.length,
-                itemBuilder: (context, index) {
-                  final cat = filteredMains[index];
-                  if (cat.subcategories.isEmpty) {
-                    return ListTile(
-                      title: Text(cat.name, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)),
-                      onTap: () => Navigator.pop(context, cat.id),
-                    );
-                  }
-                  return ExpansionTile(
-                    title: Text(cat.name, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)),
-                    iconColor: theme.colorScheme.onSurface,
-                    collapsedIconColor: theme.colorScheme.onSurface,
-                    children: cat.subcategories.map((sub) {
-                      return ListTile(
-                        contentPadding: const EdgeInsets.only(left: 40, right: 16),
-                        title: Text(sub.name, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8))),
-                        onTap: () => Navigator.pop(context, sub.id),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
+              child: _buildCategoryList(),
             ),
           ],
         ),

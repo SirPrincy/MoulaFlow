@@ -83,19 +83,17 @@ class BudgetDetailPage extends ConsumerWidget {
                     ...status.transactions.map((tx) {
                       return categoriesAsync.when(
                         data: (categories) {
-                          final category = categories.cast<TransactionCategory?>().firstWhere(
-                            (c) => c?.id == tx.categoryId,
-                            orElse: () => null,
-                          );
                           return walletsAsync.when(
                             data: (wallets) {
                               final wallet = wallets.cast<Wallet?>().firstWhere(
                                 (w) => w?.id == tx.walletId,
                                 orElse: () => null,
                               );
+                              final catNames = TransactionCategory.getNamesFromId(tx.categoryId, categories);
                               return TransactionTile(
                                 tx: tx,
-                                categoryName: category?.name ?? 'Sans catégorie',
+                                mainCategoryName: catNames.$1,
+                                subCategoryName: catNames.$2,
                                 walletCaption: wallet?.name ?? 'Inconnu',
                                 onTap: () {},
                                 onDismissed: () {},

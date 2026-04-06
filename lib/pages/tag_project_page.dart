@@ -71,15 +71,8 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
           final categories = ref.watch(categoriesProvider).value ?? [];
           final wallets = ref.watch(walletsProvider).value ?? [];
 
-          String getCatName(String? id) {
-            if (id == null) return 'Divers';
-            for (var mainCat in categories) {
-              if (mainCat.id == id) return mainCat.name;
-              for (var subCat in mainCat.subcategories) {
-                if (subCat.id == id) return subCat.name;
-              }
-            }
-            return 'Inconnu';
+          (String, String?) getCategoryNames(String? id) {
+            return TransactionCategory.getNamesFromId(id, categories);
           }
 
           String getWalletName(String? id) {
@@ -197,9 +190,11 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                   SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final tx = projectTransactions[index];
+                      final catNames = getCategoryNames(tx.categoryId);
                       return TransactionTile(
                         tx: tx,
-                        categoryName: getCatName(tx.categoryId),
+                        mainCategoryName: catNames.$1,
+                        subCategoryName: catNames.$2,
                         walletCaption: getWalletName(
                           tx.walletId ?? tx.fromWalletId,
                         ),

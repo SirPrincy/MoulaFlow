@@ -120,6 +120,17 @@ class TransactionCategory {
                 ?.map((e) => TransactionCategory.fromJson(e))
                 .toList(),
       );
+
+  static (String, String?) getNamesFromId(String? id, List<TransactionCategory> categories) {
+    if (id == null) return ('Divers', null);
+    for (var mainCat in categories) {
+      if (mainCat.id == id) return (mainCat.name, null);
+      for (var subCat in mainCat.subcategories) {
+        if (subCat.id == id) return (mainCat.name, subCat.name);
+      }
+    }
+    return ('Inconnu', null);
+  }
 }
 
 String formatAmount(double amount, {String symbol = 'Ar', int decimalDigits = 2}) {
