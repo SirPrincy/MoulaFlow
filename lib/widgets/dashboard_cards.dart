@@ -870,7 +870,7 @@ class RecentTransactionsCard extends DashboardCard {
   }
 }
 
-/// 5. Résumé des PROJETS (Tags)
+/// 5. Résumé des TAGS
 class ProjectsSummaryCard extends DashboardCard {
   final List<TagDefinition> tags;
   final List<Transaction> transactions;
@@ -892,8 +892,7 @@ class ProjectsSummaryCard extends DashboardCard {
         final decimals = ref.watch(decimalDigitsProvider);
         final theme = Theme.of(context);
         
-        // Filter tags that are projects or have a budget
-        final projectTags = tags.where((t) => t.type == TagType.project || t.goalAmount != null).toList();
+        final projectTags = [...tags]..sort((a, b) => a.name.compareTo(b.name));
 
         return buildContainer(
           context,
@@ -902,7 +901,7 @@ class ProjectsSummaryCard extends DashboardCard {
             children: [
               buildHeader(
                 context, 
-                'PROJETS RÉCENTS',
+                'TAGS RÉCENTS',
                 trailing: InkWell(
                   onTap: () {
                     Navigator.push(
@@ -922,7 +921,7 @@ class ProjectsSummaryCard extends DashboardCard {
               if (projectTags.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: Text('Aucun projet défini.')),
+                  child: Center(child: Text('Aucun tag défini.')),
                 )
               else
                 ...projectTags.take(3).map((tag) {

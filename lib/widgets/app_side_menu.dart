@@ -7,6 +7,7 @@ import '../pages/category_overview_page.dart';
 import '../pages/recurring_payments_page.dart';
 import '../pages/bills_to_pay_page.dart';
 import '../pages/budget_planner_page.dart';
+import '../pages/project_management_page.dart';
 import '../models.dart';
 import '../responsive_layout.dart';
 import 'app_drawer.dart';
@@ -53,7 +54,7 @@ class AppSideMenu extends ConsumerWidget {
       onAPayerTap: () => _navigateTo(context, const BillsToPayPage()),
       onDettesTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.debt, title: 'Dettes')),
       onEpargneTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne')),
-      onProjetTap: () => _navigateTo(context, const CategoryOverviewPage(type: WalletType.project, title: 'Projets')),
+      onProjetTap: () => _navigateTo(context, const ProjectManagementPage()),
       onRecurringTap: () => _navigateTo(context, const RecurringPaymentsPage()),
       onBudgetsTap: () => _navigateTo(context, const BudgetPlannerPage()),
     );
