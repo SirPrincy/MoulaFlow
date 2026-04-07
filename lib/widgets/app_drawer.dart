@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/styles.dart';
 import '../pages/project_management_page.dart';
+import '../pages/projects_page.dart';
 import 'app_logo.dart';
 
 class AppDrawerContent extends StatelessWidget {
@@ -137,12 +138,25 @@ class AppDrawerContent extends StatelessWidget {
                   context,
                   Icons.rocket_launch_outlined,
                   Icons.rocket_launch,
-                  'Projets / Tags',
+                  'Tags',
                   '/projets',
                   onProjetTap ?? () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const ProjectManagementPage()),
+                    );
+                  },
+                ),
+                _buildNavItem(
+                  context,
+                  Icons.task_alt_outlined,
+                  Icons.task_alt,
+                  'Projets séparés',
+                  '/projets-separes',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProjectsPage()),
                     );
                   },
                 ),

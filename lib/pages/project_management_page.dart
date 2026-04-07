@@ -33,7 +33,7 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Projets & Tags', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Tags', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -71,9 +71,9 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
                       children: [
                         Icon(Icons.label_off_outlined, size: 64, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
                         const SizedBox(height: 16),
-                        const Text('Aucun projet ou tag défini.', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text('Aucun tag défini.', style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        Text('Créez-en un pour organiser vos finances.', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                        Text('Créez-en un pour organiser vos transactions.', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
                       ],
                     ),
                   );
@@ -81,14 +81,7 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
 
                 final filteredTags = tags.where((t) => t.name.toLowerCase().contains(_searchQuery)).toList();
                 
-                // Sort: Projects first, then by name
-                filteredTags.sort((a, b) {
-                  final aIsProject = a.type == TagType.project || (a.goalAmount != null && a.goalAmount! > 0);
-                  final bIsProject = b.type == TagType.project || (b.goalAmount != null && b.goalAmount! > 0);
-                  if (aIsProject && !bIsProject) return -1;
-                  if (!aIsProject && bIsProject) return 1;
-                  return a.name.compareTo(b.name);
-                });
+                filteredTags.sort((a, b) => a.name.compareTo(b.name));
 
                 return transactionsAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
@@ -99,7 +92,6 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
                       itemCount: filteredTags.length,
                       itemBuilder: (context, index) {
                         final tag = filteredTags[index];
-                        final isProject = tag.type == TagType.project || (tag.goalAmount != null && tag.goalAmount! > 0);
                         
                         // Calculate spent for this tag
                         double spent = 0;
@@ -112,7 +104,7 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
                         return _TagListItem(
                           tag: tag, 
                           spent: spent, 
-                          isProject: isProject,
+                          isProject: false,
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => TagProjectPage(tag: tag)));
                           },

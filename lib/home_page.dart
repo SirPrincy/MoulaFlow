@@ -14,6 +14,7 @@ import 'pages/recurring_payments_page.dart';
 import 'pages/budget_planner_page.dart';
 import 'pages/tag_project_page.dart';
 import 'pages/project_management_page.dart';
+import 'pages/projects_page.dart';
 import 'utils/styles.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
@@ -205,8 +206,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       (
         icon: Icons.rocket_launch_outlined,
-        label: 'Projets',
+        label: 'Tags',
         onTap: () => _openMobilePage(const ProjectManagementPage()),
+      ),
+      (
+        icon: Icons.task_alt_outlined,
+        label: 'Projets séparés',
+        onTap: () => _openMobilePage(const ProjectsPage()),
       ),
       (
         icon: Icons.autorenew_outlined,
@@ -603,7 +609,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       onAPayerTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BillsToPayPage())),
       onDettesTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.debt, title: 'Dettes'))),
       onEpargneTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.savings, title: 'Épargne'))),
-      onProjetTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoryOverviewPage(type: WalletType.project, title: 'Projets'))),
+      onProjetTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProjectsPage())),
       onRecurringTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecurringPaymentsPage())),
       onBudgetsTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BudgetPlannerPage())),
     );
