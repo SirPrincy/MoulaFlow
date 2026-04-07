@@ -1,23 +1,77 @@
-# Roadmap & TODOs (Moula Flow)
+# Moula Flow — Roadmap exécutable (TODO)
 
-Ce document liste les chantiers potentiels identifiés lors de l'analyse du projet afin d'anticiper les prochaines évolutions.
+> Objectif: transformer la roadmap en **plan de livraison concret** avec des tâches techniques directement implémentables.
 
-## 🚀 À Implémenter (New Features)
+## Convention de suivi
+- **[P0]** Bloquant / fondation
+- **[P1]** Important / prochaine release
+- **[P2]** Amélioration
+- **Statut**: `todo` | `doing` | `done`
 
-- [ ] **Importation de données (CSV/JSON)** : Permettre d'importer l'historique de sa banque ou de l'application précédente.
-- [ ] **Planification & Notifications (Scheduler)** : Ajouter des notifications locales pour alerter de l'échéance d'une facture récurrente ou générer automatiquement la transaction.
-- [ ] **Analytique Avancée (Vue Rapports)** : Créer un onglet dédié à l'analytique avec `fl_chart` pour visualiser la répartition des dépenses par catégories sur plusieurs mois, l'évolution du patrimoine net, etc.
-- [ ] **Ajout de Pièces Jointes** : Permettre d'ajouter une photo (reçu, ticket de caisse) ou un fichier à une transaction (stockage local).
+---
 
-## ✨ À Améliorer (Polish & Améliorations)
+## v0.05 — Stabilisation architecture + Home refactor
 
-- [ ] **Couverture de Tests (Test Coverage)** : Ajouter des tests unitaires sur les Notifiers Riverpod (`BalanceService`, budgets) et des tests d'intégration sur Drift.
-- [ ] **Harmonisation UI et Formulaires** : Centraliser et standardiser les champs de saisie (transactions, wallets, tags) avec une validation stricte (éviter les champs vides non gérés).
-- [ ] **Internationalisation (l10n)** : S'assurer que tous les textes en dur restants dans les widgets soient migrés vers les `AppLocalizations` de Riverpod.
-- [ ] **Optimisation Desktop/Web** : Les écrans complexes doivent garantir un affichage optimal sur grand écran en utilisant au mieux la largeur disponible au-delà du `AppSideMenu`.
+### [P0] Initialisation applicative propre
+- [ ] `todo` Créer `AppSettingsState` (agrégat unique des préférences) dans `lib/data/settings_repository.dart` + provider dédié dans `lib/providers.dart`.
+- [ ] `todo` Modifier `lib/main.dart` pour ne plus charger les prefs une par une.
+- [ ] `todo` Ajouter une stratégie de fallback si une préférence est corrompue (valeur par défaut + log clair).
+- [ ] `todo` Ajouter un test du chargement initial (`test/data/` ou `test/domain/` selon implémentation).
 
-## ⚙️ Architecture & Technique (Refactoring)
+### [P0] Refactor HomePage (découplage)
+- [ ] `todo` Extraire les calculs dashboard de `lib/home_page.dart` vers un service dédié (`lib/domain/home_metrics_service.dart`).
+- [ ] `todo` Exposer ces calculs via providers dans `lib/providers.dart`.
+- [ ] `todo` Limiter `HomePage` à l’assemblage UI + callbacks utilisateur.
+- [ ] `todo` Ajouter tests unitaires sur les calculs (totaux mensuels, flux, soldes portefeuille).
 
-- [ ] **Système de Navigation (GoRouter)** : Migrer la navigation basique vers **GoRouter** pour faciliter le "deep linking", gérer proprement les redirections (lock screen biométrique) et unifier les transitions.
-- [ ] **Injection des Préférences Locales** : Créer un unique `AppSettingsState` regroupant toute la configuration de l'application au lieu d'overrider individuellement chaque réglage dans le `main.dart`.
-- [ ] **Stratégie de Migration de Base de Données (Drift)** : Implémenter et tester la mécanique `onUpgrade` avec le paquet `drift_dev` pour sécuriser les futures modifications des tables SQLite sans perte de données.
+### [P1] Modularisation UI dashboard
+- [ ] `todo` Créer des widgets par bloc dans `lib/widgets/dashboard_cards.dart` ou sous-dossier dédié:
+  - `balance_card.dart`
+  - `flow_card.dart`
+  - `categories_card.dart`
+  - `recent_transactions_card.dart`
+- [ ] `todo` Remplacer les gros `switch`/conditions de `HomePage` par un mapping clair type `DashboardModule -> Widget`.
+- [ ] `todo` Uniformiser composants `LoadingState`, `EmptyState`, `ErrorState`.
+
+### [P1] Qualité formulaire & i18n
+- [ ] `todo` Créer des validateurs partagés pour montants/champs obligatoires (transactions, wallets, tags).
+- [ ] `todo` Retirer les textes en dur restants des pages critiques (`lib/home_page.dart`, `lib/pages/*.dart`, `lib/widgets/*.dart`).
+- [ ] `todo` Ajouter clés manquantes dans `lib/l10n/app_fr.arb` et `lib/l10n/app_en.arb`.
+
+---
+
+## v0.06 — Features attendues
+
+### [P1] Import CSV/JSON
+- [ ] `todo` Définir format d’import minimal (date, montant, wallet, catégorie, note).
+- [ ] `todo` Créer service d’import (`lib/data/import_service.dart`) avec phase de prévisualisation.
+- [ ] `todo` Gérer mapping de colonnes + validation + rapport d’erreurs.
+- [ ] `todo` Ajouter tests de parsing et test round-trip.
+
+### [P1] Scheduler récurrences & notifications locales
+- [ ] `todo` Étendre `recurring_payment_service` pour générer événements à échéance.
+- [ ] `todo` Ajouter couche notifications locale (abstraction service + implémentation plateforme).
+- [ ] `todo` Ajouter écran “À payer” filtré par fenêtre (J+3, J+7, retard).
+
+### [P2] Analytics avancées
+- [ ] `todo` Créer page rapports (`lib/pages/reports_page.dart`).
+- [ ] `todo` Ajouter séries temporelles: dépenses par catégorie, évolution net, projections.
+- [ ] `todo` Exploiter `fl_chart` avec thèmes clair/sombre cohérents.
+
+---
+
+## v0.07+ — Évolutions produit
+- [ ] `todo` Migration navigation vers `go_router` (deep-link + redirections setup/verrouillage).
+- [ ] `todo` Pièces jointes transaction (stockage local + métadonnées DB).
+- [ ] `todo` Recherche globale cross-entités (transactions, catégories, projets, budgets).
+- [ ] `todo` Insights automatiques (alertes dérives budget / dépenses atypiques).
+
+---
+
+## Definition of Done (obligatoire)
+Une tâche est `done` uniquement si:
+- [ ] code + tests ajoutés,
+- [ ] l10n mise à jour (FR + EN),
+- [ ] documentation impactée mise à jour,
+- [ ] `flutter analyze` passe sans erreur,
+- [ ] au moins un scénario manuel validé (mobile + desktop si UI).
