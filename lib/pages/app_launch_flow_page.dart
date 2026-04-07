@@ -18,6 +18,7 @@ class AppLaunchFlowPage extends ConsumerStatefulWidget {
 class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
   final AppAccessGateFactory _gateFactory = const AppAccessGateFactory();
   bool _showWelcome = true;
+  bool _showRecoveryHint = false;
 
   Future<void> _handleOnboardingCompleted() async {
     await ref.read(settingsRepositoryProvider).saveOnboardingSeen(true);
@@ -35,12 +36,13 @@ class _AppLaunchFlowPageState extends ConsumerState<AppLaunchFlowPage> {
     if (!mounted || !granted) return;
 
     await _processRecurring();
+    _showRecoveryHint = await ref.read(settingsRepositoryProvider).shouldShowRecoveryHint();
 
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => const HomePage(),
+        builder: (context) => HomePage(showRecoveryHint: _showRecoveryHint),
       ),
     );
   }

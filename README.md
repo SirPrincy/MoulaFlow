@@ -18,6 +18,8 @@ Moula Flow is a minimalist, modern, and purely reactive personal finance applica
 - **Hierarchical Categories**: Deep organization with real-time fuzzy search for categories and sub-categories.
 - **Advanced Transactions**: Support for transfers, tags, and recurrence flags.
 - **Export & Portability**: (In development) Future-proof your data with CSV/JSON exports.
+- **Resilient Local Data**: Non-destructive Drift migrations, SQLite integrity checks, and safer backup restore flow.
+- **Recovery Guidance**: If profile metadata exists but local transactional data is empty, the app now shows a recovery hint.
 
 ## Tech Stack 🛠️
 
@@ -46,6 +48,15 @@ Moula Flow is a minimalist, modern, and purely reactive personal finance applica
    ```bash
    flutter run
    ```
+
+### Database Reliability Notes
+- Current Drift schema: **v9** (`schemaVersion = 9`).
+- Upgrade path to v9 is non-destructive for existing user data (adds the `projects` table only).
+- Startup includes:
+  - `PRAGMA foreign_keys = ON`
+  - `PRAGMA busy_timeout = 2000`
+  - `PRAGMA integrity_check` validation + critical table presence checks.
+- Binary backup import uses a safer file swap strategy (`.tmp` then rename with `.old` rollback).
 
 ## Documentation 📚
 

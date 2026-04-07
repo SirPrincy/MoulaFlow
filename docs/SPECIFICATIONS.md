@@ -11,12 +11,14 @@ Moula Flow follow a standard three-layer architecture designed for offline-first
 ### 1. Data Layer (`lib/data/`)
 Persistent storage and raw data retrieval.
 - **Relational Database (Drift)**: A robust SQL-backed storage (`moula_flow.sqlite`) with strong typing.
-    - Tables: `Wallets`, `Transactions`, `Categories`, `Budgets`, `RecurringPayments`.
-    - Schema Management: Automatic migrations via Drift's `schemaVersion`.
+    - Tables: `Wallets`, `Transactions`, `Categories`, `Budgets`, `RecurringPayments`, `Tags`, `TransactionTags`, `Projects`.
+    - Schema Management: Automatic migrations via Drift's `schemaVersion` (currently **v9**) with non-destructive upgrade behavior for existing data.
+    - Reliability: startup integrity checks (`PRAGMA integrity_check`) + critical table validation.
 - **Repositories**: Standardized interfaces for database interactions.
     - `TransactionRepository`: Handles all financial movements and transfers.
     - `WalletRepository`: Manages balances and targets.
     - `CategoryRepository`: Handles hierarchical categories with default injection.
+    - `SettingsRepository`: Handles preferences + binary backup/restore, including safer atomic DB replacement flow.
 
 ### 2. State Management Layer (`lib/providers.dart`)
 The brain of the application powered by **Riverpod**.
@@ -73,3 +75,9 @@ To maintain code quality and architectural integrity:
 - **Two-tier Hierarchy**: Folders for broad categories and sub-items for precise tracking.
 - **Fuzzy Search**: Rapid selection of categories via a bottom-sheet search bar.
 - **Tagging System**: Add free-form labels (e.g., #trip2026) for custom cross-category analytics.
+
+### 🛡️ Data Safety & Recovery
+- **Non-destructive migrations** for schema upgrades to avoid data wipes.
+- **Integrity validation on open** to fail fast when DB corruption/missing critical tables is detected.
+- **Backup restore hardening** with temp file write + rollback strategy.
+- **Recovery UX hint** when profile metadata exists but local finance tables are empty.
