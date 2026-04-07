@@ -31,19 +31,19 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 10) {
           if (await _tableExists('wallets')) {
-            await m.addColumn(wallets, wallets.updatedAt);
-            await m.addColumn(wallets, wallets.deletedAt);
+            await m.addColumn(wallets, wallets.updatedAt as dynamic);
+            await m.addColumn(wallets, wallets.deletedAt as dynamic);
           }
           if (await _tableExists('categories')) {
-            await m.addColumn(categories, categories.deletedAt);
+            await m.addColumn(categories, categories.deletedAt as dynamic);
             await m.alterTable(TableMigration(categories));
           }
           if (await _tableExists('budgets')) {
-            await m.addColumn(budgets, budgets.updatedAt);
+            await m.addColumn(budgets, budgets.updatedAt as dynamic);
             await m.alterTable(TableMigration(budgets));
           }
           if (await _tableExists('transactions')) {
-            await m.addColumn(transactions, transactions.isCleared);
+            await m.addColumn(transactions, transactions.isCleared as dynamic);
             await m.alterTable(TableMigration(transactions));
           }
           if (await _tableExists('recurring_payments')) {

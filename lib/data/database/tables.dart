@@ -74,7 +74,6 @@ class Transactions extends Table {
   @override
   Set<Column> get primaryKey => {id};
 
-  @override
   List<Index> get indexes => [
         Index('idx_transactions_date', 'date'),
         Index('idx_transactions_wallet_id', 'wallet_id'),

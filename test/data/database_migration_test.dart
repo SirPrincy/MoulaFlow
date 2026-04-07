@@ -1,6 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:moulaflow/data/database/app_database.dart';
+import 'package:moula_flow/data/database/app_database.dart';
 
 void main() {
   test('upgrade 8 -> 9 preserves existing rows and creates projects table', () async {
