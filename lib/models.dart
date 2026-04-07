@@ -628,3 +628,106 @@ class BudgetStatus {
   bool get isOverBudget => spent > plan.amount;
   bool get isNearLimit => percentage >= 0.8 && !isOverBudget;
 }
+
+class ProjectItem {
+  final String id;
+  final String name;
+  final double price;
+  final bool isPurchased;
+
+  const ProjectItem({
+    required this.id,
+    required this.name,
+    required this.price,
+    this.isPurchased = false,
+  });
+
+  ProjectItem copyWith({
+    String? id,
+    String? name,
+    double? price,
+    bool? isPurchased,
+  }) {
+    return ProjectItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      isPurchased: isPurchased ?? this.isPurchased,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'price': price,
+        'isPurchased': isPurchased,
+      };
+
+  factory ProjectItem.fromJson(Map<String, dynamic> json) => ProjectItem(
+        id: json['id'],
+        name: json['name'],
+        price: json['price'].toDouble(),
+        isPurchased: json['isPurchased'] ?? false,
+      );
+}
+
+class Project {
+  final String id;
+  final String title;
+  final String icon;
+  final String linkedWalletId;
+  final List<ProjectItem> items;
+
+  const Project({
+    required this.id,
+    required this.title,
+    required this.icon,
+    required this.linkedWalletId,
+    required this.items,
+  });
+
+  double get targetAmount {
+    return items.fold(0.0, (sum, item) => sum + item.price);
+  }
+
+  double getProgress(double currentSavings) {
+    if (targetAmount == 0) return 0.0;
+    double progress = currentSavings / targetAmount;
+    return progress > 1.0 ? 1.0 : progress;
+  }
+
+  Project copyWith({
+    String? id,
+    String? title,
+    String? icon,
+    String? linkedWalletId,
+    List<ProjectItem>? items,
+  }) {
+    return Project(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      icon: icon ?? this.icon,
+      linkedWalletId: linkedWalletId ?? this.linkedWalletId,
+      items: items ?? this.items,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'icon': icon,
+        'linkedWalletId': linkedWalletId,
+        'items': items.map((i) => i.toJson()).toList(),
+      };
+
+  factory Project.fromJson(Map<String, dynamic> json) => Project(
+        id: json['id'],
+        title: json['title'],
+        icon: json['icon'],
+        linkedWalletId: json['linkedWalletId'],
+        items: (json['items'] as List<dynamic>?)
+                ?.map((e) => ProjectItem.fromJson(e))
+                .toList() ??
+            [],
+      );
+}

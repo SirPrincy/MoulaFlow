@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import '../../models.dart';
 
@@ -12,6 +13,26 @@ class StringListConverter extends TypeConverter<List<String>, String> {
 
   @override
   String toSql(List<String> value) => value.join(',');
+}
+
+class ProjectItemListConverter extends TypeConverter<List<ProjectItem>, String> {
+  const ProjectItemListConverter();
+
+  @override
+  List<ProjectItem> fromSql(String fromDb) {
+    if (fromDb.isEmpty || fromDb == '[]') return [];
+    try {
+      final List<dynamic> decoded = jsonDecode(fromDb);
+      return decoded.map((e) => ProjectItem.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  @override
+  String toSql(List<ProjectItem> value) {
+    return jsonEncode(value.map((e) => e.toJson()).toList());
+  }
 }
 
 @DataClassName('WalletEntity')
