@@ -16,7 +16,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTest(super.connection);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,6 +28,30 @@ class AppDatabase extends _$AppDatabase {
       await transaction(() async {
         if (from < 9) {
           await m.createTable(projects);
+        }
+        if (from < 10) {
+          if (await _tableExists('wallets')) {
+            await m.addColumn(wallets, wallets.updatedAt);
+            await m.addColumn(wallets, wallets.deletedAt);
+          }
+          if (await _tableExists('categories')) {
+            await m.addColumn(categories, categories.deletedAt);
+            await m.alterTable(TableMigration(categories));
+          }
+          if (await _tableExists('budgets')) {
+            await m.addColumn(budgets, budgets.updatedAt);
+            await m.alterTable(TableMigration(budgets));
+          }
+          if (await _tableExists('transactions')) {
+            await m.addColumn(transactions, transactions.isCleared);
+            await m.alterTable(TableMigration(transactions));
+          }
+          if (await _tableExists('recurring_payments')) {
+            await m.alterTable(TableMigration(recurringPayments));
+          }
+          if (await _tableExists('projects')) {
+            await m.alterTable(TableMigration(projects));
+          }
         }
       });
       developer.log('DB migration completed', name: 'AppDatabase', error: {'from': from, 'to': to});
@@ -57,6 +81,14 @@ class AppDatabase extends _$AppDatabase {
         throw StateError('Critical table missing after open: $tableName');
       }
     }
+  }
+
+  Future<bool> _tableExists(String tableName) async {
+    final exists = await customSelect(
+      "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name=?;",
+      variables: [Variable.withString(tableName)],
+    ).getSingle();
+    return exists.read<int>('c') > 0;
   }
 
   Future<void> clearAllData() async {
