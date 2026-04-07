@@ -17,6 +17,7 @@ import 'pages/project_management_page.dart';
 import 'utils/styles.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
+import 'domain/home_metrics_service.dart';
 import 'widgets/dashboard_cards.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -37,6 +38,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   final _balanceService = BalanceService();
   final _dashboardRepo = DashboardRepository();
+  final _homeMetricsService = HomeMetricsService();
 
   DashboardConfig _dashboardConfig = DashboardConfig.defaultConfig();
   bool _isEditMode = false;
@@ -167,28 +169,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     await _dashboardRepo.saveConfig(_dashboardConfig);
   }
 
-  double _getMonthlyTotal(TransactionType type) {
-    final now = DateTime.now();
-    return _filteredTransactions
-        .where(
-          (tx) =>
-              tx.type == type &&
-              tx.date.month == now.month &&
-              tx.date.year == now.year,
-        )
-        .fold(0.0, (sum, tx) => sum + tx.amount.abs());
-  }
-
-  Map<String, double> _getCategorySpending() {
-    final Map<String, double> res = {};
-    for (var tx in _filteredTransactions.where(
-      (tx) => tx.type == TransactionType.expense,
-    )) {
-      final name = _getCategoryName(tx.categoryId).split('>').last.trim();
-      res[name] = (res[name] ?? 0) + tx.amount.abs();
-    }
-    return res;
-  }
 
   Widget _buildMobileOverlayMenu(ThemeData theme) {
     final menuItems = <({
@@ -442,9 +422,24 @@ class _HomePageState extends ConsumerState<HomePage> {
     final tags = tagsAsync.value ?? [];
 
     final theme = Theme.of(context);
-    final income = _getMonthlyTotal(TransactionType.income);
-    final expenses = _getMonthlyTotal(TransactionType.expense);
-    final categorySpending = _getCategorySpending();
+    final metricsSelectionKey = (_selectedWalletIds.toList()..sort()).join(',');
+    final metricsAsync = ref.watch(homeMetricsProvider(metricsSelectionKey));
+    final flowAsync = ref.watch(homeFlowProvider(metricsSelectionKey));
+    final categorySpendAsync = ref.watch(homeCategorySpendProvider(metricsSelectionKey));
+
+    final metrics = metricsAsync.value ?? _homeMetricsService.compute(
+      transactions: _transactions,
+      wallets: _wallets,
+      categories: _categories,
+      selectedWalletIds: _selectedWalletIds,
+    );
+    final flow = flowAsync.value ?? HomeFlowMetrics(
+      income: metrics.monthIncome,
+      expenses: metrics.monthExpense,
+    );
+    final income = flow.income;
+    final expenses = flow.expenses;
+    final categorySpending = categorySpendAsync.value ?? metrics.spendByCategory;
     final historicalBalances = _balanceService.computeHistoricalBalances(
       _wallets,
       _transactions,
@@ -452,9 +447,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       7,
     );
 
-    final rawFiltered = _filteredTransactions;
-    rawFiltered.sort((a, b) => b.date.compareTo(a.date));
-    final filteredTxs = rawFiltered;
+    final filteredTxs = metrics.recents;
 
     final dashboardItems = _dashboardConfig.order
         .where((type) => _dashboardConfig.visible.contains(type))

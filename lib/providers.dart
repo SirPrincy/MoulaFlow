@@ -8,6 +8,7 @@ import 'package:moula_flow/data/recurring_payment_repository.dart';
 import 'package:moula_flow/data/project_repository.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/domain/balance_service.dart';
+import 'package:moula_flow/domain/home_metrics_service.dart';
 import 'package:moula_flow/data/settings_repository.dart';
 import 'package:moula_flow/data/dashboard_repository.dart';
 import 'package:moula_flow/data/app_access_method.dart';
@@ -28,6 +29,13 @@ final recurringPaymentRepositoryProvider = Provider((ref) => RecurringPaymentRep
 final tagRepositoryProvider = Provider((ref) => TagRepository(ref.watch(databaseProvider)));
 final projectRepositoryProvider = Provider((ref) => ProjectRepository(ref.watch(databaseProvider)));
 final balanceServiceProvider = Provider((ref) => BalanceService());
+final homeMetricsServiceProvider = Provider((ref) => HomeMetricsService());
+
+
+Set<String> _walletSelectionFromKey(String walletSelectionKey) {
+  if (walletSelectionKey.isEmpty) return const {};
+  return walletSelectionKey.split(',').where((id) => id.isNotEmpty).toSet();
+}
 
 final walletsProvider = StreamProvider<List<Wallet>>((ref) {
   return ref.watch(walletRepositoryProvider).watchWallets();
@@ -292,3 +300,50 @@ class DashboardNotifier extends AsyncNotifier<DashboardConfig> {
 }
 
 final dashboardConfigProvider = AsyncNotifierProvider<DashboardNotifier, DashboardConfig>(DashboardNotifier.new);
+
+
+final homeMetricsProvider = Provider.family<AsyncValue<HomeMetrics>, String>((ref, walletSelectionKey) {
+  final txsAsync = ref.watch(transactionsProvider);
+  final walletsAsync = ref.watch(walletsProvider);
+  final categoriesAsync = ref.watch(categoriesProvider);
+  final service = ref.watch(homeMetricsServiceProvider);
+
+  if (txsAsync.hasError) {
+    return AsyncValue.error(txsAsync.error!, txsAsync.stackTrace ?? StackTrace.current);
+  }
+  if (walletsAsync.hasError) {
+    return AsyncValue.error(walletsAsync.error!, walletsAsync.stackTrace ?? StackTrace.current);
+  }
+  if (categoriesAsync.hasError) {
+    return AsyncValue.error(categoriesAsync.error!, categoriesAsync.stackTrace ?? StackTrace.current);
+  }
+
+  if (txsAsync.isLoading || walletsAsync.isLoading || categoriesAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+
+  return AsyncValue.data(
+    service.compute(
+      transactions: txsAsync.requireValue,
+      wallets: walletsAsync.requireValue,
+      categories: categoriesAsync.requireValue,
+      selectedWalletIds: _walletSelectionFromKey(walletSelectionKey),
+    ),
+  );
+});
+
+
+final homeFlowProvider = Provider.family<AsyncValue<HomeFlowMetrics>, String>((ref, walletSelectionKey) {
+  final metricsAsync = ref.watch(homeMetricsProvider(walletSelectionKey));
+  return metricsAsync.whenData(
+    (metrics) => HomeFlowMetrics(
+      income: metrics.monthIncome,
+      expenses: metrics.monthExpense,
+    ),
+  );
+});
+
+final homeCategorySpendProvider = Provider.family<AsyncValue<Map<String, double>>, String>((ref, walletSelectionKey) {
+  final metricsAsync = ref.watch(homeMetricsProvider(walletSelectionKey));
+  return metricsAsync.whenData((metrics) => metrics.spendByCategory);
+});
