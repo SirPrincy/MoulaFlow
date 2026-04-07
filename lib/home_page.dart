@@ -20,7 +20,8 @@ import 'domain/balance_service.dart';
 import 'widgets/dashboard_cards.dart';
 
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  final bool showRecoveryHint;
+  const HomePage({super.key, this.showRecoveryHint = false});
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
@@ -44,6 +45,17 @@ class _HomePageState extends ConsumerState<HomePage> {
   void initState() {
     super.initState();
     _loadDashboard();
+    if (widget.showRecoveryHint) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profil détecté mais données locales vides. Tu peux tenter une restauration depuis Paramètres > Sauvegarde.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      });
+    }
   }
 
   Future<void> _loadDashboard() async {

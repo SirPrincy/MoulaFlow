@@ -204,6 +204,39 @@ class SettingsRepository {
     if (offset + dbLen > bytes.length) throw const FormatException('Taille de segment DB invalide.');
     final dbBytes = bytes.sublist(offset, offset + dbLen);
 
+    // Apply DB first (atomic replacement)
+    await _db?.hardClose();
+    final dbPath = await AppDatabase.getDbFilePath();
+    final dbFile = File(dbPath);
+    final tmpFile = File('$dbPath.tmp');
+    final oldFile = File('$dbPath.old');
+    if (await tmpFile.exists()) {
+      await tmpFile.delete();
+    }
+    await tmpFile.writeAsBytes(dbBytes, flush: true);
+
+    try {
+      if (await oldFile.exists()) {
+        await oldFile.delete();
+      }
+      if (await dbFile.exists()) {
+        await dbFile.rename(oldFile.path);
+      }
+      await tmpFile.rename(dbFile.path);
+      if (await oldFile.exists()) {
+        await oldFile.delete();
+      }
+    } catch (_) {
+      if (await oldFile.exists() && !await dbFile.exists()) {
+        await oldFile.rename(dbFile.path);
+      }
+      rethrow;
+    } finally {
+      if (await tmpFile.exists()) {
+        await tmpFile.delete();
+      }
+    }
+
     // Apply Meta (SharedPreferences)
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -219,17 +252,18 @@ class SettingsRepository {
       } else if (value is double) {
         await prefs.setDouble(entry.key, value);
       } else if (value is List) {
-        await prefs.setStringList(
-            entry.key, value.map((e) => e.toString()).toList());
+        await prefs.setStringList(entry.key, value.map((e) => e.toString()).toList());
       }
     }
+  }
 
-    // Apply DB
-    final dbPath = await AppDatabase.getDbFilePath();
-    final dbFile = File(dbPath);
-    if (await dbFile.exists()) {
-      await dbFile.delete();
-    }
-    await dbFile.writeAsBytes(dbBytes);
+  Future<bool> shouldShowRecoveryHint() async {
+    if (_db == null) return false;
+    final userName = await loadUserName();
+    if (userName == null || userName.trim().isEmpty) return false;
+
+    final walletsRow = await _db!.customSelect('SELECT COUNT(*) AS c FROM wallets;').getSingle();
+    final transactionsRow = await _db!.customSelect('SELECT COUNT(*) AS c FROM transactions;').getSingle();
+    return walletsRow.read<int>('c') == 0 && transactionsRow.read<int>('c') == 0;
   }
 }
