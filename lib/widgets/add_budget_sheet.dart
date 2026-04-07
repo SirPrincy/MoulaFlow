@@ -5,7 +5,9 @@ import '../models.dart';
 import '../providers.dart';
 
 class AddBudgetSheet extends ConsumerStatefulWidget {
-  const AddBudgetSheet({super.key});
+  final BudgetPlan? editingBudget;
+
+  const AddBudgetSheet({super.key, this.editingBudget});
 
   @override
   ConsumerState<AddBudgetSheet> createState() => _AddBudgetSheetState();
@@ -35,7 +37,19 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
   @override
   void initState() {
     super.initState();
-    _refreshDates();
+    final editing = widget.editingBudget;
+    if (editing != null) {
+      _nameController.text = editing.name;
+      _amountController.text = editing.amount.toStringAsFixed(2);
+      _periodType = editing.periodType;
+      _startDate = editing.startDate;
+      _endDate = editing.endDate;
+      _selectedWalletIds.addAll(editing.walletIds);
+      _selectedCategoryIds.addAll(editing.categoryIds);
+      _includeAllCategories = editing.includeAllCategories;
+    } else {
+      _refreshDates();
+    }
   }
 
   @override
@@ -173,24 +187,45 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
     final amount = double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0;
     if (amount <= 0) return;
 
-    final plan = BudgetPlan(
-      id: const Uuid().v4(),
-      name: _nameController.text.trim(),
-      periodType: _periodType,
-      startDate: _startDate,
-      endDate: _endDate,
-      walletIds: _selectedWalletIds.toList(),
-      categoryIds: _includeAllCategories ? [] : _selectedCategoryIds.toList(),
-      includeAllCategories: _includeAllCategories,
-      amount: amount,
-      createdAt: DateTime.now(),
-    );
+    final editing = widget.editingBudget;
+    final plan = editing?.copyWith(
+          name: _nameController.text.trim(),
+          periodType: _periodType,
+          startDate: _startDate,
+          endDate: _endDate,
+          walletIds: _selectedWalletIds.toList(),
+          categoryIds: _includeAllCategories ? [] : _selectedCategoryIds.toList(),
+          includeAllCategories: _includeAllCategories,
+          amount: amount,
+        ) ??
+        BudgetPlan(
+          id: const Uuid().v4(),
+          name: _nameController.text.trim(),
+          periodType: _periodType,
+          startDate: _startDate,
+          endDate: _endDate,
+          walletIds: _selectedWalletIds.toList(),
+          categoryIds: _includeAllCategories ? [] : _selectedCategoryIds.toList(),
+          includeAllCategories: _includeAllCategories,
+          amount: amount,
+          createdAt: DateTime.now(),
+        );
 
-    await ref.read(budgetRepositoryProvider).insertBudget(plan);
+    if (editing != null) {
+      await ref.read(budgetRepositoryProvider).updateBudget(plan);
+    } else {
+      await ref.read(budgetRepositoryProvider).insertBudget(plan);
+    }
     if (!mounted) return;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Budget ajouté avec succès')),
+      SnackBar(
+        content: Text(
+          editing != null
+              ? 'Budget modifié avec succès'
+              : 'Budget ajouté avec succès',
+        ),
+      ),
     );
   }
 
@@ -225,7 +260,7 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Nouveau Budget',
+                widget.editingBudget != null ? 'Modifier le budget' : 'Nouveau Budget',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -386,7 +421,11 @@ class _AddBudgetSheetState extends ConsumerState<AddBudgetSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Créer le budget'),
+                  child: Text(
+                    widget.editingBudget != null
+                        ? 'Enregistrer les modifications'
+                        : 'Créer le budget',
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
