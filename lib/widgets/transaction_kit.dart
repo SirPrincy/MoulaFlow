@@ -28,11 +28,11 @@ class TKAmountField extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 20,
             offset: const Offset(0, 8),
           )
@@ -45,7 +45,7 @@ class TKAmountField extends StatelessWidget {
             'Montant',
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
             ),
@@ -60,7 +60,7 @@ class TKAmountField extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ),
               const SizedBox(width: 8),
@@ -148,11 +148,11 @@ class TKCategorySelector extends StatelessWidget {
                       border: Border.all(
                         color: isSelected 
                             ? Colors.transparent 
-                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                       ),
                       boxShadow: isSelected ? [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         )
@@ -164,7 +164,7 @@ class TKCategorySelector extends StatelessWidget {
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                         color: isSelected 
                             ? Theme.of(context).colorScheme.onPrimary 
-                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
@@ -199,7 +199,7 @@ class TKNoteField extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
         ),
       ),
       child: TextFormField(
@@ -215,14 +215,14 @@ class TKNoteField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: 'Notes ou description...',
           hintStyle: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             fontSize: 15,
           ),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(bottom: 0),
             child: Icon(
               Icons.format_align_left_rounded,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               size: 20,
             ),
           ),
@@ -302,7 +302,7 @@ class _TKTagSystemState extends State<TKTagSystem> {
             ..._tags.map((tag) => Container(
               padding: const EdgeInsets.only(left: 14, right: 6, top: 6, bottom: 6),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -325,7 +325,7 @@ class _TKTagSystemState extends State<TKTagSystem> {
                       child: Icon(
                         Icons.close_rounded,
                         size: 14,
-                        color: Theme.of(context).colorScheme.onSecondaryContainer.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
                       ),
                     ),
                   )
@@ -344,7 +344,7 @@ class _TKTagSystemState extends State<TKTagSystem> {
                   decoration: InputDecoration(
                     hintText: '+ Nouveau tag',
                     hintStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),

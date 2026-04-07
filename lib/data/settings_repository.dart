@@ -262,8 +262,8 @@ class SettingsRepository {
     final userName = await loadUserName();
     if (userName == null || userName.trim().isEmpty) return false;
 
-    final walletsRow = await _db!.customSelect('SELECT COUNT(*) AS c FROM wallets;').getSingle();
-    final transactionsRow = await _db!.customSelect('SELECT COUNT(*) AS c FROM transactions;').getSingle();
+    final walletsRow = await _db.customSelect('SELECT COUNT(*) AS c FROM wallets;').getSingle();
+    final transactionsRow = await _db.customSelect('SELECT COUNT(*) AS c FROM transactions;').getSingle();
     return walletsRow.read<int>('c') == 0 && transactionsRow.read<int>('c') == 0;
   }
 }

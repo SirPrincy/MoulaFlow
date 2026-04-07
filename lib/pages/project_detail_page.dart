@@ -6,10 +6,10 @@ class ProjectDetailPage extends StatefulWidget {
   final double currentSavings;
 
   const ProjectDetailPage({
-    Key? key,
+    super.key,
     required this.project,
     required this.currentSavings,
-  }) : super(key: key);
+  });
 
   @override
   State<ProjectDetailPage> createState() => _ProjectDetailPageState();
@@ -170,16 +170,16 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
                           color: item.isPurchased 
-                              ? theme.colorScheme.surface.withOpacity(0.6) 
+                              ? theme.colorScheme.surface.withValues(alpha: 0.6) 
                               : theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: isAffordable 
-                            ? Border.all(color: Colors.green.withOpacity(0.5), width: 1.5)
+                            ? Border.all(color: Colors.green.withValues(alpha: 0.5), width: 1.5)
                             : Border.all(color: Colors.transparent),
                           boxShadow: [
                             if (!item.isPurchased)
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
+                                color: Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -187,7 +187,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                         ),
                         child: Theme(
                           data: Theme.of(context).copyWith(
-                            unselectedWidgetColor: theme.colorScheme.onSurface.withOpacity(0.3),
+                            unselectedWidgetColor: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                           ),
                           child: CheckboxListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -202,7 +202,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                                 decoration: item.isPurchased ? TextDecoration.lineThrough : null,
-                                color: item.isPurchased ? theme.colorScheme.onSurface.withOpacity(0.4) : null,
+                                color: item.isPurchased ? theme.colorScheme.onSurface.withValues(alpha: 0.4) : null,
                               ),
                             ),
                             subtitle: Padding(
@@ -214,8 +214,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: item.isPurchased 
-                                        ? theme.colorScheme.onSurface.withOpacity(0.4)
-                                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                                        ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
+                                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                                     ),
                                   ),
                                   if (isAffordable) ...[
@@ -223,7 +223,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.1),
+                                        color: Colors.green.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: const Text(

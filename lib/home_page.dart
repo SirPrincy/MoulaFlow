@@ -87,8 +87,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     setState(() => _isMobileMenuOpen = !_isMobileMenuOpen);
   }
 
-  List<Transaction> get _filteredTransactions => _balanceService
-      .filterTransactionsByWalletSelection(_transactions, _selectedWalletIds);
 
   String _getWalletName(String? id) {
     if (id == null) return 'Inconnu';

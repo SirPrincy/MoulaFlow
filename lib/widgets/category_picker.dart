@@ -38,7 +38,7 @@ class _CategoryPickerModalState extends State<CategoryPickerModal> {
       }
     }
 
-    Widget _buildCategoryList() {
+        Widget buildCategoryList() {
       if (_searchQuery.isEmpty) {
         return ListView.builder(
           itemCount: sortedCategories.length,
@@ -137,7 +137,7 @@ class _CategoryPickerModalState extends State<CategoryPickerModal> {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: _buildCategoryList(),
+              child: buildCategoryList(),
             ),
           ],
         ),

@@ -7,11 +7,11 @@ class ProjectCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const ProjectCard({
-    Key? key,
+    super.key,
     required this.project,
     required this.currentSavings,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +28,7 @@ class ProjectCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04), // Ombre légère style Apple
+              color: Colors.black.withValues(alpha: 0.04), // Ombre légère style Apple
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -42,7 +42,7 @@ class ProjectCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -68,7 +68,7 @@ class ProjectCard extends StatelessWidget {
                         '${project.items.length} articles',
                         style: TextStyle(
                           fontSize: 13,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -93,14 +93,14 @@ class ProjectCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${formatAmount(currentSavings)}',
+                  formatAmount(currentSavings),
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                 ),
                 Text(
                   'Cible : ${formatAmount(project.targetAmount)}',
                   style: TextStyle(
                     fontSize: 13,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -112,7 +112,7 @@ class ProjectCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 4,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   isCompleted ? Colors.green.shade400 : theme.colorScheme.primary,
                 ),

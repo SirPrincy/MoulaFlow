@@ -136,10 +136,10 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     try {
       // Clean the expression for math_expressions (it uses * and / as standard)
       final expression = text.replaceAll(',', '.');
-      final p = ShuntingYardParser();
+      final p = GrammarParser();
       final exp = p.parse(expression);
       final cm = ContextModel();
-      return const RealEvaluator().evaluate(exp, cm);
+      return RealEvaluator(cm).evaluate(exp).toDouble();
     } catch (e) {
       return null;
     }
