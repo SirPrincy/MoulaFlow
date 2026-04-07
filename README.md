@@ -51,6 +51,7 @@ Moula Flow is a minimalist, modern, and purely reactive personal finance applica
 
 All detailed technical specifications are consolidated in:
 - [**Technical Specifications**](docs/SPECIFICATIONS.md)
+- [**App flow schema (all steps)**](docs/APP_FLOW_SCHEMA.md)
 
 ---
 
