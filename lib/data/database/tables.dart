@@ -42,6 +42,8 @@ class Wallets extends Table {
   RealColumn get initialBalance => real().withDefault(const Constant(0.0))();
   IntColumn get type => intEnum<WalletType>()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   RealColumn get targetAmount => real().nullable()();
   DateTimeColumn get dueDate => dateTime().nullable()();
   BoolColumn get isSettled => boolean().withDefault(const Constant(false))();
@@ -59,23 +61,33 @@ class Transactions extends Table {
   TextColumn get description => text()();
   IntColumn get type => intEnum<TransactionType>()();
   DateTimeColumn get date => dateTime()();
-  TextColumn get walletId => text().nullable()();
-  TextColumn get fromWalletId => text().nullable()();
-  TextColumn get toWalletId => text().nullable()();
-  TextColumn get categoryId => text().nullable()();
+  BoolColumn get isCleared => boolean().withDefault(const Constant(true))();
+  TextColumn get walletId => text().nullable().references(Wallets, #id, onDelete: KeyAction.setNull)();
+  TextColumn get fromWalletId => text().nullable().references(Wallets, #id, onDelete: KeyAction.setNull)();
+  TextColumn get toWalletId => text().nullable().references(Wallets, #id, onDelete: KeyAction.setNull)();
+  TextColumn get categoryId => text().nullable().references(Categories, #id, onDelete: KeyAction.setNull)();
   TextColumn get tags => text().map(const StringListConverter()).withDefault(const Constant(''))();
-  TextColumn get relatedDebtId => text().nullable()();
-  TextColumn get recurringPaymentId => text().nullable()();
+  TextColumn get relatedDebtId => text().nullable().references(Wallets, #id, onDelete: KeyAction.setNull)();
+  TextColumn get recurringPaymentId =>
+      text().nullable().references(RecurringPayments, #id, onDelete: KeyAction.setNull)();
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Index> get indexes => [
+        Index('idx_transactions_date', 'date'),
+        Index('idx_transactions_wallet_id', 'wallet_id'),
+        Index('idx_transactions_category_id', 'category_id'),
+      ];
 }
 
 @DataClassName('CategoryEntity')
 class Categories extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  TextColumn get parentId => text().nullable()(); // null if main category
+  TextColumn get parentId => text().nullable().references(Categories, #id, onDelete: KeyAction.setNull)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -122,11 +134,12 @@ class Budgets extends Table {
   RealColumn get amount => real()();
   BoolColumn get enableAlerts => boolean().withDefault(const Constant(true))();
   BoolColumn get enableProgressiveAdjustment => boolean().withDefault(const Constant(false))();
-  TextColumn get dependencyBudgetId => text().nullable()();
+  TextColumn get dependencyBudgetId => text().nullable().references(Budgets, #id, onDelete: KeyAction.setNull)();
   RealColumn get dependencyPercentLimit => real().nullable()();
   IntColumn get repeatFrequency => intEnum<BudgetRepeatFrequency>()();
   RealColumn get repeatAdjustmentPercent => real().withDefault(const Constant(0.0))();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -138,8 +151,8 @@ class RecurringPayments extends Table {
   TextColumn get name => text()();
   RealColumn get amount => real()();
   IntColumn get type => intEnum<TransactionType>()();
-  TextColumn get categoryId => text().nullable()();
-  TextColumn get walletId => text().nullable()();
+  TextColumn get categoryId => text().nullable().references(Categories, #id, onDelete: KeyAction.setNull)();
+  TextColumn get walletId => text().nullable().references(Wallets, #id, onDelete: KeyAction.setNull)();
   IntColumn get frequency => intEnum<RecurrenceFrequency>()();
   TextColumn get description => text().nullable().withDefault(const Constant(''))();
   TextColumn get tags => text().map(const StringListConverter()).nullable().withDefault(const Constant(''))();
@@ -157,7 +170,7 @@ class Projects extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get icon => text()();
-  TextColumn get linkedWalletId => text()();
+  TextColumn get linkedWalletId => text().references(Wallets, #id, onDelete: KeyAction.restrict)();
   TextColumn get items => text().map(const ProjectItemListConverter()).withDefault(const Constant('[]'))();
 
   @override
