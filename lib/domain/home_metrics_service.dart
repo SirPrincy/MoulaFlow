@@ -1,6 +1,13 @@
 import 'package:moula_flow/domain/balance_service.dart';
 import 'package:moula_flow/models.dart';
 
+class HomeFlowMetrics {
+  final double income;
+  final double expenses;
+
+  const HomeFlowMetrics({required this.income, required this.expenses});
+}
+
 class HomeMetrics {
   final double monthIncome;
   final double monthExpense;

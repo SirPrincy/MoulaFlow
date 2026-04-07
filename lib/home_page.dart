@@ -424,15 +424,22 @@ class _HomePageState extends ConsumerState<HomePage> {
     final theme = Theme.of(context);
     final metricsSelectionKey = (_selectedWalletIds.toList()..sort()).join(',');
     final metricsAsync = ref.watch(homeMetricsProvider(metricsSelectionKey));
+    final flowAsync = ref.watch(homeFlowProvider(metricsSelectionKey));
+    final categorySpendAsync = ref.watch(homeCategorySpendProvider(metricsSelectionKey));
+
     final metrics = metricsAsync.value ?? _homeMetricsService.compute(
       transactions: _transactions,
       wallets: _wallets,
       categories: _categories,
       selectedWalletIds: _selectedWalletIds,
     );
-    final income = metrics.monthIncome;
-    final expenses = metrics.monthExpense;
-    final categorySpending = metrics.spendByCategory;
+    final flow = flowAsync.value ?? HomeFlowMetrics(
+      income: metrics.monthIncome,
+      expenses: metrics.monthExpense,
+    );
+    final income = flow.income;
+    final expenses = flow.expenses;
+    final categorySpending = categorySpendAsync.value ?? metrics.spendByCategory;
     final historicalBalances = _balanceService.computeHistoricalBalances(
       _wallets,
       _transactions,

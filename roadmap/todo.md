@@ -19,10 +19,7 @@
 - [ ] `todo` Ajouter un test du chargement initial (`test/data/` ou `test/domain/` selon implémentation).
 
 ### [P0] Refactor HomePage (découplage)
-- [ ] `todo` Extraire les calculs dashboard de `lib/home_page.dart` vers un service dédié (`lib/domain/home_metrics_service.dart`).
-- [ ] `todo` Exposer ces calculs via providers dans `lib/providers.dart`.
 - [ ] `todo` Limiter `HomePage` à l’assemblage UI + callbacks utilisateur.
-- [ ] `todo` Ajouter tests unitaires sur les calculs (totaux mensuels, flux, soldes portefeuille).
 
 ### [P1] Modularisation UI dashboard
 - [ ] `todo` Créer des widgets par bloc dans `lib/widgets/dashboard_cards.dart` ou sous-dossier dédié:

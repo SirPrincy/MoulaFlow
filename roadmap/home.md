@@ -22,18 +22,9 @@
 ## 2) Plan d’implémentation par PR
 
 ### PR-A — Extraire les métriques
-- [ ] Créer `lib/domain/home_metrics_service.dart`.
-- [ ] Déplacer les fonctions de calcul de `HomePage` vers ce service.
-- [ ] Injecter dépendances minimales (transactions, wallets, catégories).
-- [ ] Écrire tests unitaires:
-  - [ ] total mensuel entrées/sorties,
-  - [ ] solde global,
-  - [ ] top catégories.
 
 ### PR-B — Providers dédiés dashboard
-- [ ] Ajouter providers `homeMetricsProvider`, `homeFlowProvider`, `homeCategorySpendProvider` dans `lib/providers.dart`.
 - [ ] Utiliser `select` quand possible pour limiter les rebuilds.
-- [ ] Prévoir état unique `AsyncValue` par module.
 
 ### PR-C — Découpage composants UI
 - [ ] Créer structure:
@@ -88,7 +79,6 @@ class HomeMetrics {
 ## 4) Checklist de validation finale
 - [ ] `HomePage` < 250 lignes (objectif lisibilité).
 - [ ] Aucun calcul métier lourd restant dans la vue.
-- [ ] Tests unitaires du service métriques présents.
 - [ ] Tests widget de 2 cartes dashboard minimum.
 - [ ] `flutter analyze` vert.
 - [ ] Vérification manuelle mobile + desktop.

@@ -32,6 +32,11 @@ final balanceServiceProvider = Provider((ref) => BalanceService());
 final homeMetricsServiceProvider = Provider((ref) => HomeMetricsService());
 
 
+Set<String> _walletSelectionFromKey(String walletSelectionKey) {
+  if (walletSelectionKey.isEmpty) return const {};
+  return walletSelectionKey.split(',').where((id) => id.isNotEmpty).toSet();
+}
+
 final walletsProvider = StreamProvider<List<Wallet>>((ref) {
   return ref.watch(walletRepositoryProvider).watchWallets();
 });
@@ -322,9 +327,23 @@ final homeMetricsProvider = Provider.family<AsyncValue<HomeMetrics>, String>((re
       transactions: txsAsync.requireValue,
       wallets: walletsAsync.requireValue,
       categories: categoriesAsync.requireValue,
-      selectedWalletIds: walletSelectionKey.isEmpty
-          ? const {}
-          : walletSelectionKey.split(',').where((id) => id.isNotEmpty).toSet(),
+      selectedWalletIds: _walletSelectionFromKey(walletSelectionKey),
     ),
   );
+});
+
+
+final homeFlowProvider = Provider.family<AsyncValue<HomeFlowMetrics>, String>((ref, walletSelectionKey) {
+  final metricsAsync = ref.watch(homeMetricsProvider(walletSelectionKey));
+  return metricsAsync.whenData(
+    (metrics) => HomeFlowMetrics(
+      income: metrics.monthIncome,
+      expenses: metrics.monthExpense,
+    ),
+  );
+});
+
+final homeCategorySpendProvider = Provider.family<AsyncValue<Map<String, double>>, String>((ref, walletSelectionKey) {
+  final metricsAsync = ref.watch(homeMetricsProvider(walletSelectionKey));
+  return metricsAsync.whenData((metrics) => metrics.spendByCategory);
 });
