@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models.dart';
 import '../providers.dart';
+import '../widgets/add_budget_sheet.dart';
 import '../widgets/transaction_tile.dart';
 import '../responsive_layout.dart';
 
@@ -37,6 +38,18 @@ class BudgetDetailPage extends ConsumerWidget {
     }
   }
 
+  void _showEditBudget(BuildContext context, BudgetPlan plan) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => AddBudgetSheet(editingBudget: plan),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statusAsync = ref.watch(budgetStatusProvider(budgetId));
@@ -50,6 +63,10 @@ class BudgetDetailPage extends ConsumerWidget {
           appBar: AppBar(
             title: Text(plan.name),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => _showEditBudget(context, plan),
+              ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                 onPressed: () => _deleteBudget(context, ref, plan),
