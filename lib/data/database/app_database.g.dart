@@ -2906,21 +2906,21 @@ class $RecurringPaymentsTable extends RecurringPayments
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
     'description',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
   @override
-  late final GeneratedColumnWithTypeConverter<List<String>, String> tags =
+  late final GeneratedColumnWithTypeConverter<List<String>?, String> tags =
       GeneratedColumn<String>(
         'tags',
         aliasedName,
-        false,
+        true,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
-      ).withConverter<List<String>>($RecurringPaymentsTable.$convertertags);
+      ).withConverter<List<String>?>($RecurringPaymentsTable.$convertertagsn);
   @override
   late final GeneratedColumnWithTypeConverter<RecurringExecutionMode, int>
   executionMode =
@@ -3110,12 +3110,12 @@ class $RecurringPaymentsTable extends RecurringPayments
       description: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}description'],
-      )!,
-      tags: $RecurringPaymentsTable.$convertertags.fromSql(
+      ),
+      tags: $RecurringPaymentsTable.$convertertagsn.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
           data['${effectivePrefix}tags'],
-        )!,
+        ),
       ),
       executionMode: $RecurringPaymentsTable.$converterexecutionMode.fromSql(
         attachedDatabase.typeMapping.read(
@@ -3149,6 +3149,8 @@ class $RecurringPaymentsTable extends RecurringPayments
       const EnumIndexConverter<RecurrenceFrequency>(RecurrenceFrequency.values);
   static TypeConverter<List<String>, String> $convertertags =
       const StringListConverter();
+  static TypeConverter<List<String>?, String?> $convertertagsn =
+      NullAwareTypeConverter.wrap($convertertags);
   static JsonTypeConverter2<RecurringExecutionMode, int, int>
   $converterexecutionMode = const EnumIndexConverter<RecurringExecutionMode>(
     RecurringExecutionMode.values,
@@ -3164,8 +3166,8 @@ class RecurringPaymentEntity extends DataClass
   final String? categoryId;
   final String? walletId;
   final RecurrenceFrequency frequency;
-  final String description;
-  final List<String> tags;
+  final String? description;
+  final List<String>? tags;
   final RecurringExecutionMode executionMode;
   final DateTime startDate;
   final DateTime nextDueDate;
@@ -3178,8 +3180,8 @@ class RecurringPaymentEntity extends DataClass
     this.categoryId,
     this.walletId,
     required this.frequency,
-    required this.description,
-    required this.tags,
+    this.description,
+    this.tags,
     required this.executionMode,
     required this.startDate,
     required this.nextDueDate,
@@ -3207,10 +3209,12 @@ class RecurringPaymentEntity extends DataClass
         $RecurringPaymentsTable.$converterfrequency.toSql(frequency),
       );
     }
-    map['description'] = Variable<String>(description);
-    {
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || tags != null) {
       map['tags'] = Variable<String>(
-        $RecurringPaymentsTable.$convertertags.toSql(tags),
+        $RecurringPaymentsTable.$convertertagsn.toSql(tags),
       );
     }
     {
@@ -3237,8 +3241,10 @@ class RecurringPaymentEntity extends DataClass
           ? const Value.absent()
           : Value(walletId),
       frequency: Value(frequency),
-      description: Value(description),
-      tags: Value(tags),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      tags: tags == null && nullToAbsent ? const Value.absent() : Value(tags),
       executionMode: Value(executionMode),
       startDate: Value(startDate),
       nextDueDate: Value(nextDueDate),
@@ -3263,8 +3269,8 @@ class RecurringPaymentEntity extends DataClass
       frequency: $RecurringPaymentsTable.$converterfrequency.fromJson(
         serializer.fromJson<int>(json['frequency']),
       ),
-      description: serializer.fromJson<String>(json['description']),
-      tags: serializer.fromJson<List<String>>(json['tags']),
+      description: serializer.fromJson<String?>(json['description']),
+      tags: serializer.fromJson<List<String>?>(json['tags']),
       executionMode: $RecurringPaymentsTable.$converterexecutionMode.fromJson(
         serializer.fromJson<int>(json['executionMode']),
       ),
@@ -3288,8 +3294,8 @@ class RecurringPaymentEntity extends DataClass
       'frequency': serializer.toJson<int>(
         $RecurringPaymentsTable.$converterfrequency.toJson(frequency),
       ),
-      'description': serializer.toJson<String>(description),
-      'tags': serializer.toJson<List<String>>(tags),
+      'description': serializer.toJson<String?>(description),
+      'tags': serializer.toJson<List<String>?>(tags),
       'executionMode': serializer.toJson<int>(
         $RecurringPaymentsTable.$converterexecutionMode.toJson(executionMode),
       ),
@@ -3307,8 +3313,8 @@ class RecurringPaymentEntity extends DataClass
     Value<String?> categoryId = const Value.absent(),
     Value<String?> walletId = const Value.absent(),
     RecurrenceFrequency? frequency,
-    String? description,
-    List<String>? tags,
+    Value<String?> description = const Value.absent(),
+    Value<List<String>?> tags = const Value.absent(),
     RecurringExecutionMode? executionMode,
     DateTime? startDate,
     DateTime? nextDueDate,
@@ -3321,8 +3327,8 @@ class RecurringPaymentEntity extends DataClass
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     walletId: walletId.present ? walletId.value : this.walletId,
     frequency: frequency ?? this.frequency,
-    description: description ?? this.description,
-    tags: tags ?? this.tags,
+    description: description.present ? description.value : this.description,
+    tags: tags.present ? tags.value : this.tags,
     executionMode: executionMode ?? this.executionMode,
     startDate: startDate ?? this.startDate,
     nextDueDate: nextDueDate ?? this.nextDueDate,
@@ -3418,8 +3424,8 @@ class RecurringPaymentsCompanion
   final Value<String?> categoryId;
   final Value<String?> walletId;
   final Value<RecurrenceFrequency> frequency;
-  final Value<String> description;
-  final Value<List<String>> tags;
+  final Value<String?> description;
+  final Value<List<String>?> tags;
   final Value<RecurringExecutionMode> executionMode;
   final Value<DateTime> startDate;
   final Value<DateTime> nextDueDate;
@@ -3505,8 +3511,8 @@ class RecurringPaymentsCompanion
     Value<String?>? categoryId,
     Value<String?>? walletId,
     Value<RecurrenceFrequency>? frequency,
-    Value<String>? description,
-    Value<List<String>>? tags,
+    Value<String?>? description,
+    Value<List<String>?>? tags,
     Value<RecurringExecutionMode>? executionMode,
     Value<DateTime>? startDate,
     Value<DateTime>? nextDueDate,
@@ -3564,7 +3570,7 @@ class RecurringPaymentsCompanion
     }
     if (tags.present) {
       map['tags'] = Variable<String>(
-        $RecurringPaymentsTable.$convertertags.toSql(tags.value),
+        $RecurringPaymentsTable.$convertertagsn.toSql(tags.value),
       );
     }
     if (executionMode.present) {
@@ -4355,6 +4361,370 @@ class TransactionTagsCompanion extends UpdateCompanion<TransactionTagEntity> {
   }
 }
 
+class $ProjectsTable extends Projects
+    with TableInfo<$ProjectsTable, ProjectEntity> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProjectsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _linkedWalletIdMeta = const VerificationMeta(
+    'linkedWalletId',
+  );
+  @override
+  late final GeneratedColumn<String> linkedWalletId = GeneratedColumn<String>(
+    'linked_wallet_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<ProjectItem>, String> items =
+      GeneratedColumn<String>(
+        'items',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      ).withConverter<List<ProjectItem>>($ProjectsTable.$converteritems);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    icon,
+    linkedWalletId,
+    items,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'projects';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProjectEntity> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('linked_wallet_id')) {
+      context.handle(
+        _linkedWalletIdMeta,
+        linkedWalletId.isAcceptableOrUnknown(
+          data['linked_wallet_id']!,
+          _linkedWalletIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_linkedWalletIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProjectEntity map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProjectEntity(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      linkedWalletId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_wallet_id'],
+      )!,
+      items: $ProjectsTable.$converteritems.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}items'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $ProjectsTable createAlias(String alias) {
+    return $ProjectsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<List<ProjectItem>, String> $converteritems =
+      const ProjectItemListConverter();
+}
+
+class ProjectEntity extends DataClass implements Insertable<ProjectEntity> {
+  final String id;
+  final String title;
+  final String icon;
+  final String linkedWalletId;
+  final List<ProjectItem> items;
+  const ProjectEntity({
+    required this.id,
+    required this.title,
+    required this.icon,
+    required this.linkedWalletId,
+    required this.items,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['icon'] = Variable<String>(icon);
+    map['linked_wallet_id'] = Variable<String>(linkedWalletId);
+    {
+      map['items'] = Variable<String>(
+        $ProjectsTable.$converteritems.toSql(items),
+      );
+    }
+    return map;
+  }
+
+  ProjectsCompanion toCompanion(bool nullToAbsent) {
+    return ProjectsCompanion(
+      id: Value(id),
+      title: Value(title),
+      icon: Value(icon),
+      linkedWalletId: Value(linkedWalletId),
+      items: Value(items),
+    );
+  }
+
+  factory ProjectEntity.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProjectEntity(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      icon: serializer.fromJson<String>(json['icon']),
+      linkedWalletId: serializer.fromJson<String>(json['linkedWalletId']),
+      items: serializer.fromJson<List<ProjectItem>>(json['items']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'icon': serializer.toJson<String>(icon),
+      'linkedWalletId': serializer.toJson<String>(linkedWalletId),
+      'items': serializer.toJson<List<ProjectItem>>(items),
+    };
+  }
+
+  ProjectEntity copyWith({
+    String? id,
+    String? title,
+    String? icon,
+    String? linkedWalletId,
+    List<ProjectItem>? items,
+  }) => ProjectEntity(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    icon: icon ?? this.icon,
+    linkedWalletId: linkedWalletId ?? this.linkedWalletId,
+    items: items ?? this.items,
+  );
+  ProjectEntity copyWithCompanion(ProjectsCompanion data) {
+    return ProjectEntity(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      linkedWalletId: data.linkedWalletId.present
+          ? data.linkedWalletId.value
+          : this.linkedWalletId,
+      items: data.items.present ? data.items.value : this.items,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectEntity(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('icon: $icon, ')
+          ..write('linkedWalletId: $linkedWalletId, ')
+          ..write('items: $items')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, icon, linkedWalletId, items);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProjectEntity &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.icon == this.icon &&
+          other.linkedWalletId == this.linkedWalletId &&
+          other.items == this.items);
+}
+
+class ProjectsCompanion extends UpdateCompanion<ProjectEntity> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> icon;
+  final Value<String> linkedWalletId;
+  final Value<List<ProjectItem>> items;
+  final Value<int> rowid;
+  const ProjectsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.linkedWalletId = const Value.absent(),
+    this.items = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProjectsCompanion.insert({
+    required String id,
+    required String title,
+    required String icon,
+    required String linkedWalletId,
+    this.items = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       icon = Value(icon),
+       linkedWalletId = Value(linkedWalletId);
+  static Insertable<ProjectEntity> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? icon,
+    Expression<String>? linkedWalletId,
+    Expression<String>? items,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (icon != null) 'icon': icon,
+      if (linkedWalletId != null) 'linked_wallet_id': linkedWalletId,
+      if (items != null) 'items': items,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProjectsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? icon,
+    Value<String>? linkedWalletId,
+    Value<List<ProjectItem>>? items,
+    Value<int>? rowid,
+  }) {
+    return ProjectsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      icon: icon ?? this.icon,
+      linkedWalletId: linkedWalletId ?? this.linkedWalletId,
+      items: items ?? this.items,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (linkedWalletId.present) {
+      map['linked_wallet_id'] = Variable<String>(linkedWalletId.value);
+    }
+    if (items.present) {
+      map['items'] = Variable<String>(
+        $ProjectsTable.$converteritems.toSql(items.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('icon: $icon, ')
+          ..write('linkedWalletId: $linkedWalletId, ')
+          ..write('items: $items, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4368,6 +4738,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TransactionTagsTable transactionTags = $TransactionTagsTable(
     this,
   );
+  late final $ProjectsTable projects = $ProjectsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4380,6 +4751,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     recurringPayments,
     tags,
     transactionTags,
+    projects,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5859,8 +6231,8 @@ typedef $$RecurringPaymentsTableCreateCompanionBuilder =
       Value<String?> categoryId,
       Value<String?> walletId,
       required RecurrenceFrequency frequency,
-      Value<String> description,
-      Value<List<String>> tags,
+      Value<String?> description,
+      Value<List<String>?> tags,
       Value<RecurringExecutionMode> executionMode,
       required DateTime startDate,
       required DateTime nextDueDate,
@@ -5876,8 +6248,8 @@ typedef $$RecurringPaymentsTableUpdateCompanionBuilder =
       Value<String?> categoryId,
       Value<String?> walletId,
       Value<RecurrenceFrequency> frequency,
-      Value<String> description,
-      Value<List<String>> tags,
+      Value<String?> description,
+      Value<List<String>?> tags,
       Value<RecurringExecutionMode> executionMode,
       Value<DateTime> startDate,
       Value<DateTime> nextDueDate,
@@ -5936,11 +6308,11 @@ class $$RecurringPaymentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<List<String>, List<String>, String> get tags =>
-      $composableBuilder(
-        column: $table.tags,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
+  ColumnWithTypeConverterFilters<List<String>?, List<String>, String>
+  get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
 
   ColumnWithTypeConverterFilters<
     RecurringExecutionMode,
@@ -6080,7 +6452,7 @@ class $$RecurringPaymentsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumnWithTypeConverter<List<String>, String> get tags =>
+  GeneratedColumnWithTypeConverter<List<String>?, String> get tags =>
       $composableBuilder(column: $table.tags, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<RecurringExecutionMode, int>
@@ -6148,8 +6520,8 @@ class $$RecurringPaymentsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> walletId = const Value.absent(),
                 Value<RecurrenceFrequency> frequency = const Value.absent(),
-                Value<String> description = const Value.absent(),
-                Value<List<String>> tags = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<List<String>?> tags = const Value.absent(),
                 Value<RecurringExecutionMode> executionMode =
                     const Value.absent(),
                 Value<DateTime> startDate = const Value.absent(),
@@ -6181,8 +6553,8 @@ class $$RecurringPaymentsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> walletId = const Value.absent(),
                 required RecurrenceFrequency frequency,
-                Value<String> description = const Value.absent(),
-                Value<List<String>> tags = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<List<String>?> tags = const Value.absent(),
                 Value<RecurringExecutionMode> executionMode =
                     const Value.absent(),
                 required DateTime startDate,
@@ -6963,6 +7335,209 @@ typedef $$TransactionTagsTableProcessedTableManager =
       TransactionTagEntity,
       PrefetchHooks Function({bool transactionId, bool tagId})
     >;
+typedef $$ProjectsTableCreateCompanionBuilder =
+    ProjectsCompanion Function({
+      required String id,
+      required String title,
+      required String icon,
+      required String linkedWalletId,
+      Value<List<ProjectItem>> items,
+      Value<int> rowid,
+    });
+typedef $$ProjectsTableUpdateCompanionBuilder =
+    ProjectsCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String> icon,
+      Value<String> linkedWalletId,
+      Value<List<ProjectItem>> items,
+      Value<int> rowid,
+    });
+
+class $$ProjectsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedWalletId => $composableBuilder(
+    column: $table.linkedWalletId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<ProjectItem>, List<ProjectItem>, String>
+  get items => $composableBuilder(
+    column: $table.items,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+}
+
+class $$ProjectsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedWalletId => $composableBuilder(
+    column: $table.linkedWalletId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get items => $composableBuilder(
+    column: $table.items,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProjectsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get linkedWalletId => $composableBuilder(
+    column: $table.linkedWalletId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<List<ProjectItem>, String> get items =>
+      $composableBuilder(column: $table.items, builder: (column) => column);
+}
+
+class $$ProjectsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProjectsTable,
+          ProjectEntity,
+          $$ProjectsTableFilterComposer,
+          $$ProjectsTableOrderingComposer,
+          $$ProjectsTableAnnotationComposer,
+          $$ProjectsTableCreateCompanionBuilder,
+          $$ProjectsTableUpdateCompanionBuilder,
+          (
+            ProjectEntity,
+            BaseReferences<_$AppDatabase, $ProjectsTable, ProjectEntity>,
+          ),
+          ProjectEntity,
+          PrefetchHooks Function()
+        > {
+  $$ProjectsTableTableManager(_$AppDatabase db, $ProjectsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProjectsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProjectsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProjectsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String> linkedWalletId = const Value.absent(),
+                Value<List<ProjectItem>> items = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectsCompanion(
+                id: id,
+                title: title,
+                icon: icon,
+                linkedWalletId: linkedWalletId,
+                items: items,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                required String icon,
+                required String linkedWalletId,
+                Value<List<ProjectItem>> items = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectsCompanion.insert(
+                id: id,
+                title: title,
+                icon: icon,
+                linkedWalletId: linkedWalletId,
+                items: items,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProjectsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProjectsTable,
+      ProjectEntity,
+      $$ProjectsTableFilterComposer,
+      $$ProjectsTableOrderingComposer,
+      $$ProjectsTableAnnotationComposer,
+      $$ProjectsTableCreateCompanionBuilder,
+      $$ProjectsTableUpdateCompanionBuilder,
+      (
+        ProjectEntity,
+        BaseReferences<_$AppDatabase, $ProjectsTable, ProjectEntity>,
+      ),
+      ProjectEntity,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6980,4 +7555,6 @@ class $AppDatabaseManager {
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$TransactionTagsTableTableManager get transactionTags =>
       $$TransactionTagsTableTableManager(_db, _db.transactionTags);
+  $$ProjectsTableTableManager get projects =>
+      $$ProjectsTableTableManager(_db, _db.projects);
 }

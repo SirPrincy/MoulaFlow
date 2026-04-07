@@ -5,6 +5,7 @@ import 'package:moula_flow/data/wallet_repository.dart';
 import 'package:moula_flow/data/category_repository.dart';
 import 'package:moula_flow/data/budget_repository.dart';
 import 'package:moula_flow/data/recurring_payment_repository.dart';
+import 'package:moula_flow/data/project_repository.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/domain/balance_service.dart';
 import 'package:moula_flow/data/settings_repository.dart';
@@ -25,6 +26,7 @@ final categoryRepositoryProvider = Provider((ref) => CategoryRepository(ref.watc
 final budgetRepositoryProvider = Provider((ref) => BudgetRepository(ref.watch(databaseProvider)));
 final recurringPaymentRepositoryProvider = Provider((ref) => RecurringPaymentRepository(ref.watch(databaseProvider)));
 final tagRepositoryProvider = Provider((ref) => TagRepository(ref.watch(databaseProvider)));
+final projectRepositoryProvider = Provider((ref) => ProjectRepository(ref.watch(databaseProvider)));
 final balanceServiceProvider = Provider((ref) => BalanceService());
 
 final walletsProvider = StreamProvider<List<Wallet>>((ref) {
@@ -49,6 +51,10 @@ final recurringPaymentsProvider = StreamProvider<List<RecurringPayment>>((ref) {
 
 final tagsProvider = StreamProvider<List<TagDefinition>>((ref) {
   return ref.watch(tagRepositoryProvider).watchTags();
+});
+
+final projectsProvider = StreamProvider<List<Project>>((ref) {
+  return ref.watch(projectRepositoryProvider).watchProjects();
 });
 
 final budgetPlanningServiceProvider = Provider((ref) => BudgetPlanningService());

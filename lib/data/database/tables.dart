@@ -151,3 +151,15 @@ class RecurringPayments extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+@DataClassName('ProjectEntity')
+class Projects extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get icon => text()();
+  TextColumn get linkedWalletId => text()();
+  TextColumn get items => text().map(const ProjectItemListConverter()).withDefault(const Constant('[]'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
