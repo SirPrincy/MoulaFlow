@@ -20,13 +20,9 @@ import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
 import 'domain/home_metrics_service.dart';
 import 'domain/home_interaction_service.dart';
-import 'widgets/dashboard_cards.dart';
-import 'widgets/dashboard/balance_card.dart';
-import 'widgets/dashboard/flow_card.dart';
-import 'widgets/dashboard/category_card.dart';
-import 'widgets/dashboard/recent_activity_card.dart';
 import 'widgets/dashboard/module_states.dart';
 import 'widgets/dashboard/modules_layout.dart';
+import 'widgets/dashboard/module_factory.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final bool showRecoveryHint;
@@ -322,115 +318,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
-
-
-
-  Widget _buildDashboardModule(
-    DashboardWidgetType type, {
-    required List<Transaction> filteredTxs,
-    required List<TagDefinition> tags,
-    required double income,
-    required double expenses,
-    required Map<String, double> categorySpending,
-    required List<double> historicalBalances,
-  }) {
-    final moduleBuilders = <DashboardWidgetType, Widget Function()>{
-      DashboardWidgetType.balance: () => BalanceCard(
-          totalBalance: _totalBalance,
-          wallets: _wallets,
-          selectedWalletIds: _selectedWalletIds,
-          onWalletTap: (id) => setState(() {
-            if (id == null) {
-              _selectedWalletIds.clear();
-            } else if (_selectedWalletIds.contains(id)) {
-              _selectedWalletIds.remove(id);
-            } else {
-              _selectedWalletIds.add(id);
-            }
-          }),
-          getWalletBalance: _getWalletBalance,
-        ),
-      DashboardWidgetType.flow: () => FlowDashboardCard(income: income, expenses: expenses),
-      DashboardWidgetType.categories: () => CategoryDashboardCard(
-          categorySpending: categorySpending,
-          style: _dashboardConfig.categoryChartStyle,
-          isEditMode: _isEditMode,
-          onStyleChange: (CategoryChartStyle style) {
-            setState(() {
-              _dashboardConfig = DashboardConfig(
-                order: _dashboardConfig.order,
-                visible: _dashboardConfig.visible,
-                categoryChartStyle: style,
-              );
-              _saveDashboardConfig();
-            });
-            _showFeedback('Style du module catégories mis à jour.');
-          },
-        ),
-      DashboardWidgetType.recent: () => RecentActivityCard(
-          transactions: filteredTxs,
-          getCategoryName: _getCategoryName,
-          getWalletCaption: (tx) =>
-              tx.type == TransactionType.transfer
-              ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
-              : _getWalletName(tx.walletId),
-          onTap: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TransactionsPage(),
-              ),
-            );
-          },
-        ),
-      DashboardWidgetType.trends: () => WealthTrendCard(history: historicalBalances),
-      DashboardWidgetType.projects: () => ProjectsSummaryCard(
-          tags: tags,
-          transactions: _transactions,
-          onTagTap: (tag) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TagProjectPage(tag: tag),
-              ),
-            );
-          },
-        ),
-    };
-    final mod = moduleBuilders[type]?.call() ??
-        const SizedBox.shrink();
-
-    return Padding(
-      key: ValueKey(type),
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Stack(
-        children: [
-          mod,
-          if (_isEditMode && type != DashboardWidgetType.balance)
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(
-                  Icons.remove_circle,
-                  color: Colors.red,
-                ),
-                onPressed: () async {
-                  final confirmed = await _confirmRemoveModule(type);
-                  if (!confirmed) return;
-                  setState(() {
-                    _dashboardConfig.visible.remove(type);
-                    _saveDashboardConfig();
-                  });
-                  _showFeedback('Module ${type.name} retiré.');
-                },
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final walletsAsync = ref.watch(walletsProvider);
@@ -537,14 +424,61 @@ class _HomePageState extends ConsumerState<HomePage> {
           _saveDashboardConfig();
         });
       },
-      buildModule: (type) => _buildDashboardModule(
-        type,
-        filteredTxs: filteredTxs,
-        tags: tags,
+      buildModule: (type) => DashboardModuleFactory.build(
+        context: context,
+        type: type,
+        isEditMode: _isEditMode,
+        totalBalance: _totalBalance,
+        wallets: _wallets,
+        selectedWalletIds: _selectedWalletIds,
+        onWalletTap: (id) => setState(() {
+          if (id == null) {
+            _selectedWalletIds.clear();
+          } else if (_selectedWalletIds.contains(id)) {
+            _selectedWalletIds.remove(id);
+          } else {
+            _selectedWalletIds.add(id);
+          }
+        }),
+        getWalletBalance: _getWalletBalance,
         income: income,
         expenses: expenses,
         categorySpending: categorySpending,
+        categoryChartStyle: _dashboardConfig.categoryChartStyle,
+        onStyleChange: (style) {
+          setState(() {
+            _dashboardConfig = DashboardConfig(
+              order: _dashboardConfig.order,
+              visible: _dashboardConfig.visible,
+              categoryChartStyle: style,
+            );
+            _saveDashboardConfig();
+          });
+          _showFeedback('Style du module catégories mis à jour.');
+        },
+        filteredTxs: filteredTxs,
+        getCategoryName: _getCategoryName,
+        getWalletCaption: (tx) => tx.type == TransactionType.transfer
+            ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
+            : _getWalletName(tx.walletId),
         historicalBalances: historicalBalances,
+        tags: tags,
+        allTransactions: _transactions,
+        onTagTap: (tag) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TagProjectPage(tag: tag)),
+          );
+        },
+        onRemove: () async {
+          final confirmed = await _confirmRemoveModule(type);
+          if (!confirmed) return;
+          setState(() {
+            _dashboardConfig.visible.remove(type);
+            _saveDashboardConfig();
+          });
+          _showFeedback('Module ${type.name} retiré.');
+        },
       ),
     );
 

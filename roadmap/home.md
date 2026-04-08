@@ -3,6 +3,7 @@
 > But: finaliser le découpage de `HomePage` pour obtenir une vue simple, testable, performante.
 
 ## ✅ Déjà fait
+- Extraction du factory de modules dashboard dans `lib/widgets/dashboard/module_factory.dart` pour limiter les conflits dans `home_page.dart`.
 - Extraction de la mise en page des modules dashboard dans `lib/widgets/dashboard/modules_layout.dart`.
 - Extraction des calculs métier principaux dans `home_metrics_service.dart`.
 - Exposition réactive des données via `providers.dart`.
