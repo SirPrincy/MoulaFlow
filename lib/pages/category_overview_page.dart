@@ -728,9 +728,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         date: DateTime.now(),
                         walletId: transactionWallet.id,
                         relatedDebtId: debtWallet.id,
-                        categoryId: debtWallet.isCredit
-                            ? 'cat_dettes_interest_in'
-                            : 'cat_dettes_interest_out',
+                        categoryId: 'cat_impots_interests',
                       );
                       await ref.read(transactionRepositoryProvider).insertTransaction(interestTx);
                     }
