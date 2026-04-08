@@ -17,4 +17,7 @@ class StorageKeys {
   static const String decimalDigits = 'decimalDigits';
   static const String biometricsEnabled = 'biometricsEnabled';
   static const String languageCode = 'languageCode';
+  static const String walletCurrencyCodes = 'walletCurrencyCodes';
+  static const String exchangeRates = 'exchangeRates';
+  static const String baseCurrencyCode = 'baseCurrencyCode';
 }

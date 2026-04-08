@@ -13,6 +13,7 @@ class Wallet {
   final bool isSettled;
   final bool isCredit; // true if someone owes ME, false if I owe someone
   final double? interestRate; // Annual interest rate in percentage (%)
+  final String currencyCode;
 
   Wallet({
     required this.id,
@@ -25,6 +26,7 @@ class Wallet {
     this.isSettled = false,
     this.isCredit = false,
     this.interestRate,
+    this.currencyCode = 'MGA',
   }) : createdAt = createdAt ?? DateTime.now();
 
   Wallet copyWith({
@@ -38,6 +40,7 @@ class Wallet {
     bool? isSettled,
     bool? isCredit,
     double? interestRate,
+    String? currencyCode,
   }) {
     return Wallet(
       id: id ?? this.id,
@@ -50,6 +53,7 @@ class Wallet {
       isSettled: isSettled ?? this.isSettled,
       isCredit: isCredit ?? this.isCredit,
       interestRate: interestRate ?? this.interestRate,
+      currencyCode: currencyCode ?? this.currencyCode,
     );
   }
 
@@ -64,6 +68,7 @@ class Wallet {
         'isSettled': isSettled,
         'isCredit': isCredit,
         'interestRate': interestRate,
+        'currencyCode': currencyCode,
       };
 
   factory Wallet.fromJson(Map<String, dynamic> json) => Wallet(
@@ -80,6 +85,7 @@ class Wallet {
         isSettled: json['isSettled'] ?? false,
         isCredit: json['isCredit'] ?? false,
         interestRate: json['interestRate']?.toDouble(),
+        currencyCode: json['currencyCode'] ?? 'MGA',
       );
 }
 

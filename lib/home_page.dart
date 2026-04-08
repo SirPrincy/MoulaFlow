@@ -72,12 +72,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
 
-  double get _totalBalance => _balanceService.computeTotalBalance(
-    _wallets,
-    _transactions,
-    _selectedWalletIds,
-  );
-
   double _getWalletBalance(String walletId) =>
       _balanceService.computeWalletBalance(walletId, _wallets, _transactions);
 
@@ -383,6 +377,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
   @override
   Widget build(BuildContext context) {
+    final baseCurrencyCode = ref.watch(baseCurrencyCodeProvider);
+    final exchangeRates = ref.watch(exchangeRatesProvider).asData?.value ?? const <String, double>{};
     final walletsAsync = ref.watch(walletsProvider);
     final txsAsync = ref.watch(transactionsProvider);
     final catsAsync = ref.watch(categoriesProvider);
@@ -450,6 +446,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
 
     final filteredTxs = metrics.recents;
+    final convertedTotalBalance = _balanceService.computeTotalBalanceConverted(
+      wallets: _wallets,
+      transactions: _transactions,
+      selectedWalletIds: _selectedWalletIds,
+      baseCurrencyCode: baseCurrencyCode,
+      exchangeRates: exchangeRates,
+    );
 
     final dashboardItems = _dashboardConfig.order
         .where((type) => _dashboardConfig.visible.contains(type))
@@ -491,7 +494,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         context: context,
         type: type,
         isEditMode: _isEditMode,
-        totalBalance: _totalBalance,
+        totalBalance: convertedTotalBalance,
         wallets: _wallets,
         selectedWalletIds: _selectedWalletIds,
         onWalletTap: (id) => setState(() {

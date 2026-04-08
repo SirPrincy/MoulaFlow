@@ -11,6 +11,7 @@ import 'data/settings_repository.dart';
 import 'data/app_access_method.dart';
 import 'responsive_layout.dart';
 import 'utils/styles.dart';
+import 'utils/currency_utils.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -39,6 +40,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final biometricsEnabled = ref.watch(biometricsEnabledProvider);
     final locale = ref.watch(localeProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final baseCurrencyCode = ref.watch(baseCurrencyCodeProvider);
     final decimalDigits = ref.watch(decimalDigitsProvider);
 
     return Scaffold(
@@ -73,7 +75,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 children: [
                   _buildLanguagePicker(ref, locale),
                   const Divider(height: 1, indent: 56),
-                  _buildCurrencySettings(ref, currencySymbol, decimalDigits, accentColor, l10n),
+                  _buildCurrencySettings(
+                    ref,
+                    currencySymbol,
+                    baseCurrencyCode,
+                    decimalDigits,
+                    accentColor,
+                    l10n,
+                  ),
                 ],
               ),
             ),
@@ -698,6 +707,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildCurrencySettings(
     WidgetRef ref, 
     String currency, 
+    String baseCurrencyCode,
     int decimals, 
     Color accent, 
     AppLocalizations l10n
@@ -725,6 +735,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         ),
         ListTile(
+          leading: Icon(Icons.public_rounded, color: accent),
+          title: const Text(
+            'Devise de référence',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          trailing: DropdownButton<String>(
+            value: baseCurrencyCode,
+            underline: const SizedBox.shrink(),
+            items: kSupportedCurrencies
+                .map(
+                  (e) => DropdownMenuItem<String>(
+                    value: e.code,
+                    child: Text(e.code),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              ref.read(baseCurrencyCodeProvider.notifier).update(value);
+            },
+          ),
+        ),
+        ListTile(
           leading: Icon(Icons.numbers_outlined, color: accent),
           title: Text(
             l10n.decimalDigits,
@@ -745,7 +778,114 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
           ),
         ),
+        ListTile(
+          leading: Icon(Icons.currency_exchange_rounded, color: accent),
+          title: const Text(
+            'Taux de change',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          subtitle: const Text('Ajouter / modifier un taux manuel'),
+          trailing: TextButton(
+            onPressed: () => _showExchangeRateDialog(context, ref, baseCurrencyCode),
+            child: const Text('Configurer'),
+          ),
+        ),
       ],
+    );
+  }
+
+  Future<void> _showExchangeRateDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String baseCurrencyCode,
+  ) async {
+    String fromCode = baseCurrencyCode;
+    String toCode = 'EUR';
+    DateTime effectiveDate = DateTime.now();
+    final rateController = TextEditingController();
+    if (toCode == fromCode) toCode = 'USD';
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx2, setDialogState) => AlertDialog(
+            title: const Text('Configurer un taux'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: fromCode,
+                  decoration: const InputDecoration(labelText: 'De'),
+                  items: kSupportedCurrencies
+                      .map((e) => DropdownMenuItem(value: e.code, child: Text(e.code)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => fromCode = v ?? fromCode),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: toCode,
+                  decoration: const InputDecoration(labelText: 'Vers'),
+                  items: kSupportedCurrencies
+                      .map((e) => DropdownMenuItem(value: e.code, child: Text(e.code)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => toCode = v ?? toCode),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: rateController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Taux',
+                    hintText: 'ex: 0.92',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: ctx2,
+                      initialDate: effectiveDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        effectiveDate = DateTime(picked.year, picked.month, picked.day);
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                  label: Text(
+                    'Date du taux: ${effectiveDate.day.toString().padLeft(2, '0')}/${effectiveDate.month.toString().padLeft(2, '0')}/${effectiveDate.year}',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final rate = double.tryParse(rateController.text.replaceAll(',', '.'));
+                  if (rate == null || rate <= 0 || fromCode == toCode) return;
+                  await ref.read(exchangeRateServiceProvider).setRate(
+                        fromCode: fromCode,
+                        toCode: toCode,
+                        rate: rate,
+                        effectiveDate: effectiveDate,
+                      );
+                  ref.invalidate(exchangeRatesProvider);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text('Enregistrer'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

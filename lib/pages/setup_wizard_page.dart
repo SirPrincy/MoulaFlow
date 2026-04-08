@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:moula_flow/models.dart';
 import 'package:moula_flow/providers.dart';
 import 'package:moula_flow/utils/app_constants.dart';
+import 'package:moula_flow/utils/currency_utils.dart';
 import 'package:moula_flow/utils/app_icons.dart';
 import 'package:moula_flow/widgets/app_logo.dart';
 import 'package:moula_flow/widgets/wallet_form.dart';
@@ -29,6 +30,7 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
   int _userAvatar = Icons.person_rounded.codePoint;
   
   Wallet? _setupWallet;
+  String _setupCurrencyCode = 'MGA';
 
   final List<int> _availableColors = [
     0xFF6366F1, // Indigo
@@ -90,6 +92,11 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
       
       await settings.saveUserAvatar(_userAvatar);
       ref.read(userAvatarProvider.notifier).update(_userAvatar);
+
+      ref.read(currencySymbolProvider.notifier).update(
+            symbolFromCurrencyCode(_setupCurrencyCode),
+          );
+      ref.read(baseCurrencyCodeProvider.notifier).update(_setupCurrencyCode);
 
       // 2. Create Wallet
       if (_setupWallet != null) {
@@ -288,9 +295,11 @@ class _SetupWizardPageState extends ConsumerState<SetupWizardPage> {
       icon: Icons.account_balance_wallet_rounded,
       title: 'Créez votre\npremier compte',
       child: WalletForm(
+        initialCurrencyCode: _setupCurrencyCode,
         onSave: (wallet) {
           setState(() {
             _setupWallet = wallet;
+            _setupCurrencyCode = wallet.currencyCode;
           });
           _next();
         },

@@ -118,4 +118,92 @@ class BalanceService {
 
     return history.reversed.toList();
   }
+
+  double computeTotalBalanceConverted({
+    required List<Wallet> wallets,
+    required List<Transaction> transactions,
+    required Set<String> selectedWalletIds,
+    required String baseCurrencyCode,
+    required Map<String, double> exchangeRates,
+  }) {
+    final scopedWalletIds =
+        selectedWalletIds.isEmpty ? wallets.map((w) => w.id).toSet() : selectedWalletIds;
+    double total = 0;
+
+    for (final wallet in wallets.where((w) => scopedWalletIds.contains(w.id))) {
+      total += wallet.initialBalance *
+          _resolveRate(
+            wallet.currencyCode,
+            baseCurrencyCode,
+            exchangeRates,
+            atDate: DateTime.now(),
+          );
+    }
+
+    for (final tx in transactions) {
+      if (tx.type == TransactionType.income && scopedWalletIds.contains(tx.walletId)) {
+        final currency = _walletCurrencyCode(wallets, tx.walletId, baseCurrencyCode);
+        total += tx.amount *
+            _resolveRate(currency, baseCurrencyCode, exchangeRates, atDate: tx.date);
+      } else if (tx.type == TransactionType.expense && scopedWalletIds.contains(tx.walletId)) {
+        final currency = _walletCurrencyCode(wallets, tx.walletId, baseCurrencyCode);
+        total -= tx.amount *
+            _resolveRate(currency, baseCurrencyCode, exchangeRates, atDate: tx.date);
+      } else if (tx.type == TransactionType.transfer) {
+        final toCurrency = _walletCurrencyCode(wallets, tx.toWalletId, baseCurrencyCode);
+        final fromCurrency = _walletCurrencyCode(wallets, tx.fromWalletId, baseCurrencyCode);
+        if (scopedWalletIds.contains(tx.toWalletId)) {
+          total += tx.amount *
+              _resolveRate(toCurrency, baseCurrencyCode, exchangeRates, atDate: tx.date);
+        }
+        if (scopedWalletIds.contains(tx.fromWalletId)) {
+          total -= tx.amount *
+              _resolveRate(fromCurrency, baseCurrencyCode, exchangeRates, atDate: tx.date);
+        }
+      }
+    }
+
+    return total;
+  }
+
+  String _walletCurrencyCode(List<Wallet> wallets, String? walletId, String fallback) {
+    final wallet = wallets.cast<Wallet?>().firstWhere((w) => w?.id == walletId, orElse: () => null);
+    return wallet?.currencyCode ?? fallback;
+  }
+
+  double _resolveRate(
+    String fromCode,
+    String toCode,
+    Map<String, double> exchangeRates, {
+    DateTime? atDate,
+  }) {
+    if (fromCode == toCode) return 1;
+    final pairKey = '${fromCode}_$toCode';
+    final targetDate = atDate ?? DateTime.now();
+
+    final exactKey = '${_formatDateKey(targetDate)}|$pairKey';
+    if (exchangeRates.containsKey(exactKey)) return exchangeRates[exactKey]!;
+    if (exchangeRates.containsKey(pairKey)) return exchangeRates[pairKey]!;
+
+    DateTime? bestDate;
+    double? bestRate;
+    for (final entry in exchangeRates.entries) {
+      final parts = entry.key.split('|');
+      if (parts.length != 2 || parts[1] != pairKey) continue;
+      final date = DateTime.tryParse(parts[0]);
+      if (date == null || date.isAfter(targetDate)) continue;
+      if (bestDate == null || date.isAfter(bestDate)) {
+        bestDate = date;
+        bestRate = entry.value;
+      }
+    }
+    return bestRate ?? 1;
+  }
+
+  String _formatDateKey(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
 }
