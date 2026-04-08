@@ -307,7 +307,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   const SizedBox(height: 12),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Date d'émission: ${_formatDate(issueDate)}'),
+                    title: Text('Date d\'émission: ${_formatDate(issueDate)}'),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -325,7 +325,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       dueDate == null
-                          ? 'Date d'échéance (optionnel)'
+                          ? 'Date d\'échéance (optionnel)'
                           : 'Échéance: ${_formatDate(dueDate!)}',
                     ),
                     trailing: const Icon(Icons.event),
@@ -357,7 +357,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       controller: interestRateController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                        labelText: 'Taux d'intérêt annuel (%)',
+                        labelText: 'Taux d\'intérêt annuel (%)',
                         prefixIcon: Icon(Icons.percent),
                       ),
                     ),
@@ -583,7 +583,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   CheckboxListTile(
                     value: includeInterest,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Inclure une part d'intérêt'),
+                    title: const Text('Inclure une part d\'intérêt'),
                     subtitle: Text('Taux configuré: ${debtWallet.interestRate}%'),
                     onChanged: (val) => setDialogState(() => includeInterest = val ?? false),
                   ),
