@@ -28,6 +28,9 @@ void main() async {
       userAvatarProvider.overrideWith(() => UserAvatarNotifier(appSettings.userAvatar)),
       accentColorProvider.overrideWith(() => AccentColorNotifier(appSettings.accentColor)),
       currencySymbolProvider.overrideWith(() => CurrencySymbolNotifier(appSettings.currencySymbol)),
+      baseCurrencyCodeProvider.overrideWith(
+        () => BaseCurrencyCodeNotifier(appSettings.baseCurrencyCode),
+      ),
       decimalDigitsProvider.overrideWith(() => DecimalDigitsNotifier(appSettings.decimalDigits)),
       biometricsEnabledProvider.overrideWith(
         () => BiometricsEnabledNotifier(appSettings.biometricsEnabled),

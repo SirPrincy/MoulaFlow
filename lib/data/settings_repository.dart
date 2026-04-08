@@ -18,6 +18,7 @@ class AppSettingsState {
     required this.userAvatar,
     required this.accentColor,
     required this.currencySymbol,
+    required this.baseCurrencyCode,
     required this.decimalDigits,
     required this.biometricsEnabled,
     required this.languageCode,
@@ -31,6 +32,7 @@ class AppSettingsState {
   final int userAvatar;
   final int accentColor;
   final String currencySymbol;
+  final String baseCurrencyCode;
   final int decimalDigits;
   final bool biometricsEnabled;
   final String? languageCode;
@@ -50,6 +52,9 @@ class SettingsRepository {
     StorageKeys.userAvatar,
     StorageKeys.accentColor,
     StorageKeys.currencySymbol,
+    StorageKeys.walletCurrencyCodes,
+    StorageKeys.exchangeRates,
+    StorageKeys.baseCurrencyCode,
     StorageKeys.decimalDigits,
     StorageKeys.biometricsEnabled,
     StorageKeys.languageCode,
@@ -165,6 +170,88 @@ class SettingsRepository {
     await prefs.setString(StorageKeys.currencySymbol, symbol);
   }
 
+  Future<String?> loadBaseCurrencyCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.get(StorageKeys.baseCurrencyCode);
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    _logFallback(StorageKeys.baseCurrencyCode, raw, 'null');
+    return null;
+  }
+
+  Future<void> saveBaseCurrencyCode(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(StorageKeys.baseCurrencyCode, code);
+  }
+
+  Future<Map<String, String>> loadWalletCurrencyCodes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.get(StorageKeys.walletCurrencyCodes);
+    if (raw == null) return const {};
+    if (raw is! String) {
+      _logFallback(StorageKeys.walletCurrencyCodes, raw, '{}');
+      return const {};
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return const {};
+      return decoded.map((key, value) => MapEntry(key, value.toString()));
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  Future<void> saveWalletCurrencyCode(String walletId, String currencyCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = await loadWalletCurrencyCodes();
+    map[walletId] = currencyCode;
+    await prefs.setString(StorageKeys.walletCurrencyCodes, jsonEncode(map));
+  }
+
+  Future<void> removeWalletCurrencyCode(String walletId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = await loadWalletCurrencyCodes();
+    map.remove(walletId);
+    await prefs.setString(StorageKeys.walletCurrencyCodes, jsonEncode(map));
+  }
+
+  Future<Map<String, double>> loadExchangeRates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.get(StorageKeys.exchangeRates);
+    if (raw == null) return const {};
+    if (raw is! String) {
+      _logFallback(StorageKeys.exchangeRates, raw, '{}');
+      return const {};
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return const {};
+      return decoded.map((key, value) => MapEntry(key, (value as num).toDouble()));
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  Future<void> saveExchangeRate(
+    String fromCode,
+    String toCode,
+    double rate, {
+    String? effectiveDate,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final rates = await loadExchangeRates();
+    final dateKey = effectiveDate ?? _formatDateKey(DateTime.now());
+    rates['$dateKey|${fromCode}_$toCode'] = rate;
+    await prefs.setString(StorageKeys.exchangeRates, jsonEncode(rates));
+  }
+
+  String _formatDateKey(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
   Future<int?> loadDecimalDigits() async {
     final prefs = await SharedPreferences.getInstance();
     return _readOptionalInt(
@@ -250,6 +337,11 @@ class SettingsRepository {
         prefs: prefs,
         key: StorageKeys.currencySymbol,
         fallback: 'Ar',
+      ),
+      baseCurrencyCode: _readString(
+        prefs: prefs,
+        key: StorageKeys.baseCurrencyCode,
+        fallback: 'MGA',
       ),
       decimalDigits: _readInt(
         prefs: prefs,

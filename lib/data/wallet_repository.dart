@@ -1,13 +1,15 @@
 import 'package:drift/drift.dart';
 import '../models.dart';
 import 'database/app_database.dart';
+import 'settings_repository.dart';
 
 class WalletRepository {
   final AppDatabase db;
+  final SettingsRepository settingsRepository;
 
-  WalletRepository(this.db);
+  WalletRepository(this.db, this.settingsRepository);
 
-  Wallet _mapEntityToModel(WalletEntity entity) {
+  Wallet _mapEntityToModel(WalletEntity entity, Map<String, String> walletCurrencies) {
     return Wallet(
       id: entity.id,
       name: entity.name,
@@ -19,6 +21,7 @@ class WalletRepository {
       isSettled: entity.isSettled,
       isCredit: entity.isCredit,
       interestRate: entity.interestRate,
+      currencyCode: walletCurrencies[entity.id] ?? 'MGA',
     );
   }
 
@@ -38,14 +41,16 @@ class WalletRepository {
   }
 
   Stream<List<Wallet>> watchWallets() {
-    return db.select(db.wallets).watch().map((entities) {
-      return entities.map(_mapEntityToModel).toList();
+    return db.select(db.wallets).watch().asyncMap((entities) async {
+      final walletCurrencies = await settingsRepository.loadWalletCurrencyCodes();
+      return entities.map((e) => _mapEntityToModel(e, walletCurrencies)).toList();
     });
   }
 
   Future<List<Wallet>> loadWallets() async {
     final entities = await db.select(db.wallets).get();
-    return entities.map(_mapEntityToModel).toList();
+    final walletCurrencies = await settingsRepository.loadWalletCurrencyCodes();
+    return entities.map((e) => _mapEntityToModel(e, walletCurrencies)).toList();
   }
 
   Future<void> saveWallets(List<Wallet> wallets) async {
@@ -53,19 +58,23 @@ class WalletRepository {
       await db.delete(db.wallets).go();
       for (final w in wallets) {
         await db.into(db.wallets).insert(_mapModelToCompanion(w));
+        await settingsRepository.saveWalletCurrencyCode(w.id, w.currencyCode);
       }
     });
   }
 
   Future<void> insertWallet(Wallet wallet) async {
     await db.into(db.wallets).insert(_mapModelToCompanion(wallet), mode: InsertMode.replace);
+    await settingsRepository.saveWalletCurrencyCode(wallet.id, wallet.currencyCode);
   }
 
   Future<void> updateWallet(Wallet wallet) async {
     await db.update(db.wallets).replace(_mapModelToCompanion(wallet));
+    await settingsRepository.saveWalletCurrencyCode(wallet.id, wallet.currencyCode);
   }
 
   Future<void> deleteWallet(String id) async {
     await (db.delete(db.wallets)..where((tbl) => tbl.id.equals(id))).go();
+    await settingsRepository.removeWalletCurrencyCode(id);
   }
 }

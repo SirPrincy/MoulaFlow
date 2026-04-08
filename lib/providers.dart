@@ -14,6 +14,7 @@ import 'package:moula_flow/data/dashboard_repository.dart';
 import 'package:moula_flow/data/app_access_method.dart';
 import 'package:moula_flow/data/tag_repository.dart';
 import 'package:moula_flow/domain/budget_planning_service.dart';
+import 'package:moula_flow/domain/exchange_rate_service.dart';
 import 'package:moula_flow/utils/app_constants.dart';
 import 'package:flutter/material.dart';
 
@@ -25,7 +26,12 @@ final appSettingsStateProvider = FutureProvider<AppSettingsState>((ref) {
 final dashboardRepositoryProvider = Provider((ref) => DashboardRepository());
 
 final transactionRepositoryProvider = Provider((ref) => TransactionRepository(ref.watch(databaseProvider)));
-final walletRepositoryProvider = Provider((ref) => WalletRepository(ref.watch(databaseProvider)));
+final walletRepositoryProvider = Provider(
+  (ref) => WalletRepository(
+    ref.watch(databaseProvider),
+    ref.watch(settingsRepositoryProvider),
+  ),
+);
 final categoryRepositoryProvider = Provider((ref) => CategoryRepository(ref.watch(databaseProvider)));
 final budgetRepositoryProvider = Provider((ref) => BudgetRepository(ref.watch(databaseProvider)));
 final recurringPaymentRepositoryProvider = Provider((ref) => RecurringPaymentRepository(ref.watch(databaseProvider)));
@@ -33,6 +39,10 @@ final tagRepositoryProvider = Provider((ref) => TagRepository(ref.watch(database
 final projectRepositoryProvider = Provider((ref) => ProjectRepository(ref.watch(databaseProvider)));
 final balanceServiceProvider = Provider((ref) => BalanceService());
 final homeMetricsServiceProvider = Provider((ref) => HomeMetricsService());
+final exchangeRateServiceProvider = Provider((ref) => ExchangeRateService(ref.watch(settingsRepositoryProvider)));
+final exchangeRatesProvider = FutureProvider<Map<String, double>>((ref) {
+  return ref.watch(settingsRepositoryProvider).loadExchangeRates();
+});
 
 
 Set<String> _walletSelectionFromKey(String walletSelectionKey) {
@@ -238,6 +248,21 @@ class CurrencySymbolNotifier extends Notifier<String> {
   }
 }
 final currencySymbolProvider = NotifierProvider<CurrencySymbolNotifier, String>(CurrencySymbolNotifier.new);
+
+class BaseCurrencyCodeNotifier extends Notifier<String> {
+  final String? _initial;
+  BaseCurrencyCodeNotifier([this._initial]);
+
+  @override
+  String build() => _initial ?? 'MGA';
+
+  void update(String code) {
+    state = code;
+    ref.read(settingsRepositoryProvider).saveBaseCurrencyCode(code);
+  }
+}
+final baseCurrencyCodeProvider =
+    NotifierProvider<BaseCurrencyCodeNotifier, String>(BaseCurrencyCodeNotifier.new);
 
 class DecimalDigitsNotifier extends Notifier<int> {
   final int? _initial;

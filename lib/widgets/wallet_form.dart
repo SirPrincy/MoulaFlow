@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
+import '../utils/currency_utils.dart';
 
 class WalletForm extends StatefulWidget {
   final Wallet? initialWallet;
   final ValueChanged<Wallet> onSave;
+  final String initialCurrencyCode;
 
   const WalletForm({
     super.key,
     this.initialWallet,
     required this.onSave,
+    this.initialCurrencyCode = 'MGA',
   });
 
   @override
@@ -20,6 +23,7 @@ class _WalletFormState extends State<WalletForm> {
   late TextEditingController _nameController;
   late TextEditingController _balanceController;
   late WalletType _selectedType;
+  late String _selectedCurrencyCode;
 
   final List<({String label, IconData icon, WalletType type})> _walletTypes = [
     (label: 'Courant', icon: Icons.account_balance_wallet_rounded, type: WalletType.current),
@@ -37,6 +41,7 @@ class _WalletFormState extends State<WalletForm> {
       text: widget.initialWallet != null ? widget.initialWallet!.initialBalance.toStringAsFixed(2) : '',
     );
     _selectedType = widget.initialWallet?.type ?? WalletType.current;
+    _selectedCurrencyCode = widget.initialWallet?.currencyCode ?? widget.initialCurrencyCode;
   }
 
   @override
@@ -56,12 +61,14 @@ class _WalletFormState extends State<WalletForm> {
               name: _nameController.text.trim(),
               initialBalance: initialBalance,
               type: _selectedType,
+              currencyCode: _selectedCurrencyCode,
             )
           : Wallet(
               id: DateTime.now().millisecondsSinceEpoch.toString(),
               name: _nameController.text.trim(),
               initialBalance: initialBalance,
               type: _selectedType,
+              currencyCode: _selectedCurrencyCode,
             );
 
       widget.onSave(wallet);
@@ -126,6 +133,27 @@ class _WalletFormState extends State<WalletForm> {
             }).toList(),
           ),
           const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            value: _selectedCurrencyCode,
+            decoration: InputDecoration(
+              labelText: 'DEVISE',
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            items: kSupportedCurrencies
+                .map(
+                  (currency) => DropdownMenuItem<String>(
+                    value: currency.code,
+                    child: Text('${currency.code} (${currency.symbol})'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedCurrencyCode = value);
+            },
+          ),
+          const SizedBox(height: 24),
           TextFormField(
             controller: _balanceController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -133,7 +161,7 @@ class _WalletFormState extends State<WalletForm> {
             decoration: InputDecoration(
               labelText: 'SOLDE INITIAL',
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-              suffixText: '€',
+              suffixText: symbolFromCurrencyCode(_selectedCurrencyCode),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
             validator: (value) {
