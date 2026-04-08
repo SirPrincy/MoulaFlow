@@ -230,12 +230,16 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
   }
 
   void _showDebtCreationFlow() {
+    final theme = Theme.of(context);
     final nameController = TextEditingController();
-    final amountController = TextEditingController();
+    final initialBalanceController = TextEditingController(text: '0.00');
+    final targetAmountController = TextEditingController();
+    final interestRateController = TextEditingController();
     final newWalletNameController = TextEditingController();
     DateTime issueDate = DateTime.now();
     DateTime? dueDate;
     bool isCredit = false;
+    bool hasInterest = false;
     bool useExistingWallet = true;
     String? selectedWalletId;
 
@@ -259,17 +263,8 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom de la dette',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'Montant'),
+                    decoration: const InputDecoration(labelText: 'Nom de la dette'),
+                    autofocus: true,
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -278,8 +273,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         child: ChoiceChip(
                           label: const Text('Je dois'),
                           selected: !isCredit,
-                          onSelected: (_) =>
-                              setDialogState(() => isCredit = false),
+                          onSelected: (_) => setDialogState(() => isCredit = false),
                           showCheckmark: false,
                         ),
                       ),
@@ -288,17 +282,32 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         child: ChoiceChip(
                           label: const Text('On me doit'),
                           selected: isCredit,
-                          onSelected: (_) =>
-                              setDialogState(() => isCredit = true),
+                          onSelected: (_) => setDialogState(() => isCredit = true),
                           showCheckmark: false,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
+                  TextField(
+                    controller: initialBalanceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: isCredit ? 'Déjà remboursé' : 'Déjà payé',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: targetAmountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: isCredit ? 'Montant prêté' : 'Montant total emprunté',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Date d\'émission: ${_formatDate(issueDate)}'),
+                    title: Text('Date d'émission: ${_formatDate(issueDate)}'),
                     trailing: const Icon(Icons.calendar_today),
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -316,7 +325,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       dueDate == null
-                          ? 'Date d\'échéance (optionnel)'
+                          ? 'Date d'échéance (optionnel)'
                           : 'Échéance: ${_formatDate(dueDate!)}',
                     ),
                     trailing: const Icon(Icons.event),
@@ -332,12 +341,34 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       }
                     },
                   ),
-                  const Divider(),
-                  const Text('Wallet de transaction (choix explicite)'),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text(
+                      'Inclure des intérêts',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                    value: hasInterest,
+                    onChanged: (val) => setDialogState(() => hasInterest = val),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                  if (hasInterest)
+                    TextField(
+                      controller: interestRateController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Taux d'intérêt annuel (%)',
+                        prefixIcon: Icon(Icons.percent),
+                      ),
+                    ),
+                  const Divider(height: 24),
+                  Text(
+                    'Wallet de transaction (choix explicite)',
+                    style: theme.textTheme.bodyMedium,
+                  ),
                   RadioGroup<bool>(
                     groupValue: useExistingWallet,
-                    onChanged: (val) =>
-                        setDialogState(() => useExistingWallet = val ?? true),
+                    onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
                     child: Column(
                       children: [
                         RadioListTile<bool>(
@@ -355,8 +386,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                                   ),
                                 )
                                 .toList(),
-                            onChanged: (val) =>
-                                setDialogState(() => selectedWalletId = val),
+                            onChanged: (val) => setDialogState(() => selectedWalletId = val),
                           ),
                         RadioListTile<bool>(
                           title: const Text('Créer un nouveau wallet'),
@@ -382,12 +412,23 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
               ),
               FilledButton(
                 onPressed: () async {
-                  final amount = double.tryParse(
-                    amountController.text.replaceAll(',', '.'),
+                  final targetAmount = double.tryParse(
+                    targetAmountController.text.replaceAll(',', '.'),
                   );
+                  final initialBalance = double.tryParse(
+                        initialBalanceController.text.replaceAll(',', '.'),
+                      ) ??
+                      0.0;
+                  final interestRate = double.tryParse(
+                    interestRateController.text.replaceAll(',', '.'),
+                  );
+
                   if (nameController.text.trim().isEmpty ||
-                      amount == null ||
-                      amount <= 0) {
+                      targetAmount == null ||
+                      targetAmount <= 0 ||
+                      initialBalance < 0 ||
+                      initialBalance > targetAmount ||
+                      (hasInterest && (interestRate == null || interestRate <= 0))) {
                     return;
                   }
 
@@ -411,10 +452,12 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: nameController.text.trim(),
                     type: WalletType.debt,
-                    targetAmount: amount,
+                    initialBalance: initialBalance,
+                    targetAmount: targetAmount,
                     dueDate: dueDate,
                     isCredit: isCredit,
                     createdAt: issueDate,
+                    interestRate: hasInterest ? interestRate : null,
                   );
 
                   await ref.read(walletRepositoryProvider).insertWallet(debtWallet);
@@ -428,7 +471,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         : TransactionType.income;
                     final tx = Transaction(
                       id: DateTime.now().microsecondsSinceEpoch.toString(),
-                      amount: amount,
+                      amount: targetAmount,
                       description: isCredit
                           ? 'Création dette (prêt) : ${debtWallet.name}'
                           : 'Création dette (emprunt) : ${debtWallet.name}',
@@ -443,9 +486,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       _showOperationSummary(
                         operation: 'Création de dette',
                         walletName: transactionWallet.name,
-                        amount: txType == TransactionType.expense
-                            ? -amount
-                            : amount,
+                        amount: txType == TransactionType.expense ? -targetAmount : targetAmount,
                         date: issueDate,
                         txType: txType.name,
                       );
@@ -455,7 +496,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       _showOperationSummary(
                         operation: 'Création de dette (sans transaction)',
                         walletName: transactionWallet.name,
-                        amount: isCredit ? -amount : amount,
+                        amount: isCredit ? -targetAmount : targetAmount,
                         date: issueDate,
                         txType: 'aucune',
                       );
@@ -475,6 +516,8 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
 
   void _showDebtRepaymentFlow(Wallet debtWallet) {
     final amountController = TextEditingController();
+    final interestAmountController = TextEditingController();
+    bool includeInterest = false;
     bool useExistingWallet = true;
     String? selectedWalletId;
     final newWalletNameController = TextEditingController();
@@ -535,6 +578,24 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     labelText: 'Montant remboursé',
                   ),
                 ),
+                if (debtWallet.interestRate != null && debtWallet.interestRate! > 0) ...[
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: includeInterest,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Inclure une part d'intérêt'),
+                    subtitle: Text('Taux configuré: ${debtWallet.interestRate}%'),
+                    onChanged: (val) => setDialogState(() => includeInterest = val ?? false),
+                  ),
+                  if (includeInterest)
+                    TextField(
+                      controller: interestAmountController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Part des intérêts incluse',
+                      ),
+                    ),
+                ],
                 const SizedBox(height: 8),
                 RadioGroup<bool>(
                   groupValue: useExistingWallet,
@@ -587,6 +648,15 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     amountController.text.replaceAll(',', '.'),
                   );
                   if (amount == null || amount <= 0) return;
+
+                  final interestAmount = includeInterest
+                      ? (double.tryParse(interestAmountController.text.replaceAll(',', '.')) ?? -1)
+                      : 0.0;
+                  if (includeInterest &&
+                      (interestAmount < 0 || interestAmount >= amount)) {
+                    return;
+                  }
+                  final principalAmount = amount - interestAmount;
                   if (hasTarget && amount > remainingAmount) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -618,7 +688,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         .insertWallet(transactionWallet);
                   }
 
-                  final newBalance = debtWallet.initialBalance + amount;
+                  final newBalance = debtWallet.initialBalance + principalAmount;
                   bool newIsSettled = debtWallet.isSettled;
                   
                   final tempWallet = debtWallet.copyWith(initialBalance: newBalance);
@@ -638,8 +708,10 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                         : TransactionType.expense;
                     final tx = Transaction(
                       id: DateTime.now().microsecondsSinceEpoch.toString(),
-                      amount: amount,
-                      description: 'Remboursement de ${debtWallet.name}',
+                      amount: principalAmount,
+                      description: includeInterest
+                          ? 'Remboursement (capital) de ${debtWallet.name}'
+                          : 'Remboursement de ${debtWallet.name}',
                       type: txType,
                       date: DateTime.now(),
                       walletId: transactionWallet.id,
@@ -647,6 +719,21 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                       categoryId: debtWallet.isCredit ? 'cat_dettes_repay_in' : 'cat_dettes_repay_out',
                     );
                     await ref.read(transactionRepositoryProvider).insertTransaction(tx);
+                    if (includeInterest && interestAmount > 0) {
+                      final interestTx = Transaction(
+                        id: '${DateTime.now().microsecondsSinceEpoch}_interest',
+                        amount: interestAmount,
+                        description: 'Intérêts sur ${debtWallet.name}',
+                        type: txType,
+                        date: DateTime.now(),
+                        walletId: transactionWallet.id,
+                        relatedDebtId: debtWallet.id,
+                        categoryId: debtWallet.isCredit
+                            ? 'cat_dettes_interest_in'
+                            : 'cat_dettes_interest_out',
+                      );
+                      await ref.read(transactionRepositoryProvider).insertTransaction(interestTx);
+                    }
                     if (mounted) {
                       _showOperationSummary(
                         operation: 'Remboursement',
@@ -671,7 +758,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                   }
                   
                   if (mounted) {
-                    final updatedRemaining = _getDebtRemainingAmount(debtWallet);
+                    final updatedRemaining = _getDebtRemainingAmount(updatedWallet);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
