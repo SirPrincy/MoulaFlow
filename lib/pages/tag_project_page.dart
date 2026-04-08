@@ -65,7 +65,8 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Erreur: $err')),
         data: (allTransactions) {
-          final projectTransactions = allTransactions
+          final isProjectTag = currentTag.type == TagType.project;
+          final tagTransactions = allTransactions
               .where((tx) => tx.tags.contains(currentTag.name))
               .toList();
           final categories = ref.watch(categoriesProvider).value ?? [];
@@ -85,7 +86,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
           }
 
           double totalSpent = 0;
-          for (var tx in projectTransactions) {
+          for (var tx in tagTransactions) {
             if (tx.type == TransactionType.expense) totalSpent += tx.amount;
             if (tx.type == TransactionType.income) totalSpent -= tx.amount;
           }
@@ -144,6 +145,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                         _buildHeaderCard(
                           theme,
                           currentTag,
+                          isProjectTag,
                           totalSpent,
                           limit,
                           progress,
@@ -165,7 +167,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                               ),
                             ),
                             Text(
-                              '${projectTransactions.length} OPS',
+                              '${tagTransactions.length} OPS',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -179,17 +181,21 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                     ),
                   ),
                 ),
-                if (projectTransactions.isEmpty)
-                  const SliverFillRemaining(
+                if (tagTransactions.isEmpty)
+                  SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child: Text('Aucune transaction pour ce projet.'),
+                      child: Text(
+                        isProjectTag
+                            ? 'Aucune transaction pour ce projet.'
+                            : 'Aucune transaction pour ce tag.',
+                      ),
                     ),
                   )
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final tx = projectTransactions[index];
+                      final tx = tagTransactions[index];
                       final catNames = getCategoryNames(tx.categoryId);
                       return TransactionTile(
                         tx: tx,
@@ -207,7 +213,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                           'Voulez-vous supprimer cette transaction ?',
                         ),
                       );
-                    }, childCount: projectTransactions.length),
+                    }, childCount: tagTransactions.length),
                   ),
                 const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
               ],
@@ -221,6 +227,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
   Widget _buildHeaderCard(
     ThemeData theme,
     TagDefinition tag,
+    bool isProjectTag,
     double spent,
     double limit,
     double progress,
@@ -267,7 +274,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Coût Total',
+                    isProjectTag ? 'Coût Total Projet' : 'Total du tag',
                     style: TextStyle(
                       fontSize: 14,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
@@ -286,7 +293,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
               ),
             ],
           ),
-          if (limit > 0) ...[
+          if (isProjectTag && limit > 0) ...[
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -332,7 +339,7 @@ class _TagProjectPageState extends ConsumerState<TagProjectPage> {
                 ),
               ),
             ],
-          ] else ...[
+          ] else if (isProjectTag) ...[
             const SizedBox(height: 16),
             Text(
               'Aucun budget défini pour ce projet.',
