@@ -154,6 +154,68 @@ enum TagType {
   budget,
   project,
   custom,
+  person,
+  place,
+  recurring,
+  debt,
+  saving,
+  investment,
+  health,
+  education,
+  transport,
+  housing,
+  food,
+  leisure,
+  business,
+  shopping,
+  travel,
+}
+
+extension TagTypeUi on TagType {
+  String get labelFr {
+    switch (this) {
+      case TagType.expense:
+        return 'Dépense';
+      case TagType.income:
+        return 'Revenu';
+      case TagType.budget:
+        return 'Budget';
+      case TagType.project:
+        return 'Projet';
+      case TagType.custom:
+        return 'Autre';
+      case TagType.person:
+        return 'Personne';
+      case TagType.place:
+        return 'Lieu';
+      case TagType.recurring:
+        return 'Récurrent';
+      case TagType.debt:
+        return 'Dette';
+      case TagType.saving:
+        return 'Épargne';
+      case TagType.investment:
+        return 'Investissement';
+      case TagType.health:
+        return 'Santé';
+      case TagType.education:
+        return 'Éducation';
+      case TagType.transport:
+        return 'Transport';
+      case TagType.housing:
+        return 'Logement';
+      case TagType.food:
+        return 'Alimentation';
+      case TagType.leisure:
+        return 'Loisir';
+      case TagType.business:
+        return 'Business';
+      case TagType.shopping:
+        return 'Shopping';
+      case TagType.travel:
+        return 'Voyage';
+    }
+  }
 }
 
 class TagDefinition {

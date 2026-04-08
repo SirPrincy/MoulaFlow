@@ -237,7 +237,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       (
         icon: Icons.task_alt_outlined,
-        label: 'Projets séparés',
+        label: 'Projet',
         onTap: () => _openMobilePage(const ProjectsPage()),
       ),
       (
@@ -271,43 +271,105 @@ class _HomePageState extends ConsumerState<HomePage> {
           scale: _isMobileMenuOpen ? 1 : 0.96,
           duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
-          child: Container(
-            color: theme.colorScheme.surface.withValues(alpha: 0.98),
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: 0.25),
             child: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 360),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (final item in menuItems)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: FilledButton.tonal(
-                              onPressed: item.onTap,
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size.fromHeight(52),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(item.icon, size: 20),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    item.label,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
+                        Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            const Icon(Icons.widgets_outlined),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Menu rapide',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: menuItems.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 2.3,
                           ),
+                          itemBuilder: (context, index) {
+                            final item = menuItems[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: item.onTap,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        item.icon,
+                                        size: 18,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          item.label,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),

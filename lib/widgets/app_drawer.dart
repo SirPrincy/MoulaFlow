@@ -151,7 +151,7 @@ class AppDrawerContent extends StatelessWidget {
                   context,
                   Icons.task_alt_outlined,
                   Icons.task_alt,
-                  'Projets séparés',
+                  'Projet',
                   '/projets-separes',
                   () {
                     Navigator.push(

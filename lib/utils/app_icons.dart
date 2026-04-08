@@ -32,6 +32,32 @@ class AppIcons {
         return Icons.category;
       case 0xe897: // Icons.label_outline.codePoint
         return Icons.label_outline;
+      case 0xe55f: // Icons.place_outlined.codePoint
+        return Icons.place_outlined;
+      case 0xe8f9: // Icons.schedule_rounded.codePoint
+        return Icons.schedule_rounded;
+      case 0xe850: // Icons.account_balance_wallet.codePoint
+        return Icons.account_balance_wallet;
+      case 0xe227: // Icons.savings.codePoint
+        return Icons.savings;
+      case 0xe263: // Icons.trending_up.codePoint
+        return Icons.trending_up;
+      case 0xe549: // Icons.local_hospital.codePoint
+        return Icons.local_hospital;
+      case 0xe80c: // Icons.school.codePoint
+        return Icons.school;
+      case 0xe530: // Icons.directions_car.codePoint
+        return Icons.directions_car;
+      case 0xe56c: // Icons.restaurant.codePoint
+        return Icons.restaurant;
+      case 0xe59c: // Icons.sports_esports.codePoint
+        return Icons.sports_esports;
+      case 0xe8cc: // Icons.shopping_bag.codePoint
+        return Icons.shopping_bag;
+      case 0xe539: // Icons.flight_takeoff.codePoint
+        return Icons.flight_takeoff;
+      case 0xe0af: // Icons.work_outline.codePoint
+        return Icons.work_outline;
 
       // Other UI Icons
       case 0xe23f: // Icons.edit_outlined.codePoint
