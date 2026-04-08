@@ -196,7 +196,7 @@ class _TagListItem extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         Text(
-                          isProject ? 'Projet' : 'Tag',
+                          isProject ? 'Projet' : tag.type.labelFr,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,

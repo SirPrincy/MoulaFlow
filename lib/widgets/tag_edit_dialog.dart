@@ -27,34 +27,33 @@ class TagEditDialog extends ConsumerStatefulWidget {
 class _TagEditDialogState extends ConsumerState<TagEditDialog> {
   late TextEditingController _nameController;
   late TextEditingController _goalController;
-  late TagType _type;
+  late TagType _selectedType;
   String? _selectedIcon;
   String? _selectedColor;
-  bool _isProject = false;
 
   final List<String> _colors = [
-    '#5C6BC0', '#3F51B5', '#673AB7', '#9C27B0', '#E91E63', '#EF5350',
-    '#FF7043', '#FFB300', '#FDD835', '#CDDC39', '#8BC34A', '#4CAF50',
-    '#009688', '#00BCD4', '#03A9F4', '#26C6DA', '#2196F3', '#78909C'
+    '#3B82F6', '#2563EB', '#5C6BC0', '#7C3AED', '#9C27B0', '#EC4899',
+    '#EF5350', '#F97316', '#FFB300', '#EAB308', '#84CC16', '#22C55E',
+    '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#6366F1', '#64748B'
   ];
 
   final List<int> _icons = [
-    0xf015a, // rocket_launch_rounded
-    0xf0071, // person_rounded
-    0xf004e, // face_rounded
-    0xf55f,  // auto_awesome_rounded
-    0xf0083, // pets_rounded
-    0xf001d, // favorite_rounded
     0xf01c3, // local_offer_outlined
-    0xe11d,  // category
-    0xe897,  // label_outline
-    0xe8b6,  // search (adding some standard ones)
-    0xe88a,  // home
-    0xe52f,  // restaurant
-    0xe532,  // flight
-    0xe332,  // movie
-    0xe30a,  // brush
-    0xeb41,  // sports_esports
+    0xf0071, // person_rounded
+    0xe55f, // place_outlined
+    0xe8f9, // schedule_rounded
+    0xe850, // account_balance_wallet
+    0xe227, // savings
+    0xe263, // trending_up
+    0xe549, // local_hospital
+    0xe80c, // school
+    0xe530, // directions_car
+    0xe88a, // home
+    0xe56c, // restaurant
+    0xe59c, // sports_esports
+    0xe8cc, // shopping_bag
+    0xe539, // flight_takeoff
+    0xe0af, // work_outline
   ];
 
   @override
@@ -62,10 +61,9 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.tag?.name ?? '');
     _goalController = TextEditingController(text: widget.tag?.goalAmount?.toString() ?? '');
-    _type = widget.tag?.type ?? widget.initialType;
+    _selectedType = widget.tag?.type ?? widget.initialType;
     _selectedIcon = widget.tag?.icon ?? _icons[0].toString();
     _selectedColor = widget.tag?.color ?? _colors[0];
-    _isProject = _type == TagType.project || (widget.tag?.goalAmount != null && widget.tag!.goalAmount! > 0);
   }
 
   @override
@@ -85,14 +83,15 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
 
     final repo = ref.read(tagRepositoryProvider);
     final goal = double.tryParse(_goalController.text.trim());
+    final isProject = widget.initialType == TagType.project || _selectedType == TagType.project;
 
     final newTag = TagDefinition(
       id: widget.tag?.id ?? const Uuid().v4(),
       name: _nameController.text.trim(),
-      type: _isProject ? TagType.project : TagType.custom,
+      type: isProject ? TagType.project : _selectedType,
       icon: _selectedIcon,
       color: _selectedColor,
-      goalAmount: goal,
+      goalAmount: isProject ? goal : null,
       createdAt: widget.tag?.createdAt ?? DateTime.now(),
     );
 
@@ -125,13 +124,14 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isProjectMode = widget.initialType == TagType.project || widget.tag?.type == TagType.project;
     
     return AlertDialog(
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.kDefaultRadius)),
       title: Text(
-        widget.tag == null ? 'Nouveau Projet / Tag' : 'Modifier ${widget.tag!.name}',
+        widget.tag == null ? 'Tags' : 'Modifier ${widget.tag!.name}',
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       content: SingleChildScrollView(
@@ -147,15 +147,47 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Est un Projet', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Les projets ont un budget et apparaissent sur le tableau de bord.'),
-              value: _isProject,
-              onChanged: (val) => setState(() => _isProject = val),
-              activeTrackColor: theme.colorScheme.primary,
-              contentPadding: EdgeInsets.zero,
+            DropdownButtonFormField<TagType>(
+              value: isProjectMode ? TagType.project : _selectedType,
+              items: (isProjectMode
+                      ? [TagType.project]
+                      : [
+                          TagType.custom,
+                          TagType.person,
+                          TagType.place,
+                          TagType.expense,
+                          TagType.income,
+                          TagType.food,
+                          TagType.transport,
+                          TagType.housing,
+                          TagType.shopping,
+                          TagType.leisure,
+                          TagType.travel,
+                          TagType.health,
+                          TagType.education,
+                          TagType.business,
+                          TagType.debt,
+                          TagType.saving,
+                          TagType.investment,
+                          TagType.recurring,
+                        ])
+                  .map(
+                    (type) => DropdownMenuItem<TagType>(
+                      value: type,
+                      child: Text(type.labelFr),
+                    ),
+                  )
+                  .toList(),
+              decoration: AppStyles.kInputDecoration(context, 'Type de tag'),
+              onChanged: isProjectMode
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() => _selectedType = value);
+                      }
+                    },
             ),
-            if (_isProject) ...[
+            if (isProjectMode) ...[
               const SizedBox(height: 16),
               TextField(
                 controller: _goalController,
@@ -168,61 +200,45 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
             const SizedBox(height: 24),
             const Text('Couleur', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _colors.map((c) {
-                final color = Color(int.parse(c.replaceAll('#', '0xFF')));
-                final isSelected = _selectedColor == c;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedColor = c),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: isSelected ? Border.all(color: theme.colorScheme.onSurface, width: 2) : null,
-                      boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 1)] : null,
-                    ),
-                    child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await showModalBottomSheet<String>(
+                  context: context,
+                  builder: (ctx) => _ColorPickerSheet(
+                    colors: _colors,
+                    selectedColor: _selectedColor,
                   ),
                 );
-              }).toList(),
+                if (result != null) {
+                  setState(() => _selectedColor = result);
+                }
+              },
+              icon: Icon(
+                Icons.palette_outlined,
+                color: _selectedColor != null
+                    ? Color(int.parse(_selectedColor!.replaceAll('#', '0xFF')))
+                    : null,
+              ),
+              label: const Text('Choisir une couleur'),
             ),
             const SizedBox(height: 24),
             const Text('Icône', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 120,
-              width: double.maxFinite,
-              child: GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                ),
-                itemCount: _icons.length,
-                itemBuilder: (context, index) {
-                  final code = _icons[index].toString();
-                  final isSelected = _selectedIcon == code;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedIcon = code),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        AppIcons.getIconData(_icons[index]),
-                        color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        size: 20,
-                      ),
-                    ),
-                  );
-                },
-              ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await showModalBottomSheet<String>(
+                  context: context,
+                  builder: (ctx) => _IconPickerSheet(
+                    icons: _icons,
+                    selectedIcon: _selectedIcon,
+                  ),
+                );
+                if (result != null) {
+                  setState(() => _selectedIcon = result);
+                }
+              },
+              icon: Icon(AppIcons.getIconFromStr(_selectedIcon, fallback: Icons.local_offer_outlined)),
+              label: const Text('Choisir une icône'),
             ),
           ],
         ),
@@ -247,6 +263,108 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
           child: const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
+    );
+  }
+}
+
+class _ColorPickerSheet extends StatelessWidget {
+  final List<String> colors;
+  final String? selectedColor;
+
+  const _ColorPickerSheet({required this.colors, this.selectedColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Choisir une couleur', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: colors.map((c) {
+                final color = Color(int.parse(c.replaceAll('#', '0xFF')));
+                final isSelected = selectedColor == c;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(99),
+                  onTap: () => Navigator.pop(context, c),
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: isSelected ? Border.all(color: theme.colorScheme.onSurface, width: 2) : null,
+                      boxShadow: isSelected ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 1)] : null,
+                    ),
+                    child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IconPickerSheet extends StatelessWidget {
+  final List<int> icons;
+  final String? selectedIcon;
+
+  const _IconPickerSheet({required this.icons, this.selectedIcon});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Choisir une icône', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 6,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+              ),
+              itemCount: icons.length,
+              itemBuilder: (context, index) {
+                final code = icons[index].toString();
+                final isSelected = selectedIcon == code;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => Navigator.pop(context, code),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      AppIcons.getIconData(icons[index]),
+                      color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                      size: 20,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
