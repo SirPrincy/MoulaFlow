@@ -19,7 +19,14 @@ import 'utils/styles.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
 import 'domain/home_metrics_service.dart';
+import 'domain/home_interaction_service.dart';
 import 'widgets/dashboard_cards.dart';
+import 'widgets/dashboard/balance_card.dart';
+import 'widgets/dashboard/flow_card.dart';
+import 'widgets/dashboard/category_card.dart';
+import 'widgets/dashboard/recent_activity_card.dart';
+import 'widgets/dashboard/module_states.dart';
+import 'widgets/dashboard/modules_layout.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final bool showRecoveryHint;
@@ -40,6 +47,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   final _balanceService = BalanceService();
   final _dashboardRepo = DashboardRepository();
   final _homeMetricsService = HomeMetricsService();
+  final _homeInteractionService = HomeInteractionService();
 
   DashboardConfig _dashboardConfig = DashboardConfig.defaultConfig();
   bool _isEditMode = false;
@@ -141,24 +149,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
         }
 
-        // Auto-settle/complete logic for debts and savings
-        for (var w in _wallets) {
-          if (!w.isSettled && w.targetAmount != null) {
-            final balance = _getWalletBalance(w.id);
-            double effectiveTarget = w.targetAmount!;
-
-            if (w.type == WalletType.debt &&
-                w.interestRate != null &&
-                w.interestRate! > 0) {
-              effectiveTarget = effectiveTarget * (1 + w.interestRate! / 100);
-            }
-
-            // If balance reached or exceeded target, mark as settled/completed
-            if (balance >= effectiveTarget) {
-              final updatedWallet = w.copyWith(isSettled: true);
-              await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
-            }
-          }
+        final walletsToSettle = _homeInteractionService.walletsToSettle(
+          wallets: _wallets,
+          getWalletBalance: _getWalletBalance,
+        );
+        for (final wallet in walletsToSettle) {
+          await ref.read(walletRepositoryProvider).updateWallet(wallet);
         }
       }
     });
@@ -166,6 +162,39 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _saveDashboardConfig() async {
     await _dashboardRepo.saveConfig(_dashboardConfig);
+  }
+
+  void _showFeedback(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<bool> _confirmRemoveModule(DashboardWidgetType type) async {
+    final decision = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirer le module ?'),
+        content: Text(
+          'Le module ${type.name} sera retiré du dashboard. Tu pourras le réajouter ensuite.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    return decision ?? false;
   }
 
 
@@ -296,7 +325,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
 
 
-  Widget? _buildDashboardItem(
+  Widget _buildDashboardModule(
     DashboardWidgetType type, {
     required List<Transaction> filteredTxs,
     required List<TagDefinition> tags,
@@ -305,10 +334,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     required Map<String, double> categorySpending,
     required List<double> historicalBalances,
   }) {
-    Widget mod;
-    switch (type) {
-      case DashboardWidgetType.balance:
-        mod = BalanceSummaryCard(
+    final moduleBuilders = <DashboardWidgetType, Widget Function()>{
+      DashboardWidgetType.balance: () => BalanceCard(
           totalBalance: _totalBalance,
           wallets: _wallets,
           selectedWalletIds: _selectedWalletIds,
@@ -322,13 +349,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             }
           }),
           getWalletBalance: _getWalletBalance,
-        );
-        break;
-      case DashboardWidgetType.flow:
-        mod = FlowCard(income: income, expenses: expenses);
-        break;
-      case DashboardWidgetType.categories:
-        mod = CategoryChartCard(
+        ),
+      DashboardWidgetType.flow: () => FlowDashboardCard(income: income, expenses: expenses),
+      DashboardWidgetType.categories: () => CategoryDashboardCard(
           categorySpending: categorySpending,
           style: _dashboardConfig.categoryChartStyle,
           isEditMode: _isEditMode,
@@ -341,11 +364,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               );
               _saveDashboardConfig();
             });
+            _showFeedback('Style du module catégories mis à jour.');
           },
-        );
-        break;
-      case DashboardWidgetType.recent:
-        mod = RecentTransactionsCard(
+        ),
+      DashboardWidgetType.recent: () => RecentActivityCard(
           transactions: filteredTxs,
           getCategoryName: _getCategoryName,
           getWalletCaption: (tx) =>
@@ -360,13 +382,9 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             );
           },
-        );
-        break;
-      case DashboardWidgetType.trends:
-        mod = WealthTrendCard(history: historicalBalances);
-        break;
-      case DashboardWidgetType.projects:
-        mod = ProjectsSummaryCard(
+        ),
+      DashboardWidgetType.trends: () => WealthTrendCard(history: historicalBalances),
+      DashboardWidgetType.projects: () => ProjectsSummaryCard(
           tags: tags,
           transactions: _transactions,
           onTagTap: (tag) {
@@ -377,9 +395,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             );
           },
-        );
-        break;
-    }
+        ),
+    };
+    final mod = moduleBuilders[type]?.call() ??
+        const SizedBox.shrink();
 
     return Padding(
       key: ValueKey(type),
@@ -396,11 +415,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Icons.remove_circle,
                   color: Colors.red,
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  final confirmed = await _confirmRemoveModule(type);
+                  if (!confirmed) return;
                   setState(() {
                     _dashboardConfig.visible.remove(type);
                     _saveDashboardConfig();
                   });
+                  _showFeedback('Module ${type.name} retiré.');
                 },
               ),
             ),
@@ -414,16 +436,42 @@ class _HomePageState extends ConsumerState<HomePage> {
     final walletsAsync = ref.watch(walletsProvider);
     final txsAsync = ref.watch(transactionsProvider);
     final catsAsync = ref.watch(categoriesProvider);
+    final tagsAsync = ref.watch(tagsProvider);
 
-    if (walletsAsync.isLoading || txsAsync.isLoading || catsAsync.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final isDashboardLoading = ref.watch(
+      walletsProvider.select((state) => state.isLoading),
+    ) ||
+        ref.watch(
+          transactionsProvider.select((state) => state.isLoading),
+        ) ||
+        ref.watch(
+          categoriesProvider.select((state) => state.isLoading),
+        );
+
+    if (isDashboardLoading) {
+      return const Scaffold(body: DashboardLoadingState());
     }
 
-    final tagsAsync = ref.watch(tagsProvider);
+    if (walletsAsync.hasError || txsAsync.hasError || catsAsync.hasError) {
+      return const Scaffold(
+        body: DashboardErrorState(
+          message: 'Erreur de chargement des données du dashboard.',
+        ),
+      );
+    }
+
     _wallets = walletsAsync.value ?? [];
     _transactions = txsAsync.value ?? [];
     _categories = catsAsync.value ?? [];
     final tags = tagsAsync.value ?? [];
+    if (_wallets.isEmpty && _transactions.isEmpty && _categories.isEmpty) {
+      return const Scaffold(
+        body: DashboardEmptyState(
+          title: 'Tableau de bord vide',
+          subtitle: 'Ajoute un portefeuille ou une transaction pour démarrer.',
+        ),
+      );
+    }
 
     final theme = Theme.of(context);
     final metricsSelectionKey = (_selectedWalletIds.toList()..sort()).join(',');
@@ -457,94 +505,48 @@ class _HomePageState extends ConsumerState<HomePage> {
         .where((type) => _dashboardConfig.visible.contains(type))
         .toList();
 
-    Widget dashboardContent;
-    if (_isEditMode) {
-      dashboardContent = ReorderableListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 0),
-        itemCount: dashboardItems.length,
-        onReorder: (oldIndex, newIndex) {
-          setState(() {
-            if (newIndex > oldIndex) newIndex -= 1;
-            final item = dashboardItems.removeAt(oldIndex);
-            dashboardItems.insert(newIndex, item);
+    final dashboardContent = DashboardModulesLayout(
+      isEditMode: _isEditMode,
+      dashboardItems: dashboardItems,
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (newIndex > oldIndex) newIndex -= 1;
+          final item = dashboardItems.removeAt(oldIndex);
+          dashboardItems.insert(newIndex, item);
 
-            final currentOrder = List<DashboardWidgetType>.from(_dashboardConfig.order);
-            final globalOldIdx = currentOrder.indexOf(item);
-            currentOrder.removeAt(globalOldIdx);
-            int globalNewIdx = 0;
-            if (newIndex > 0) {
-              final prevWidget = dashboardItems[newIndex - 1];
-              globalNewIdx = currentOrder.indexOf(prevWidget) + 1;
-            }
-            currentOrder.insert(globalNewIdx, item);
+          final currentOrder = List<DashboardWidgetType>.from(_dashboardConfig.order);
+          final globalOldIdx = currentOrder.indexOf(item);
+          currentOrder.removeAt(globalOldIdx);
+          int globalNewIdx = 0;
+          if (newIndex > 0) {
+            final prevWidget = dashboardItems[newIndex - 1];
+            globalNewIdx = currentOrder.indexOf(prevWidget) + 1;
+          }
+          currentOrder.insert(globalNewIdx, item);
 
-            if (currentOrder.contains(DashboardWidgetType.balance)) {
-              currentOrder.remove(DashboardWidgetType.balance);
-              currentOrder.insert(0, DashboardWidgetType.balance);
-            }
+          if (currentOrder.contains(DashboardWidgetType.balance)) {
+            currentOrder.remove(DashboardWidgetType.balance);
+            currentOrder.insert(0, DashboardWidgetType.balance);
+          }
 
-            _dashboardConfig = DashboardConfig(
-              order: currentOrder,
-              visible: _dashboardConfig.visible,
-              categoryChartStyle: _dashboardConfig.categoryChartStyle,
-            );
-            _saveDashboardConfig();
-          });
-        },
-        buildDefaultDragHandles: true,
-        proxyDecorator: (child, index, animation) =>
-            Material(color: Colors.transparent, child: child),
-        itemBuilder: (context, index) => _buildDashboardItem(
-          dashboardItems[index],
-          filteredTxs: filteredTxs,
-          tags: tags,
-          income: income,
-          expenses: expenses,
-          categorySpending: categorySpending,
-          historicalBalances: historicalBalances,
-        )!,
-      );
-    } else {
-      if (context.gridColumns > 1) {
-        dashboardContent = Wrap(
-          spacing: 20,
-          runSpacing: 0,
-          children: dashboardItems.map((type) {
-            final isFullWidth = type == DashboardWidgetType.balance;
-            // On desktop we account for sidebar width
-            final availableWidth = context.screenWidth - (context.isExpandedScreen ? 300 : 120);
-            final cardWidth = isFullWidth ? double.infinity : (availableWidth - 60) / 2;
-            
-            return SizedBox(
-              width: cardWidth,
-              child: _buildDashboardItem(
-                type,
-                filteredTxs: filteredTxs,
-                tags: tags,
-                income: income,
-                expenses: expenses,
-                categorySpending: categorySpending,
-                historicalBalances: historicalBalances,
-              ),
-            );
-          }).toList(),
-        );
-      } else {
-        dashboardContent = Column(
-          children: dashboardItems.map((type) => _buildDashboardItem(
-            type,
-            filteredTxs: filteredTxs,
-            tags: tags,
-            income: income,
-            expenses: expenses,
-            categorySpending: categorySpending,
-            historicalBalances: historicalBalances,
-          )!).toList(),
-        );
-      }
-    }
+          _dashboardConfig = DashboardConfig(
+            order: currentOrder,
+            visible: _dashboardConfig.visible,
+            categoryChartStyle: _dashboardConfig.categoryChartStyle,
+          );
+          _saveDashboardConfig();
+        });
+      },
+      buildModule: (type) => _buildDashboardModule(
+        type,
+        filteredTxs: filteredTxs,
+        tags: tags,
+        income: income,
+        expenses: expenses,
+        categorySpending: categorySpending,
+        historicalBalances: historicalBalances,
+      ),
+    );
 
     Widget mainContent = SingleChildScrollView(
       child: Column(
@@ -569,14 +571,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 Icons.add_circle,
                                 color: Colors.green,
                               ),
-                              onTap: () {
-                                setState(() {
-                                  _dashboardConfig.visible.add(t);
-                                  _saveDashboardConfig();
-                                });
-                                Navigator.pop(context);
-                              },
-                            ),
+                                onTap: () {
+                                  setState(() {
+                                    _dashboardConfig.visible.add(t);
+                                    _saveDashboardConfig();
+                                  });
+                                  _showFeedback('Module ${t.name} ajouté.');
+                                  Navigator.pop(context);
+                                },
+                              ),
                           )
                           .toList(),
                     ),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 /// Constants for breakpoints used throughout the application.
 class Breakpoints {
-  static const double compact = 600;   // Mobile
-  static const double medium = 1200;    // Tablet / Small Desktop
+  static const double compact = 700;   // Mobile < 700
+  static const double medium = 1100;    // Tablet 700-1099, Desktop >= 1100
 }
 
 /// Helper methods to determine current device size category.
