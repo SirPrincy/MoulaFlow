@@ -148,7 +148,7 @@ class _TagEditDialogState extends ConsumerState<TagEditDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<TagType>(
-              value: isProjectMode ? TagType.project : _selectedType,
+              initialValue: isProjectMode ? TagType.project : _selectedType,
               items: (isProjectMode
                       ? [TagType.project]
                       : [

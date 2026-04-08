@@ -815,7 +815,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: fromCode,
+                  initialValue: fromCode,
                   decoration: const InputDecoration(labelText: 'De'),
                   items: kSupportedCurrencies
                       .map((e) => DropdownMenuItem(value: e.code, child: Text(e.code)))
@@ -824,7 +824,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: toCode,
+                  initialValue: toCode,
                   decoration: const InputDecoration(labelText: 'Vers'),
                   items: kSupportedCurrencies
                       .map((e) => DropdownMenuItem(value: e.code, child: Text(e.code)))

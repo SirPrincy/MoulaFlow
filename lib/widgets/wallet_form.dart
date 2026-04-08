@@ -134,7 +134,7 @@ class _WalletFormState extends State<WalletForm> {
           ),
           const SizedBox(height: 24),
           DropdownButtonFormField<String>(
-            value: _selectedCurrencyCode,
+            initialValue: _selectedCurrencyCode,
             decoration: InputDecoration(
               labelText: 'DEVISE',
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
