@@ -457,147 +457,161 @@ class _HomePageState extends ConsumerState<HomePage> {
         .where((type) => _dashboardConfig.visible.contains(type))
         .toList();
 
-    Widget dashboardContent;
-    if (_isEditMode) {
-      dashboardContent = ReorderableListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 0),
-        itemCount: dashboardItems.length,
-        onReorder: (oldIndex, newIndex) {
-          setState(() {
-            if (newIndex > oldIndex) newIndex -= 1;
-            final item = dashboardItems.removeAt(oldIndex);
-            dashboardItems.insert(newIndex, item);
+    Widget mainContent = LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final crossAxisCount = availableWidth >= 1200
+            ? 3
+            : availableWidth >= Breakpoints.medium
+                ? 2
+                : 1;
 
-            final currentOrder = List<DashboardWidgetType>.from(_dashboardConfig.order);
-            final globalOldIdx = currentOrder.indexOf(item);
-            currentOrder.removeAt(globalOldIdx);
-            int globalNewIdx = 0;
-            if (newIndex > 0) {
-              final prevWidget = dashboardItems[newIndex - 1];
-              globalNewIdx = currentOrder.indexOf(prevWidget) + 1;
-            }
-            currentOrder.insert(globalNewIdx, item);
+        Widget dashboardContent;
+        if (_isEditMode) {
+          dashboardContent = ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 0),
+            itemCount: dashboardItems.length,
+            onReorder: (oldIndex, newIndex) {
+              setState(() {
+                if (newIndex > oldIndex) newIndex -= 1;
+                final item = dashboardItems.removeAt(oldIndex);
+                dashboardItems.insert(newIndex, item);
 
-            if (currentOrder.contains(DashboardWidgetType.balance)) {
-              currentOrder.remove(DashboardWidgetType.balance);
-              currentOrder.insert(0, DashboardWidgetType.balance);
-            }
+                final currentOrder = List<DashboardWidgetType>.from(
+                  _dashboardConfig.order,
+                );
+                final globalOldIdx = currentOrder.indexOf(item);
+                currentOrder.removeAt(globalOldIdx);
+                int globalNewIdx = 0;
+                if (newIndex > 0) {
+                  final prevWidget = dashboardItems[newIndex - 1];
+                  globalNewIdx = currentOrder.indexOf(prevWidget) + 1;
+                }
+                currentOrder.insert(globalNewIdx, item);
 
-            _dashboardConfig = DashboardConfig(
-              order: currentOrder,
-              visible: _dashboardConfig.visible,
-              categoryChartStyle: _dashboardConfig.categoryChartStyle,
-            );
-            _saveDashboardConfig();
-          });
-        },
-        buildDefaultDragHandles: true,
-        proxyDecorator: (child, index, animation) =>
-            Material(color: Colors.transparent, child: child),
-        itemBuilder: (context, index) => _buildDashboardItem(
-          dashboardItems[index],
-          filteredTxs: filteredTxs,
-          tags: tags,
-          income: income,
-          expenses: expenses,
-          categorySpending: categorySpending,
-          historicalBalances: historicalBalances,
-        )!,
-      );
-    } else {
-      if (context.gridColumns > 1) {
-        dashboardContent = Wrap(
-          spacing: 20,
-          runSpacing: 0,
-          children: dashboardItems.map((type) {
-            final isFullWidth = type == DashboardWidgetType.balance;
-            // On desktop we account for sidebar width
-            final availableWidth = context.screenWidth - (context.isExpandedScreen ? 300 : 120);
-            final cardWidth = isFullWidth ? double.infinity : (availableWidth - 60) / 2;
-            
-            return SizedBox(
-              width: cardWidth,
-              child: _buildDashboardItem(
-                type,
-                filteredTxs: filteredTxs,
-                tags: tags,
-                income: income,
-                expenses: expenses,
-                categorySpending: categorySpending,
-                historicalBalances: historicalBalances,
-              ),
-            );
-          }).toList(),
-        );
-      } else {
-        dashboardContent = Column(
-          children: dashboardItems.map((type) => _buildDashboardItem(
-            type,
-            filteredTxs: filteredTxs,
-            tags: tags,
-            income: income,
-            expenses: expenses,
-            categorySpending: categorySpending,
-            historicalBalances: historicalBalances,
-          )!).toList(),
-        );
-      }
-    }
+                if (currentOrder.contains(DashboardWidgetType.balance)) {
+                  currentOrder.remove(DashboardWidgetType.balance);
+                  currentOrder.insert(0, DashboardWidgetType.balance);
+                }
 
-    Widget mainContent = SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          dashboardContent,
+                _dashboardConfig = DashboardConfig(
+                  order: currentOrder,
+                  visible: _dashboardConfig.visible,
+                  categoryChartStyle: _dashboardConfig.categoryChartStyle,
+                );
+                _saveDashboardConfig();
+              });
+            },
+            buildDefaultDragHandles: true,
+            proxyDecorator: (child, index, animation) =>
+                Material(color: Colors.transparent, child: child),
+            itemBuilder: (context, index) => _buildDashboardItem(
+              dashboardItems[index],
+              filteredTxs: filteredTxs,
+              tags: tags,
+              income: income,
+              expenses: expenses,
+              categorySpending: categorySpending,
+              historicalBalances: historicalBalances,
+            )!,
+          );
+        } else if (crossAxisCount > 1) {
+          const spacing = 20.0;
+          final cardWidth =
+              (availableWidth - ((crossAxisCount - 1) * spacing)) /
+              crossAxisCount;
 
-          if (_isEditMode)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) => ListView(
-                      children: DashboardWidgetType.values
-                          .where((t) => !_dashboardConfig.visible.contains(t))
-                          .map(
-                            (t) => ListTile(
-                              title: Text(t.name),
-                              trailing: const Icon(
-                                Icons.add_circle,
-                                color: Colors.green,
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  _dashboardConfig.visible.add(t);
-                                  _saveDashboardConfig();
-                                });
-                                Navigator.pop(context);
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Ajouter un module'),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppStyles.kDefaultRadius,
+          dashboardContent = Wrap(
+            spacing: spacing,
+            runSpacing: 0,
+            children: dashboardItems.map((type) {
+              final isFullWidth = type == DashboardWidgetType.balance;
+              return SizedBox(
+                width: isFullWidth ? availableWidth : cardWidth,
+                child: _buildDashboardItem(
+                  type,
+                  filteredTxs: filteredTxs,
+                  tags: tags,
+                  income: income,
+                  expenses: expenses,
+                  categorySpending: categorySpending,
+                  historicalBalances: historicalBalances,
+                ),
+              );
+            }).toList(),
+          );
+        } else {
+          dashboardContent = Column(
+            children: dashboardItems
+                .map(
+                  (type) => _buildDashboardItem(
+                    type,
+                    filteredTxs: filteredTxs,
+                    tags: tags,
+                    income: income,
+                    expenses: expenses,
+                    categorySpending: categorySpending,
+                    historicalBalances: historicalBalances,
+                  )!,
+                )
+                .toList(),
+          );
+        }
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              dashboardContent,
+              if (_isEditMode)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) => ListView(
+                          children: DashboardWidgetType.values
+                              .where((t) => !_dashboardConfig.visible.contains(t))
+                              .map(
+                                (t) => ListTile(
+                                  title: Text(t.name),
+                                  trailing: const Icon(
+                                    Icons.add_circle,
+                                    color: Colors.green,
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      _dashboardConfig.visible.add(t);
+                                      _saveDashboardConfig();
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Ajouter un module'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppStyles.kDefaultRadius,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-              ),
-            ),
-
-          const SizedBox(height: 100),
-        ],
-      ),
+              const SizedBox(height: 100),
+            ],
+          ),
+        );
+      },
     );
 
     final sideMenu = AppDrawerContent(
