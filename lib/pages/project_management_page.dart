@@ -64,7 +64,9 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text('Erreur: $err')),
               data: (tags) {
-                if (tags.isEmpty) {
+                final displayTags = tags.where((t) => t.type != TagType.project).toList();
+
+                if (displayTags.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +81,7 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
                   );
                 }
 
-                final filteredTags = tags.where((t) => t.name.toLowerCase().contains(_searchQuery)).toList();
+                final filteredTags = displayTags.where((t) => t.name.toLowerCase().contains(_searchQuery)).toList();
                 
                 filteredTags.sort((a, b) => a.name.compareTo(b.name));
 
@@ -122,7 +124,7 @@ class _ProjectManagementPageState extends ConsumerState<ProjectManagementPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => TagEditDialog.show(context),
+        onPressed: () => TagEditDialog.show(context, initialType: TagType.custom),
         label: const Text('AJOUTER', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
         backgroundColor: theme.colorScheme.primary,

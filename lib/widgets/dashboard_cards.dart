@@ -9,7 +9,7 @@ import '../providers.dart';
 import '../data/dashboard_repository.dart';
 import '../utils/styles.dart';
 import '../utils/app_icons.dart';
-import '../pages/project_management_page.dart';
+import '../pages/projects_page.dart';
 import 'tag_edit_dialog.dart';
 
 /// Base class for all dashboard widget cards.
@@ -870,7 +870,7 @@ class RecentTransactionsCard extends DashboardCard {
   }
 }
 
-/// 5. Résumé des TAGS
+/// 5. Résumé des PROJETS (basés sur les tags de type project)
 class ProjectsSummaryCard extends DashboardCard {
   final List<TagDefinition> tags;
   final List<Transaction> transactions;
@@ -892,7 +892,10 @@ class ProjectsSummaryCard extends DashboardCard {
         final decimals = ref.watch(decimalDigitsProvider);
         final theme = Theme.of(context);
         
-        final projectTags = [...tags]..sort((a, b) => a.name.compareTo(b.name));
+        final projectTags = tags
+            .where((tag) => tag.type == TagType.project)
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
 
         return buildContainer(
           context,
@@ -901,12 +904,12 @@ class ProjectsSummaryCard extends DashboardCard {
             children: [
               buildHeader(
                 context, 
-                'TAGS RÉCENTS',
+                'PROJETS',
                 trailing: InkWell(
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ProjectManagementPage()),
+                      MaterialPageRoute(builder: (context) => const ProjectsPage()),
                     );
                   },
                   child: Row(
@@ -921,7 +924,7 @@ class ProjectsSummaryCard extends DashboardCard {
               if (projectTags.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: Text('Aucun tag défini.')),
+                  child: Center(child: Text('Aucun projet défini.')),
                 )
               else
                 ...projectTags.take(3).map((tag) {
