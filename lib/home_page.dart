@@ -19,7 +19,11 @@ import 'utils/styles.dart';
 import 'data/dashboard_repository.dart';
 import 'domain/balance_service.dart';
 import 'domain/home_metrics_service.dart';
-import 'widgets/dashboard_cards.dart';
+import 'domain/home_interaction_service.dart';
+import 'widgets/dashboard/module_states.dart';
+import 'widgets/dashboard/modules_layout.dart';
+import 'widgets/dashboard/module_factory.dart';
+import 'widgets/dashboard/add_module_button.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final bool showRecoveryHint;
@@ -40,6 +44,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   final _balanceService = BalanceService();
   final _dashboardRepo = DashboardRepository();
   final _homeMetricsService = HomeMetricsService();
+  final _homeInteractionService = HomeInteractionService();
 
   DashboardConfig _dashboardConfig = DashboardConfig.defaultConfig();
   bool _isEditMode = false;
@@ -141,24 +146,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           await ref.read(transactionRepositoryProvider).deleteTransaction(tx.id);
         }
 
-        // Auto-settle/complete logic for debts and savings
-        for (var w in _wallets) {
-          if (!w.isSettled && w.targetAmount != null) {
-            final balance = _getWalletBalance(w.id);
-            double effectiveTarget = w.targetAmount!;
-
-            if (w.type == WalletType.debt &&
-                w.interestRate != null &&
-                w.interestRate! > 0) {
-              effectiveTarget = effectiveTarget * (1 + w.interestRate! / 100);
-            }
-
-            // If balance reached or exceeded target, mark as settled/completed
-            if (balance >= effectiveTarget) {
-              final updatedWallet = w.copyWith(isSettled: true);
-              await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
-            }
-          }
+        final walletsToSettle = _homeInteractionService.walletsToSettle(
+          wallets: _wallets,
+          getWalletBalance: _getWalletBalance,
+        );
+        for (final wallet in walletsToSettle) {
+          await ref.read(walletRepositoryProvider).updateWallet(wallet);
         }
       }
     });
@@ -166,6 +159,39 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _saveDashboardConfig() async {
     await _dashboardRepo.saveConfig(_dashboardConfig);
+  }
+
+  void _showFeedback(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<bool> _confirmRemoveModule(DashboardWidgetType type) async {
+    final decision = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirer le module ?'),
+        content: Text(
+          'Le module ${type.name} sera retiré du dashboard. Tu pourras le réajouter ensuite.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    return decision ?? false;
   }
 
 
@@ -293,137 +319,47 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     );
   }
-
-
-
-  Widget? _buildDashboardItem(
-    DashboardWidgetType type, {
-    required List<Transaction> filteredTxs,
-    required List<TagDefinition> tags,
-    required double income,
-    required double expenses,
-    required Map<String, double> categorySpending,
-    required List<double> historicalBalances,
-  }) {
-    Widget mod;
-    switch (type) {
-      case DashboardWidgetType.balance:
-        mod = BalanceSummaryCard(
-          totalBalance: _totalBalance,
-          wallets: _wallets,
-          selectedWalletIds: _selectedWalletIds,
-          onWalletTap: (id) => setState(() {
-            if (id == null) {
-              _selectedWalletIds.clear();
-            } else if (_selectedWalletIds.contains(id)) {
-              _selectedWalletIds.remove(id);
-            } else {
-              _selectedWalletIds.add(id);
-            }
-          }),
-          getWalletBalance: _getWalletBalance,
-        );
-        break;
-      case DashboardWidgetType.flow:
-        mod = FlowCard(income: income, expenses: expenses);
-        break;
-      case DashboardWidgetType.categories:
-        mod = CategoryChartCard(
-          categorySpending: categorySpending,
-          style: _dashboardConfig.categoryChartStyle,
-          isEditMode: _isEditMode,
-          onStyleChange: (CategoryChartStyle style) {
-            setState(() {
-              _dashboardConfig = DashboardConfig(
-                order: _dashboardConfig.order,
-                visible: _dashboardConfig.visible,
-                categoryChartStyle: style,
-              );
-              _saveDashboardConfig();
-            });
-          },
-        );
-        break;
-      case DashboardWidgetType.recent:
-        mod = RecentTransactionsCard(
-          transactions: filteredTxs,
-          getCategoryName: _getCategoryName,
-          getWalletCaption: (tx) =>
-              tx.type == TransactionType.transfer
-              ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
-              : _getWalletName(tx.walletId),
-          onTap: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const TransactionsPage(),
-              ),
-            );
-          },
-        );
-        break;
-      case DashboardWidgetType.trends:
-        mod = WealthTrendCard(history: historicalBalances);
-        break;
-      case DashboardWidgetType.projects:
-        mod = ProjectsSummaryCard(
-          tags: tags,
-          transactions: _transactions,
-          onTagTap: (tag) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TagProjectPage(tag: tag),
-              ),
-            );
-          },
-        );
-        break;
-    }
-
-    return Padding(
-      key: ValueKey(type),
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Stack(
-        children: [
-          mod,
-          if (_isEditMode && type != DashboardWidgetType.balance)
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(
-                  Icons.remove_circle,
-                  color: Colors.red,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _dashboardConfig.visible.remove(type);
-                    _saveDashboardConfig();
-                  });
-                },
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final walletsAsync = ref.watch(walletsProvider);
     final txsAsync = ref.watch(transactionsProvider);
     final catsAsync = ref.watch(categoriesProvider);
+    final tagsAsync = ref.watch(tagsProvider);
 
-    if (walletsAsync.isLoading || txsAsync.isLoading || catsAsync.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final isDashboardLoading = ref.watch(
+      walletsProvider.select((state) => state.isLoading),
+    ) ||
+        ref.watch(
+          transactionsProvider.select((state) => state.isLoading),
+        ) ||
+        ref.watch(
+          categoriesProvider.select((state) => state.isLoading),
+        );
+
+    if (isDashboardLoading) {
+      return const Scaffold(body: DashboardLoadingState());
     }
 
-    final tagsAsync = ref.watch(tagsProvider);
+    if (walletsAsync.hasError || txsAsync.hasError || catsAsync.hasError) {
+      return const Scaffold(
+        body: DashboardErrorState(
+          message: 'Erreur de chargement des données du dashboard.',
+        ),
+      );
+    }
+
     _wallets = walletsAsync.value ?? [];
     _transactions = txsAsync.value ?? [];
     _categories = catsAsync.value ?? [];
     final tags = tagsAsync.value ?? [];
+    if (_wallets.isEmpty && _transactions.isEmpty && _categories.isEmpty) {
+      return const Scaffold(
+        body: DashboardEmptyState(
+          title: 'Tableau de bord vide',
+          subtitle: 'Ajoute un portefeuille ou une transaction pour démarrer.',
+        ),
+      );
+    }
 
     final theme = Theme.of(context);
     final metricsSelectionKey = (_selectedWalletIds.toList()..sort()).join(',');
@@ -457,161 +393,117 @@ class _HomePageState extends ConsumerState<HomePage> {
         .where((type) => _dashboardConfig.visible.contains(type))
         .toList();
 
-    Widget mainContent = LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
-        final crossAxisCount = availableWidth >= 1200
-            ? 3
-            : availableWidth >= Breakpoints.medium
-                ? 2
-                : 1;
+    final dashboardContent = DashboardModulesLayout(
+      isEditMode: _isEditMode,
+      dashboardItems: dashboardItems,
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (newIndex > oldIndex) newIndex -= 1;
+          final item = dashboardItems.removeAt(oldIndex);
+          dashboardItems.insert(newIndex, item);
 
-        Widget dashboardContent;
-        if (_isEditMode) {
-          dashboardContent = ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 0),
-            itemCount: dashboardItems.length,
-            onReorder: (oldIndex, newIndex) {
+          final currentOrder = List<DashboardWidgetType>.from(_dashboardConfig.order);
+          final globalOldIdx = currentOrder.indexOf(item);
+          currentOrder.removeAt(globalOldIdx);
+          int globalNewIdx = 0;
+          if (newIndex > 0) {
+            final prevWidget = dashboardItems[newIndex - 1];
+            globalNewIdx = currentOrder.indexOf(prevWidget) + 1;
+          }
+          currentOrder.insert(globalNewIdx, item);
+
+          if (currentOrder.contains(DashboardWidgetType.balance)) {
+            currentOrder.remove(DashboardWidgetType.balance);
+            currentOrder.insert(0, DashboardWidgetType.balance);
+          }
+
+          _dashboardConfig = DashboardConfig(
+            order: currentOrder,
+            visible: _dashboardConfig.visible,
+            categoryChartStyle: _dashboardConfig.categoryChartStyle,
+          );
+          _saveDashboardConfig();
+        });
+      },
+      buildModule: (type) => DashboardModuleFactory.build(
+        context: context,
+        type: type,
+        isEditMode: _isEditMode,
+        totalBalance: _totalBalance,
+        wallets: _wallets,
+        selectedWalletIds: _selectedWalletIds,
+        onWalletTap: (id) => setState(() {
+          if (id == null) {
+            _selectedWalletIds.clear();
+          } else if (_selectedWalletIds.contains(id)) {
+            _selectedWalletIds.remove(id);
+          } else {
+            _selectedWalletIds.add(id);
+          }
+        }),
+        getWalletBalance: _getWalletBalance,
+        income: income,
+        expenses: expenses,
+        categorySpending: categorySpending,
+        categoryChartStyle: _dashboardConfig.categoryChartStyle,
+        onStyleChange: (style) {
+          setState(() {
+            _dashboardConfig = DashboardConfig(
+              order: _dashboardConfig.order,
+              visible: _dashboardConfig.visible,
+              categoryChartStyle: style,
+            );
+            _saveDashboardConfig();
+          });
+          _showFeedback('Style du module catégories mis à jour.');
+        },
+        filteredTxs: filteredTxs,
+        getCategoryName: _getCategoryName,
+        getWalletCaption: (tx) => tx.type == TransactionType.transfer
+            ? '${_getWalletName(tx.fromWalletId)} → ${_getWalletName(tx.toWalletId)}'
+            : _getWalletName(tx.walletId),
+        historicalBalances: historicalBalances,
+        tags: tags,
+        allTransactions: _transactions,
+        onTagTap: (tag) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TagProjectPage(tag: tag)),
+          );
+        },
+        onRemove: () async {
+          final confirmed = await _confirmRemoveModule(type);
+          if (!confirmed) return;
+          setState(() {
+            _dashboardConfig.visible.remove(type);
+            _saveDashboardConfig();
+          });
+          _showFeedback('Module ${type.name} retiré.');
+        },
+      ),
+    );
+
+    Widget mainContent = SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          dashboardContent,
+
+          AddDashboardModuleButton(
+            isEditMode: _isEditMode,
+            visibleModules: _dashboardConfig.visible,
+            onAddModule: (type) {
               setState(() {
-                if (newIndex > oldIndex) newIndex -= 1;
-                final item = dashboardItems.removeAt(oldIndex);
-                dashboardItems.insert(newIndex, item);
-
-                final currentOrder = List<DashboardWidgetType>.from(
-                  _dashboardConfig.order,
-                );
-                final globalOldIdx = currentOrder.indexOf(item);
-                currentOrder.removeAt(globalOldIdx);
-                int globalNewIdx = 0;
-                if (newIndex > 0) {
-                  final prevWidget = dashboardItems[newIndex - 1];
-                  globalNewIdx = currentOrder.indexOf(prevWidget) + 1;
-                }
-                currentOrder.insert(globalNewIdx, item);
-
-                if (currentOrder.contains(DashboardWidgetType.balance)) {
-                  currentOrder.remove(DashboardWidgetType.balance);
-                  currentOrder.insert(0, DashboardWidgetType.balance);
-                }
-
-                _dashboardConfig = DashboardConfig(
-                  order: currentOrder,
-                  visible: _dashboardConfig.visible,
-                  categoryChartStyle: _dashboardConfig.categoryChartStyle,
-                );
+                _dashboardConfig.visible.add(type);
                 _saveDashboardConfig();
               });
+              _showFeedback('Module ${type.name} ajouté.');
             },
-            buildDefaultDragHandles: true,
-            proxyDecorator: (child, index, animation) =>
-                Material(color: Colors.transparent, child: child),
-            itemBuilder: (context, index) => _buildDashboardItem(
-              dashboardItems[index],
-              filteredTxs: filteredTxs,
-              tags: tags,
-              income: income,
-              expenses: expenses,
-              categorySpending: categorySpending,
-              historicalBalances: historicalBalances,
-            )!,
-          );
-        } else if (crossAxisCount > 1) {
-          const spacing = 20.0;
-          final cardWidth =
-              (availableWidth - ((crossAxisCount - 1) * spacing)) /
-              crossAxisCount;
-
-          dashboardContent = Wrap(
-            spacing: spacing,
-            runSpacing: 0,
-            children: dashboardItems.map((type) {
-              final isFullWidth = type == DashboardWidgetType.balance;
-              return SizedBox(
-                width: isFullWidth ? availableWidth : cardWidth,
-                child: _buildDashboardItem(
-                  type,
-                  filteredTxs: filteredTxs,
-                  tags: tags,
-                  income: income,
-                  expenses: expenses,
-                  categorySpending: categorySpending,
-                  historicalBalances: historicalBalances,
-                ),
-              );
-            }).toList(),
-          );
-        } else {
-          dashboardContent = Column(
-            children: dashboardItems
-                .map(
-                  (type) => _buildDashboardItem(
-                    type,
-                    filteredTxs: filteredTxs,
-                    tags: tags,
-                    income: income,
-                    expenses: expenses,
-                    categorySpending: categorySpending,
-                    historicalBalances: historicalBalances,
-                  )!,
-                )
-                .toList(),
-          );
-        }
-
-        return SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              dashboardContent,
-              if (_isEditMode)
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (context) => ListView(
-                          children: DashboardWidgetType.values
-                              .where((t) => !_dashboardConfig.visible.contains(t))
-                              .map(
-                                (t) => ListTile(
-                                  title: Text(t.name),
-                                  trailing: const Icon(
-                                    Icons.add_circle,
-                                    color: Colors.green,
-                                  ),
-                                  onTap: () {
-                                    setState(() {
-                                      _dashboardConfig.visible.add(t);
-                                      _saveDashboardConfig();
-                                    });
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Ajouter un module'),
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppStyles.kDefaultRadius,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 100),
-            ],
           ),
-        );
-      },
+
+          const SizedBox(height: 100),
+        ],
+      ),
     );
 
     final sideMenu = AppDrawerContent(

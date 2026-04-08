@@ -1,82 +1,44 @@
-# Home.md — Spécification de refactor **codable**
+# Home.md — Suivi refactor **codable**
 
-> But: découper `HomePage` pour obtenir une vue simple, testable, performante.
+> But: finaliser le découpage de `HomePage` pour obtenir une vue simple, testable, performante.
 
-## 1) Cible architecture
-
-### État actuel (à corriger)
-- `HomePage` mélange:
-  - récupération de données,
-  - calculs métier,
-  - rendu UI,
-  - orchestration d’actions.
-
-### État cible
-- `home_page.dart`: composition UI uniquement.
-- `home_metrics_service.dart`: calculs purs (testables).
-- `providers.dart`: exposition réactive des données.
-- `widgets/dashboard/*`: cartes unitaires réutilisables.
+## ✅ Déjà fait
+- Extraction du bouton/modal “Ajouter un module” dans `lib/widgets/dashboard/add_module_button.dart` pour réduire les conflits de merge.
+- Extraction du factory de modules dashboard dans `lib/widgets/dashboard/module_factory.dart` pour limiter les conflits dans `home_page.dart`.
+- Extraction de la mise en page des modules dashboard dans `lib/widgets/dashboard/modules_layout.dart`.
+- Extraction des calculs métier principaux dans `home_metrics_service.dart`.
+- Exposition réactive des données via `providers.dart`.
+- Base de widgets dashboard mutualisés dans `widgets/dashboard_cards.dart`.
+- Breakpoints alignés sur la cible (`mobile < 700`, `tablet 700-1099`, `desktop >= 1100`).
+- Utilisation de `select` sur les providers principaux du dashboard pour limiter les rebuilds.
+- Remplacement du `switch` modules Home par un mapping clair `DashboardWidgetType -> Widget builder`.
+- Uniformisation des états `LoadingState`, `EmptyState`, `ErrorState` via `lib/widgets/dashboard/module_states.dart`.
 
 ---
 
-## 2) Plan d’implémentation par PR
-
-### PR-A — Extraire les métriques
-
-### PR-B — Providers dédiés dashboard
-- [ ] Utiliser `select` quand possible pour limiter les rebuilds.
+## 🔄 Reste à faire
 
 ### PR-C — Découpage composants UI
-- [ ] Créer structure:
+- [x] Créer structure:
   - `lib/widgets/dashboard/balance_card.dart`
   - `lib/widgets/dashboard/flow_card.dart`
   - `lib/widgets/dashboard/category_card.dart`
   - `lib/widgets/dashboard/recent_activity_card.dart`
-  - `lib/widgets/dashboard/module_states.dart`
-- [ ] Remplacer les blocs volumineux de `HomePage` par ces composants.
+- [~] Remplacer les blocs volumineux restants de `HomePage` par ces composants dédiés (partiellement fait).
 - [ ] Vérifier parité visuelle avant/après.
 
 ### PR-D — Responsive & accessibilité
-- [ ] Définir breakpoints explicites (`mobile < 700`, `tablet 700-1099`, `desktop >= 1100`).
-- [ ] Ajuster layout (colonnes, paddings, densité) par breakpoint.
+- [ ] Ajuster finement layout (colonnes, paddings, densité) par breakpoint.
 - [ ] Vérifier tailles de touch targets, contraste, labels.
 
 ### PR-E — Fiabilité interactions
-- [ ] Uniformiser feedback utilisateur (snackbar succès/erreur).
-- [ ] Encadrer actions destructives par dialogues de confirmation.
-- [ ] Déplacer opérations composées vers services métier.
+- [x] Uniformiser feedback utilisateur (snackbar succès/erreur) sur les actions dashboard déjà refactorées.
+- [x] Encadrer actions destructives par dialogues de confirmation.
+- [x] Déplacer opérations composées restantes vers services métier (auto-settle extrait vers `HomeInteractionService`).
 
 ---
 
-## 3) Contrat technique minimum
-
-### API du service (proposition)
-```dart
-class HomeMetricsService {
-  HomeMetrics compute({
-    required List<TransactionModel> transactions,
-    required List<WalletModel> wallets,
-    DateTime? now,
-  });
-}
-```
-
-### Modèle de sortie (proposition)
-```dart
-class HomeMetrics {
-  final double monthIncome;
-  final double monthExpense;
-  final double netWorth;
-  final Map<String, double> spendByCategory;
-  final List<TransactionModel> recents;
-}
-```
-
-> Ces structures sont indicatives: adapter aux modèles réels déjà présents dans `lib/models.dart`.
-
----
-
-## 4) Checklist de validation finale
+## Checklist de validation finale
 - [ ] `HomePage` < 250 lignes (objectif lisibilité).
 - [ ] Aucun calcul métier lourd restant dans la vue.
 - [ ] Tests widget de 2 cartes dashboard minimum.
