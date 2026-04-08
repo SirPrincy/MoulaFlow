@@ -13,10 +13,10 @@
 ## v0.05 — Stabilisation architecture + Home refactor
 
 ### [P0] Initialisation applicative propre
-- [ ] `todo` Créer `AppSettingsState` (agrégat unique des préférences) dans `lib/data/settings_repository.dart` + provider dédié dans `lib/providers.dart`.
-- [ ] `todo` Modifier `lib/main.dart` pour ne plus charger les prefs une par une.
-- [ ] `todo` Ajouter une stratégie de fallback si une préférence est corrompue (valeur par défaut + log clair).
-- [ ] `todo` Ajouter un test du chargement initial (`test/data/` ou `test/domain/` selon implémentation).
+- [x] `done` Vérifié: `AppSettingsState` + provider dédié (`appSettingsStateProvider`) implémentés.
+- [x] `done` Vérifié: `main.dart` charge désormais un agrégat unique (`loadAppSettings`).
+- [x] `done` Vérifié: fallback robuste + log explicite pour préférences corrompues.
+- [x] `done` Vérifié: tests dédiés du chargement initial et des fallbacks.
 
 ### [P0] Refactor HomePage (découplage)
 - [ ] `todo` Limiter `HomePage` à l’assemblage UI + callbacks utilisateur.

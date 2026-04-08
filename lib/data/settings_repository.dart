@@ -1,10 +1,40 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_access_method.dart';
 import 'storage_keys.dart';
 import 'database/app_database.dart';
+import 'package:moula_flow/utils/app_constants.dart';
+
+class AppSettingsState {
+  const AppSettingsState({
+    required this.isDarkMode,
+    required this.onboardingSeen,
+    required this.accessMethod,
+    required this.userName,
+    required this.userColor,
+    required this.userAvatar,
+    required this.accentColor,
+    required this.currencySymbol,
+    required this.decimalDigits,
+    required this.biometricsEnabled,
+    required this.languageCode,
+  });
+
+  final bool isDarkMode;
+  final bool onboardingSeen;
+  final AppAccessMethod accessMethod;
+  final String? userName;
+  final int userColor;
+  final int userAvatar;
+  final int accentColor;
+  final String currencySymbol;
+  final int decimalDigits;
+  final bool biometricsEnabled;
+  final String? languageCode;
+}
 
 class SettingsRepository {
   final AppDatabase? _db;
@@ -27,7 +57,11 @@ class SettingsRepository {
 
   Future<bool> loadIsDarkMode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(StorageKeys.isDarkMode) ?? false;
+    return _readBool(
+      prefs: prefs,
+      key: StorageKeys.isDarkMode,
+      fallback: false,
+    );
   }
 
   Future<void> saveIsDarkMode(bool isDark) async {
@@ -37,7 +71,11 @@ class SettingsRepository {
 
   Future<bool> loadOnboardingSeen() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(StorageKeys.onboardingSeen) ?? false;
+    return _readBool(
+      prefs: prefs,
+      key: StorageKeys.onboardingSeen,
+      fallback: false,
+    );
   }
 
   Future<void> saveOnboardingSeen(bool seen) async {
@@ -47,7 +85,11 @@ class SettingsRepository {
 
   Future<AppAccessMethod> loadAppAccessMethod() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(StorageKeys.appAccessMethod);
+    final raw = _readString(
+      prefs: prefs,
+      key: StorageKeys.appAccessMethod,
+      fallback: AppAccessMethod.none.storageValue,
+    );
     return AppAccessMethodX.fromStorageValue(raw);
   }
 
@@ -58,7 +100,11 @@ class SettingsRepository {
 
   Future<String?> loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(StorageKeys.userName);
+    final raw = prefs.get(StorageKeys.userName);
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    _logFallback(StorageKeys.userName, raw, 'null');
+    return null;
   }
 
   Future<void> saveUserName(String name) async {
@@ -68,7 +114,10 @@ class SettingsRepository {
 
   Future<int?> loadUserColor() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(StorageKeys.userColor);
+    return _readOptionalInt(
+      prefs: prefs,
+      key: StorageKeys.userColor,
+    );
   }
 
   Future<void> saveUserColor(int color) async {
@@ -78,7 +127,10 @@ class SettingsRepository {
 
   Future<int?> loadUserAvatar() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(StorageKeys.userAvatar);
+    return _readOptionalInt(
+      prefs: prefs,
+      key: StorageKeys.userAvatar,
+    );
   }
 
   Future<void> saveUserAvatar(int codePoint) async {
@@ -88,7 +140,10 @@ class SettingsRepository {
 
   Future<int?> loadAccentColor() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(StorageKeys.accentColor);
+    return _readOptionalInt(
+      prefs: prefs,
+      key: StorageKeys.accentColor,
+    );
   }
 
   Future<void> saveAccentColor(int color) async {
@@ -98,7 +153,11 @@ class SettingsRepository {
 
   Future<String?> loadCurrencySymbol() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(StorageKeys.currencySymbol);
+    final raw = prefs.get(StorageKeys.currencySymbol);
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    _logFallback(StorageKeys.currencySymbol, raw, 'null');
+    return null;
   }
 
   Future<void> saveCurrencySymbol(String symbol) async {
@@ -108,7 +167,10 @@ class SettingsRepository {
 
   Future<int?> loadDecimalDigits() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(StorageKeys.decimalDigits);
+    return _readOptionalInt(
+      prefs: prefs,
+      key: StorageKeys.decimalDigits,
+    );
   }
 
   Future<void> saveDecimalDigits(int digits) async {
@@ -118,7 +180,11 @@ class SettingsRepository {
 
   Future<bool> loadBiometricsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(StorageKeys.biometricsEnabled) ?? false;
+    return _readBool(
+      prefs: prefs,
+      key: StorageKeys.biometricsEnabled,
+      fallback: false,
+    );
   }
 
   Future<void> saveBiometricsEnabled(bool enabled) async {
@@ -128,12 +194,143 @@ class SettingsRepository {
 
   Future<String?> loadLanguageCode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(StorageKeys.languageCode);
+    final raw = prefs.get(StorageKeys.languageCode);
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    _logFallback(StorageKeys.languageCode, raw, 'null');
+    return null;
   }
 
   Future<void> saveLanguageCode(String code) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(StorageKeys.languageCode, code);
+  }
+
+  Future<AppSettingsState> loadAppSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    return AppSettingsState(
+      isDarkMode: _readBool(
+        prefs: prefs,
+        key: StorageKeys.isDarkMode,
+        fallback: false,
+      ),
+      onboardingSeen: _readBool(
+        prefs: prefs,
+        key: StorageKeys.onboardingSeen,
+        fallback: false,
+      ),
+      accessMethod: AppAccessMethodX.fromStorageValue(
+        _readString(
+          prefs: prefs,
+          key: StorageKeys.appAccessMethod,
+          fallback: AppAccessMethod.none.storageValue,
+        ),
+      ),
+      userName: _readOptionalString(
+        prefs: prefs,
+        key: StorageKeys.userName,
+      ) ??
+          AppConstants.defaultUserName,
+      userColor: _readInt(
+        prefs: prefs,
+        key: StorageKeys.userColor,
+        fallback: 0xFF6200EE,
+      ),
+      userAvatar: _readInt(
+        prefs: prefs,
+        key: StorageKeys.userAvatar,
+        fallback: AppConstants.defaultUserAvatar,
+      ),
+      accentColor: _readInt(
+        prefs: prefs,
+        key: StorageKeys.accentColor,
+        fallback: 0xFFBCC2FF,
+      ),
+      currencySymbol: _readString(
+        prefs: prefs,
+        key: StorageKeys.currencySymbol,
+        fallback: 'Ar',
+      ),
+      decimalDigits: _readInt(
+        prefs: prefs,
+        key: StorageKeys.decimalDigits,
+        fallback: 2,
+      ),
+      biometricsEnabled: _readBool(
+        prefs: prefs,
+        key: StorageKeys.biometricsEnabled,
+        fallback: false,
+      ),
+      languageCode: _readOptionalString(
+        prefs: prefs,
+        key: StorageKeys.languageCode,
+      ),
+    );
+  }
+
+  bool _readBool({
+    required SharedPreferences prefs,
+    required String key,
+    required bool fallback,
+  }) {
+    final raw = prefs.get(key);
+    if (raw == null) return fallback;
+    if (raw is bool) return raw;
+    _logFallback(key, raw, fallback);
+    return fallback;
+  }
+
+  int _readInt({
+    required SharedPreferences prefs,
+    required String key,
+    required int fallback,
+  }) {
+    final raw = prefs.get(key);
+    if (raw == null) return fallback;
+    if (raw is int) return raw;
+    _logFallback(key, raw, fallback);
+    return fallback;
+  }
+
+  int? _readOptionalInt({
+    required SharedPreferences prefs,
+    required String key,
+  }) {
+    final raw = prefs.get(key);
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    _logFallback(key, raw, 'null');
+    return null;
+  }
+
+  String _readString({
+    required SharedPreferences prefs,
+    required String key,
+    required String fallback,
+  }) {
+    final raw = prefs.get(key);
+    if (raw == null) return fallback;
+    if (raw is String) return raw;
+    _logFallback(key, raw, fallback);
+    return fallback;
+  }
+
+  String? _readOptionalString({
+    required SharedPreferences prefs,
+    required String key,
+  }) {
+    final raw = prefs.get(key);
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    _logFallback(key, raw, 'null');
+    return null;
+  }
+
+  void _logFallback(String key, Object rawValue, Object fallback) {
+    debugPrint(
+      '[SettingsRepository] Invalid value for "$key": '
+      '"$rawValue" (${rawValue.runtimeType}). Using fallback: $fallback',
+    );
   }
 
   Future<void> clearAllDataExceptTheme() async {

@@ -19,6 +19,9 @@ import 'package:flutter/material.dart';
 
 final databaseProvider = Provider((ref) => AppDatabase());
 final settingsRepositoryProvider = Provider((ref) => SettingsRepository(ref.watch(databaseProvider)));
+final appSettingsStateProvider = FutureProvider<AppSettingsState>((ref) {
+  return ref.watch(settingsRepositoryProvider).loadAppSettings();
+});
 final dashboardRepositoryProvider = Provider((ref) => DashboardRepository());
 
 final transactionRepositoryProvider = Provider((ref) => TransactionRepository(ref.watch(databaseProvider)));
