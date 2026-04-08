@@ -366,41 +366,41 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     'Wallet de transaction (choix explicite)',
                     style: theme.textTheme.bodyMedium,
                   ),
-                  RadioGroup<bool>(
-                    groupValue: useExistingWallet,
-                    onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
-                    child: Column(
-                      children: [
-                        RadioListTile<bool>(
-                          title: const Text('Sélectionner un wallet existant'),
-                          value: true,
+                  Column(
+                    children: [
+                      RadioListTile<bool>(
+                        title: const Text('Sélectionner un wallet existant'),
+                        value: true,
+                        groupValue: useExistingWallet,
+                        onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
+                      ),
+                      if (useExistingWallet)
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedWalletId,
+                          items: transactionWallets
+                              .map(
+                                (w) => DropdownMenuItem(
+                                  value: w.id,
+                                  child: Text(w.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) => setDialogState(() => selectedWalletId = val),
                         ),
-                        if (useExistingWallet)
-                          DropdownButtonFormField<String>(
-                            initialValue: selectedWalletId,
-                            items: transactionWallets
-                                .map(
-                                  (w) => DropdownMenuItem(
-                                    value: w.id,
-                                    child: Text(w.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (val) => setDialogState(() => selectedWalletId = val),
+                      RadioListTile<bool>(
+                        title: const Text('Créer un nouveau wallet'),
+                        value: false,
+                        groupValue: useExistingWallet,
+                        onChanged: (val) => setDialogState(() => useExistingWallet = val ?? true),
+                      ),
+                      if (!useExistingWallet)
+                        TextField(
+                          controller: newWalletNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom du nouveau wallet',
                           ),
-                        RadioListTile<bool>(
-                          title: const Text('Créer un nouveau wallet'),
-                          value: false,
                         ),
-                        if (!useExistingWallet)
-                          TextField(
-                            controller: newWalletNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nom du nouveau wallet',
-                            ),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -413,22 +413,38 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
               FilledButton(
                 onPressed: () async {
                   final targetAmount = double.tryParse(
-                    targetAmountController.text.replaceAll(',', '.'),
+                    targetAmountController.text.replaceAll(',', '.').replaceAll(' ', ''),
                   );
                   final initialBalance = double.tryParse(
-                        initialBalanceController.text.replaceAll(',', '.'),
+                        initialBalanceController.text.replaceAll(',', '.').replaceAll(' ', ''),
                       ) ??
                       0.0;
                   final interestRate = double.tryParse(
-                    interestRateController.text.replaceAll(',', '.'),
+                    interestRateController.text.replaceAll(',', '.').replaceAll(' ', ''),
                   );
 
-                  if (nameController.text.trim().isEmpty ||
-                      targetAmount == null ||
-                      targetAmount <= 0 ||
-                      initialBalance < 0 ||
-                      initialBalance > targetAmount ||
-                      (hasInterest && (interestRate == null || interestRate <= 0))) {
+                  if (nameController.text.trim().isEmpty) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un nom')));
+                    }
+                    return;
+                  }
+                  if (targetAmount == null || targetAmount <= 0) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un montant valide')));
+                    }
+                    return;
+                  }
+                  if (initialBalance < 0 || initialBalance > targetAmount) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le montant déjà traité est invalide')));
+                    }
+                    return;
+                  }
+                  if (hasInterest && (interestRate == null || interestRate <= 0)) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un taux valide')));
+                    }
                     return;
                   }
 
@@ -597,43 +613,44 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                     ),
                 ],
                 const SizedBox(height: 8),
-                RadioGroup<bool>(
-                  groupValue: useExistingWallet,
-                  onChanged: (val) =>
-                      setDialogState(() => useExistingWallet = val ?? true),
-                  child: Column(
-                    children: [
-                      RadioListTile<bool>(
-                        title: const Text('Sélectionner un wallet existant'),
-                        value: true,
+                Column(
+                  children: [
+                    RadioListTile<bool>(
+                      title: const Text('Sélectionner un wallet existant'),
+                      value: true,
+                      groupValue: useExistingWallet,
+                      onChanged: (val) =>
+                          setDialogState(() => useExistingWallet = val ?? true),
+                    ),
+                    if (useExistingWallet)
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedWalletId,
+                        items: transactionWallets
+                            .map(
+                              (w) => DropdownMenuItem(
+                                value: w.id,
+                                child: Text(w.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) =>
+                            setDialogState(() => selectedWalletId = val),
                       ),
-                      if (useExistingWallet)
-                        DropdownButtonFormField<String>(
-                          initialValue: selectedWalletId,
-                          items: transactionWallets
-                              .map(
-                                (w) => DropdownMenuItem(
-                                  value: w.id,
-                                  child: Text(w.name),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) =>
-                              setDialogState(() => selectedWalletId = val),
+                    RadioListTile<bool>(
+                      title: const Text('Créer un nouveau wallet'),
+                      value: false,
+                      groupValue: useExistingWallet,
+                      onChanged: (val) =>
+                          setDialogState(() => useExistingWallet = val ?? true),
+                    ),
+                    if (!useExistingWallet)
+                      TextField(
+                        controller: newWalletNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nom du nouveau wallet',
                         ),
-                      RadioListTile<bool>(
-                        title: const Text('Créer un nouveau wallet'),
-                        value: false,
                       ),
-                      if (!useExistingWallet)
-                        TextField(
-                          controller: newWalletNameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nom du nouveau wallet',
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -645,15 +662,23 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
               FilledButton(
                 onPressed: () async {
                   final amount = double.tryParse(
-                    amountController.text.replaceAll(',', '.'),
+                    amountController.text.replaceAll(',', '.').replaceAll(' ', ''),
                   );
-                  if (amount == null || amount <= 0) return;
+                  if (amount == null || amount <= 0) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un montant valide')));
+                    }
+                    return;
+                  }
 
                   final interestAmount = includeInterest
-                      ? (double.tryParse(interestAmountController.text.replaceAll(',', '.')) ?? -1)
+                      ? (double.tryParse(interestAmountController.text.replaceAll(',', '.').replaceAll(' ', '')) ?? -1)
                       : 0.0;
                   if (includeInterest &&
                       (interestAmount < 0 || interestAmount >= amount)) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La part des intérêts est invalide')));
+                    }
                     return;
                   }
                   final principalAmount = amount - interestAmount;
@@ -1135,51 +1160,55 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
                 ),
                 FilledButton(
                   onPressed: () async {
-                    if (nameController.text.trim().isNotEmpty) {
-                      final initialBalance =
-                          double.tryParse(
-                            initialBalanceController.text.replaceAll(',', '.'),
-                          ) ??
-                          0.0;
-                      if (wallet == null) {
-                        final newWallet = Wallet(
-                          id: DateTime.now().millisecondsSinceEpoch
-                              .toString(),
-                          name: nameController.text.trim(),
-                          initialBalance: initialBalance,
-                          type: selectedType,
-                          targetAmount: double.tryParse(
-                            targetAmountController.text.replaceAll(',', '.'),
-                          ),
-                          dueDate: selectedDueDate,
-                          isCredit: isCredit,
-                          interestRate: hasInterest
-                              ? double.tryParse(
-                                  interestRateController.text.replaceAll(
-                                    ',',
-                                    '.',
-                                  ),
-                                )
-                              : null,
-                        );
-                        await ref.read(walletRepositoryProvider).insertWallet(newWallet);
-                      } else {
-                        final updatedWallet = wallet.copyWith(
-                          name: nameController.text.trim(),
-                          initialBalance: initialBalance,
-                          type: selectedType,
-                          targetAmount: double.tryParse(targetAmountController.text.replaceAll(',', '.')),
-                          dueDate: selectedDueDate,
-                          isCredit: isCredit,
-                          interestRate: hasInterest
-                              ? double.tryParse(interestRateController.text.replaceAll(',', '.'))
-                              : null,
-                        );
-                        await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
-                      }
+                    if (nameController.text.trim().isEmpty) {
                       if (context.mounted) {
-                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un nom')));
                       }
+                      return;
+                    }
+                    final initialBalance =
+                        double.tryParse(
+                          initialBalanceController.text.replaceAll(',', '.').replaceAll(' ', ''),
+                        ) ??
+                        0.0;
+                    if (wallet == null) {
+                      final newWallet = Wallet(
+                        id: DateTime.now().millisecondsSinceEpoch
+                            .toString(),
+                        name: nameController.text.trim(),
+                        initialBalance: initialBalance,
+                        type: selectedType,
+                        targetAmount: double.tryParse(
+                          targetAmountController.text.replaceAll(',', '.').replaceAll(' ', ''),
+                        ),
+                        dueDate: selectedDueDate,
+                        isCredit: isCredit,
+                        interestRate: hasInterest
+                            ? double.tryParse(
+                                interestRateController.text.replaceAll(
+                                  ',',
+                                  '.',
+                                ).replaceAll(' ', ''),
+                              )
+                            : null,
+                      );
+                      await ref.read(walletRepositoryProvider).insertWallet(newWallet);
+                    } else {
+                      final updatedWallet = wallet.copyWith(
+                        name: nameController.text.trim(),
+                        initialBalance: initialBalance,
+                        type: selectedType,
+                        targetAmount: double.tryParse(targetAmountController.text.replaceAll(',', '.').replaceAll(' ', '')),
+                        dueDate: selectedDueDate,
+                        isCredit: isCredit,
+                        interestRate: hasInterest
+                            ? double.tryParse(interestRateController.text.replaceAll(',', '.').replaceAll(' ', ''))
+                            : null,
+                      );
+                      await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
+                    }
+                    if (context.mounted) {
+                      Navigator.pop(context);
                     }
                   },
                   child: const Text('Enregistrer'),
