@@ -13,32 +13,26 @@ import 'package:moula_flow/utils/app_provider_observer.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settingsRepo = SettingsRepository();
-  final isDark = await settingsRepo.loadIsDarkMode();
-  final onboardingSeen = await settingsRepo.loadOnboardingSeen();
-  final accessMethod = await settingsRepo.loadAppAccessMethod();
-  final userName = await settingsRepo.loadUserName();
-  final userColor = await settingsRepo.loadUserColor();
-  final userAvatar = await settingsRepo.loadUserAvatar();
-  final accentColor = await settingsRepo.loadAccentColor();
-  final currencySymbol = await settingsRepo.loadCurrencySymbol();
-  final decimalDigits = await settingsRepo.loadDecimalDigits();
-  final biometricsEnabled = await settingsRepo.loadBiometricsEnabled();
-  final languageCode = await settingsRepo.loadLanguageCode();
+  final appSettings = await settingsRepo.loadAppSettings();
 
   runApp(ProviderScope(
     observers: const [AppProviderObserver()],
     overrides: [
-      themeModeProvider.overrideWith(() => ThemeModeNotifier(isDark ? ThemeMode.dark : ThemeMode.light)),
-      onboardingSeenProvider.overrideWith(() => OnboardingSeenNotifier(onboardingSeen)),
-      appAccessMethodProvider.overrideWith(() => AppAccessMethodNotifier(accessMethod)),
-      userNameProvider.overrideWith(() => UserNameNotifier(userName)),
-      userColorProvider.overrideWith(() => UserColorNotifier(userColor)),
-      userAvatarProvider.overrideWith(() => UserAvatarNotifier(userAvatar)),
-      accentColorProvider.overrideWith(() => AccentColorNotifier(accentColor)),
-      currencySymbolProvider.overrideWith(() => CurrencySymbolNotifier(currencySymbol)),
-      decimalDigitsProvider.overrideWith(() => DecimalDigitsNotifier(decimalDigits)),
-      biometricsEnabledProvider.overrideWith(() => BiometricsEnabledNotifier(biometricsEnabled)),
-      localeProvider.overrideWith(() => LocaleNotifier(languageCode)),
+      themeModeProvider.overrideWith(
+        () => ThemeModeNotifier(appSettings.isDarkMode ? ThemeMode.dark : ThemeMode.light),
+      ),
+      onboardingSeenProvider.overrideWith(() => OnboardingSeenNotifier(appSettings.onboardingSeen)),
+      appAccessMethodProvider.overrideWith(() => AppAccessMethodNotifier(appSettings.accessMethod)),
+      userNameProvider.overrideWith(() => UserNameNotifier(appSettings.userName)),
+      userColorProvider.overrideWith(() => UserColorNotifier(appSettings.userColor)),
+      userAvatarProvider.overrideWith(() => UserAvatarNotifier(appSettings.userAvatar)),
+      accentColorProvider.overrideWith(() => AccentColorNotifier(appSettings.accentColor)),
+      currencySymbolProvider.overrideWith(() => CurrencySymbolNotifier(appSettings.currencySymbol)),
+      decimalDigitsProvider.overrideWith(() => DecimalDigitsNotifier(appSettings.decimalDigits)),
+      biometricsEnabledProvider.overrideWith(
+        () => BiometricsEnabledNotifier(appSettings.biometricsEnabled),
+      ),
+      localeProvider.overrideWith(() => LocaleNotifier(appSettings.languageCode)),
     ],
     child: const MoulaFlowApp(),
   ));
