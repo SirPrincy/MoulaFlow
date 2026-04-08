@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/dashboard_repository.dart';
 import '../../models.dart';
-import '../../pages/tag_project_page.dart';
 import '../../transactions_page.dart';
 import '../dashboard_cards.dart';
 import 'balance_card.dart';
