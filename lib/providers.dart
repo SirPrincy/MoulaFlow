@@ -87,8 +87,9 @@ final budgetStatusProvider = FutureProvider.autoDispose.family<BudgetStatus, Str
   final service = ref.watch(budgetPlanningServiceProvider);
 
   // 2. Resolve data (waiting for first emission if needed)
-  final List<BudgetPlan> budgets = budgetsAsync.asData?.value ?? await ref.watch(budgetsProvider.future);
-  final List<Transaction> transactions = transactionsAsync.asData?.value ?? await ref.watch(transactionsProvider.future);
+  // NOTE: ref.watch must NOT be called after an await — use ref.read(provider.future) for async fallback
+  final List<BudgetPlan> budgets = budgetsAsync.asData?.value ?? await ref.read(budgetsProvider.future);
+  final List<Transaction> transactions = transactionsAsync.asData?.value ?? await ref.read(transactionsProvider.future);
 
   final plan = budgets.cast<BudgetPlan?>().firstWhere((b) => b?.id == budgetId, orElse: () => null);
   if (plan == null) throw Exception('Budget not found: $budgetId');
