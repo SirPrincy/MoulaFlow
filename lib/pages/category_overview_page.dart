@@ -481,6 +481,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
 
                     final shouldCreateTx = await _askTransactionConfirmation(
                       'Voulez-vous enregistrer la transaction associée à cette dette ? (oui/non)',
+                      // ignore: use_build_context_synchronously
                       contextOverride: ctx,
                     );
                     if (shouldCreateTx) {
@@ -736,6 +737,7 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
 
                     final shouldCreateTx = await _askTransactionConfirmation(
                       'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
+                      // ignore: use_build_context_synchronously
                       contextOverride: ctx,
                     );
                     if (shouldCreateTx) {
