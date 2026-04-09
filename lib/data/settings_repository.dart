@@ -119,10 +119,7 @@ class SettingsRepository {
 
   Future<int?> loadUserColor() async {
     final prefs = await SharedPreferences.getInstance();
-    return _readOptionalInt(
-      prefs: prefs,
-      key: StorageKeys.userColor,
-    );
+    return _readOptionalInt(prefs: prefs, key: StorageKeys.userColor);
   }
 
   Future<void> saveUserColor(int color) async {
@@ -132,10 +129,7 @@ class SettingsRepository {
 
   Future<int?> loadUserAvatar() async {
     final prefs = await SharedPreferences.getInstance();
-    return _readOptionalInt(
-      prefs: prefs,
-      key: StorageKeys.userAvatar,
-    );
+    return _readOptionalInt(prefs: prefs, key: StorageKeys.userAvatar);
   }
 
   Future<void> saveUserAvatar(int codePoint) async {
@@ -145,10 +139,7 @@ class SettingsRepository {
 
   Future<int?> loadAccentColor() async {
     final prefs = await SharedPreferences.getInstance();
-    return _readOptionalInt(
-      prefs: prefs,
-      key: StorageKeys.accentColor,
-    );
+    return _readOptionalInt(prefs: prefs, key: StorageKeys.accentColor);
   }
 
   Future<void> saveAccentColor(int color) async {
@@ -201,11 +192,16 @@ class SettingsRepository {
     }
   }
 
-  Future<void> saveWalletCurrencyCode(String walletId, String currencyCode) async {
+  Future<void> saveWalletCurrencyCode(
+    String walletId,
+    String currencyCode,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
-    final map = await loadWalletCurrencyCodes();
-    map[walletId] = currencyCode;
-    await prefs.setString(StorageKeys.walletCurrencyCodes, jsonEncode(map));
+    (await loadWalletCurrencyCodes())[walletId] = currencyCode;
+    await prefs.setString(
+      StorageKeys.walletCurrencyCodes,
+      jsonEncode(await loadWalletCurrencyCodes()),
+    );
   }
 
   Future<void> removeWalletCurrencyCode(String walletId) async {
@@ -226,7 +222,9 @@ class SettingsRepository {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return const {};
-      return decoded.map((key, value) => MapEntry(key, (value as num).toDouble()));
+      return decoded.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      );
     } catch (_) {
       return const {};
     }
@@ -254,10 +252,7 @@ class SettingsRepository {
 
   Future<int?> loadDecimalDigits() async {
     final prefs = await SharedPreferences.getInstance();
-    return _readOptionalInt(
-      prefs: prefs,
-      key: StorageKeys.decimalDigits,
-    );
+    return _readOptionalInt(prefs: prefs, key: StorageKeys.decimalDigits);
   }
 
   Future<void> saveDecimalDigits(int digits) async {
@@ -313,10 +308,8 @@ class SettingsRepository {
           fallback: AppAccessMethod.none.storageValue,
         ),
       ),
-      userName: _readOptionalString(
-        prefs: prefs,
-        key: StorageKeys.userName,
-      ) ??
+      userName:
+          _readOptionalString(prefs: prefs, key: StorageKeys.userName) ??
           AppConstants.defaultUserName,
       userColor: _readInt(
         prefs: prefs,
@@ -445,7 +438,9 @@ class SettingsRepository {
 
     final dbPath = await AppDatabase.getDbFilePath();
     final dbFile = File(dbPath);
-    final dbBytes = await dbFile.exists() ? await dbFile.readAsBytes() : Uint8List(0);
+    final dbBytes = await dbFile.exists()
+        ? await dbFile.readAsBytes()
+        : Uint8List(0);
 
     final result = BytesBuilder();
 
@@ -467,30 +462,36 @@ class SettingsRepository {
   }
 
   Future<void> importBinaryBackup(Uint8List bytes) async {
-    if (bytes.length < 16) throw const FormatException('Données de sauvegarde trop courtes.');
+    if (bytes.length < 16)
+      throw const FormatException('Données de sauvegarde trop courtes.');
 
     final data = ByteData.sublistView(bytes);
     final header = ascii.decode(bytes.sublist(0, 16)).trim();
-    if (header != 'MOULA_FLOW_BK_1') throw const FormatException('Format de sauvegarde invalide.');
+    if (header != 'MOULA_FLOW_BK_1')
+      throw const FormatException('Format de sauvegarde invalide.');
 
     var offset = 16;
 
     // 1. Meta Segment
-    if (offset + 4 > bytes.length) throw const FormatException('Données de segment méta manquantes.');
+    if (offset + 4 > bytes.length)
+      throw const FormatException('Données de segment méta manquantes.');
     final metaLen = data.getInt32(offset);
     offset += 4;
-    
-    if (offset + metaLen > bytes.length) throw const FormatException('Taille de segment méta invalide.');
+
+    if (offset + metaLen > bytes.length)
+      throw const FormatException('Taille de segment méta invalide.');
     final metaBytes = bytes.sublist(offset, offset + metaLen);
     offset += metaLen;
     final meta = jsonDecode(utf8.decode(metaBytes)) as Map<String, dynamic>;
 
     // 2. DB Segment
-    if (offset + 4 > bytes.length) throw const FormatException('Données de segment DB manquantes.');
+    if (offset + 4 > bytes.length)
+      throw const FormatException('Données de segment DB manquantes.');
     final dbLen = data.getInt32(offset);
     offset += 4;
-    
-    if (offset + dbLen > bytes.length) throw const FormatException('Taille de segment DB invalide.');
+
+    if (offset + dbLen > bytes.length)
+      throw const FormatException('Taille de segment DB invalide.');
     final dbBytes = bytes.sublist(offset, offset + dbLen);
 
     // Apply DB first (atomic replacement)
@@ -541,7 +542,10 @@ class SettingsRepository {
       } else if (value is double) {
         await prefs.setDouble(entry.key, value);
       } else if (value is List) {
-        await prefs.setStringList(entry.key, value.map((e) => e.toString()).toList());
+        await prefs.setStringList(
+          entry.key,
+          value.map((e) => e.toString()).toList(),
+        );
       }
     }
   }
@@ -551,8 +555,13 @@ class SettingsRepository {
     final userName = await loadUserName();
     if (userName == null || userName.trim().isEmpty) return false;
 
-    final walletsRow = await _db.customSelect('SELECT COUNT(*) AS c FROM wallets;').getSingle();
-    final transactionsRow = await _db.customSelect('SELECT COUNT(*) AS c FROM transactions;').getSingle();
-    return walletsRow.read<int>('c') == 0 && transactionsRow.read<int>('c') == 0;
+    final walletsRow = await _db
+        .customSelect('SELECT COUNT(*) AS c FROM wallets;')
+        .getSingle();
+    final transactionsRow = await _db
+        .customSelect('SELECT COUNT(*) AS c FROM transactions;')
+        .getSingle();
+    return walletsRow.read<int>('c') == 0 &&
+        transactionsRow.read<int>('c') == 0;
   }
 }

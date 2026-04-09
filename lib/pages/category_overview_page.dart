@@ -148,9 +148,9 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
     });
   }
 
-  Future<bool> _askTransactionConfirmation(String message) async {
+  Future<bool> _askTransactionConfirmation(String message, {BuildContext? contextOverride}) async {
     final answer = await showDialog<bool>(
-      context: context,
+      context: contextOverride ?? context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmation'),
         content: Text(message),
@@ -412,114 +412,123 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
               ),
               FilledButton(
                 onPressed: () async {
-                  final targetAmount = double.tryParse(
-                    targetAmountController.text.replaceAll(',', '.').replaceAll(' ', ''),
-                  );
-                  final initialBalance = double.tryParse(
-                        initialBalanceController.text.replaceAll(',', '.').replaceAll(' ', ''),
-                      ) ??
-                      0.0;
-                  final interestRate = double.tryParse(
-                    interestRateController.text.replaceAll(',', '.').replaceAll(' ', ''),
-                  );
-
-                  if (nameController.text.trim().isEmpty) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un nom')));
-                    }
-                    return;
-                  }
-                  if (targetAmount == null || targetAmount <= 0) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un montant valide')));
-                    }
-                    return;
-                  }
-                  if (initialBalance < 0 || initialBalance > targetAmount) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le montant déjà traité est invalide')));
-                    }
-                    return;
-                  }
-                  if (hasInterest && (interestRate == null || interestRate <= 0)) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un taux valide')));
-                    }
-                    return;
-                  }
-
-                  late final Wallet transactionWallet;
-                  if (useExistingWallet) {
-                    if (selectedWalletId == null) return;
-                    transactionWallet = transactionWallets.firstWhere(
-                      (w) => w.id == selectedWalletId,
+                  try {
+                    final targetAmount = double.tryParse(
+                      targetAmountController.text.replaceAll(',', '.').replaceAll(' ', ''),
                     );
-                  } else {
-                    if (newWalletNameController.text.trim().isEmpty) return;
-                    transactionWallet = Wallet(
-                      id: DateTime.now().microsecondsSinceEpoch.toString(),
-                      name: newWalletNameController.text.trim(),
-                      type: WalletType.current,
+                    final initialBalance = double.tryParse(
+                          initialBalanceController.text.replaceAll(',', '.').replaceAll(' ', ''),
+                        ) ??
+                        0.0;
+                    final interestRate = double.tryParse(
+                      interestRateController.text.replaceAll(',', '.').replaceAll(' ', ''),
                     );
-                    await ref.read(walletRepositoryProvider).insertWallet(transactionWallet);
-                  }
 
-                  final debtWallet = Wallet(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: nameController.text.trim(),
-                    type: WalletType.debt,
-                    initialBalance: initialBalance,
-                    targetAmount: targetAmount,
-                    dueDate: dueDate,
-                    isCredit: isCredit,
-                    createdAt: issueDate,
-                    interestRate: hasInterest ? interestRate : null,
-                  );
+                    if (nameController.text.trim().isEmpty) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Veuillez entrer un nom')));
+                      }
+                      return;
+                    }
+                    if (targetAmount == null || targetAmount <= 0) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Veuillez entrer un montant valide')));
+                      }
+                      return;
+                    }
+                    if (initialBalance < 0 || initialBalance > targetAmount) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Le montant déjà traité est invalide')));
+                      }
+                      return;
+                    }
+                    if (hasInterest && (interestRate == null || interestRate <= 0)) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Veuillez entrer un taux valide')));
+                      }
+                      return;
+                    }
 
-                  await ref.read(walletRepositoryProvider).insertWallet(debtWallet);
+                    late final Wallet transactionWallet;
+                    if (useExistingWallet) {
+                      if (selectedWalletId == null) return;
+                      transactionWallet = transactionWallets.firstWhere(
+                        (w) => w.id == selectedWalletId,
+                      );
+                    } else {
+                      if (newWalletNameController.text.trim().isEmpty) return;
+                      transactionWallet = Wallet(
+                        id: DateTime.now().microsecondsSinceEpoch.toString(),
+                        name: newWalletNameController.text.trim(),
+                        type: WalletType.current,
+                      );
+                      await ref.read(walletRepositoryProvider).insertWallet(transactionWallet);
+                    }
 
-                  final shouldCreateTx = await _askTransactionConfirmation(
-                    'Voulez-vous enregistrer la transaction associée à cette dette ? (oui/non)',
-                  );
-                  if (shouldCreateTx) {
-                    final txType = isCredit
-                        ? TransactionType.expense
-                        : TransactionType.income;
-                    final tx = Transaction(
-                      id: DateTime.now().microsecondsSinceEpoch.toString(),
-                      amount: targetAmount,
-                      description: isCredit
-                          ? 'Création dette (prêt) : ${debtWallet.name}'
-                          : 'Création dette (emprunt) : ${debtWallet.name}',
-                      type: txType,
-                      date: issueDate,
-                      walletId: transactionWallet.id,
-                      relatedDebtId: debtWallet.id,
-                      categoryId: isCredit ? 'cat_dettes_loan_out' : 'cat_dettes_loan_in',
+                    final debtWallet = Wallet(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      name: nameController.text.trim(),
+                      type: WalletType.debt,
+                      initialBalance: initialBalance,
+                      targetAmount: targetAmount,
+                      dueDate: dueDate,
+                      isCredit: isCredit,
+                      createdAt: issueDate,
+                      interestRate: hasInterest ? interestRate : null,
                     );
-                    await ref.read(transactionRepositoryProvider).insertTransaction(tx);
-                    if (mounted) {
-                      _showOperationSummary(
-                        operation: 'Création de dette',
-                        walletName: transactionWallet.name,
-                        amount: txType == TransactionType.expense ? -targetAmount : targetAmount,
+
+                    await ref.read(walletRepositoryProvider).insertWallet(debtWallet);
+
+                    final shouldCreateTx = await _askTransactionConfirmation(
+                      'Voulez-vous enregistrer la transaction associée à cette dette ? (oui/non)',
+                      contextOverride: ctx,
+                    );
+                    if (shouldCreateTx) {
+                      final txType = isCredit
+                          ? TransactionType.expense
+                          : TransactionType.income;
+                      final tx = Transaction(
+                        id: DateTime.now().microsecondsSinceEpoch.toString(),
+                        amount: targetAmount,
+                        description: isCredit
+                            ? 'Création dette (prêt) : ${debtWallet.name}'
+                            : 'Création dette (emprunt) : ${debtWallet.name}',
+                        type: txType,
                         date: issueDate,
-                        txType: txType.name,
+                        walletId: transactionWallet.id,
+                        relatedDebtId: debtWallet.id,
+                        categoryId: isCredit ? 'cat_dettes_loan_out' : 'cat_dettes_loan_in',
+                      );
+                      await ref.read(transactionRepositoryProvider).insertTransaction(tx);
+                      if (mounted && ctx.mounted) {
+                        _showOperationSummary(
+                          operation: 'Création de dette',
+                          walletName: transactionWallet.name,
+                          amount: txType == TransactionType.expense ? -targetAmount : targetAmount,
+                          date: issueDate,
+                          txType: txType.name,
+                        );
+                      }
+                    } else {
+                      if (mounted && ctx.mounted) {
+                        _showOperationSummary(
+                          operation: 'Création de dette (sans transaction)',
+                          walletName: transactionWallet.name,
+                          amount: isCredit ? -targetAmount : targetAmount,
+                          date: issueDate,
+                          txType: 'aucune',
+                        );
+                      }
+                    }
+
+                    if (mounted && ctx.mounted) Navigator.pop(ctx);
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text('Erreur lors de la création: $e')),
                       );
                     }
-                  } else {
-                    if (mounted) {
-                      _showOperationSummary(
-                        operation: 'Création de dette (sans transaction)',
-                        walletName: transactionWallet.name,
-                        amount: isCredit ? -targetAmount : targetAmount,
-                        date: issueDate,
-                        txType: 'aucune',
-                      );
-                    }
                   }
-
-                  if (mounted && ctx.mounted) Navigator.pop(ctx);
                 },
                 child: const Text('Créer'),
               ),
@@ -661,137 +670,146 @@ class _CategoryOverviewPageState extends ConsumerState<CategoryOverviewPage>
               ),
               FilledButton(
                 onPressed: () async {
-                  final amount = double.tryParse(
-                    amountController.text.replaceAll(',', '.').replaceAll(' ', ''),
-                  );
-                  if (amount == null || amount <= 0) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer un montant valide')));
+                  try {
+                    final amount = double.tryParse(
+                      amountController.text.replaceAll(',', '.').replaceAll(' ', ''),
+                    );
+                    if (amount == null || amount <= 0) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Veuillez entrer un montant valide')));
+                      }
+                      return;
                     }
-                    return;
-                  }
 
-                  final interestAmount = includeInterest
-                      ? (double.tryParse(interestAmountController.text.replaceAll(',', '.').replaceAll(' ', '')) ?? -1)
-                      : 0.0;
-                  if (includeInterest &&
-                      (interestAmount < 0 || interestAmount >= amount)) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La part des intérêts est invalide')));
+                    final interestAmount = includeInterest
+                        ? (double.tryParse(interestAmountController.text.replaceAll(',', '.').replaceAll(' ', '')) ?? -1)
+                        : 0.0;
+                    if (includeInterest &&
+                        (interestAmount < 0 || interestAmount >= amount)) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('La part des intérêts est invalide')));
+                      }
+                      return;
                     }
-                    return;
-                  }
-                  final principalAmount = amount - interestAmount;
-                  if (hasTarget && amount > remainingAmount) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Le remboursement dépasse le restant (${formatAmount(remainingAmount)}).',
+                    final principalAmount = amount - interestAmount;
+                    if (hasTarget && amount > remainingAmount) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Le remboursement dépasse le restant (${formatAmount(remainingAmount)}).',
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
+                      return;
                     }
-                    return;
-                  }
 
-                  late final Wallet transactionWallet;
-                  if (useExistingWallet) {
-                    if (selectedWalletId == null) return;
-                    transactionWallet = transactionWallets.firstWhere(
-                      (w) => w.id == selectedWalletId,
-                    );
-                  } else {
-                    if (newWalletNameController.text.trim().isEmpty) return;
-                    transactionWallet = Wallet(
-                      id: DateTime.now().microsecondsSinceEpoch.toString(),
-                      name: newWalletNameController.text.trim(),
-                      type: WalletType.current,
-                    );
-                    await ref
-                        .read(walletRepositoryProvider)
-                        .insertWallet(transactionWallet);
-                  }
+                    late final Wallet transactionWallet;
+                    if (useExistingWallet) {
+                      if (selectedWalletId == null) return;
+                      transactionWallet = transactionWallets.firstWhere(
+                        (w) => w.id == selectedWalletId,
+                      );
+                    } else {
+                      if (newWalletNameController.text.trim().isEmpty) return;
+                      transactionWallet = Wallet(
+                        id: DateTime.now().microsecondsSinceEpoch.toString(),
+                        name: newWalletNameController.text.trim(),
+                        type: WalletType.current,
+                      );
+                      await ref
+                          .read(walletRepositoryProvider)
+                          .insertWallet(transactionWallet);
+                    }
 
-                  final newBalance = debtWallet.initialBalance + principalAmount;
-                  bool newIsSettled = debtWallet.isSettled;
-                  
-                  final tempWallet = debtWallet.copyWith(initialBalance: newBalance);
-                  if (hasTarget && _getDebtRemainingAmount(tempWallet) <= 0.0001) {
-                    newIsSettled = true;
-                  }
-                  
-                  final updatedWallet = tempWallet.copyWith(isSettled: newIsSettled);
-                  await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
+                    final newBalance = debtWallet.initialBalance + principalAmount;
+                    bool newIsSettled = debtWallet.isSettled;
+                    
+                    final tempWallet = debtWallet.copyWith(initialBalance: newBalance);
+                    if (hasTarget && _getDebtRemainingAmount(tempWallet) <= 0.0001) {
+                      newIsSettled = true;
+                    }
+                    
+                    final updatedWallet = tempWallet.copyWith(isSettled: newIsSettled);
+                    await ref.read(walletRepositoryProvider).updateWallet(updatedWallet);
 
-                  final shouldCreateTx = await _askTransactionConfirmation(
-                    'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
-                  );
-                  if (shouldCreateTx) {
-                    final txType = debtWallet.isCredit
-                        ? TransactionType.income
-                        : TransactionType.expense;
-                    final tx = Transaction(
-                      id: DateTime.now().microsecondsSinceEpoch.toString(),
-                      amount: principalAmount,
-                      description: includeInterest
-                          ? 'Remboursement (capital) de ${debtWallet.name}'
-                          : 'Remboursement de ${debtWallet.name}',
-                      type: txType,
-                      date: DateTime.now(),
-                      walletId: transactionWallet.id,
-                      relatedDebtId: debtWallet.id,
-                      categoryId: debtWallet.isCredit ? 'cat_dettes_repay_in' : 'cat_dettes_repay_out',
+                    final shouldCreateTx = await _askTransactionConfirmation(
+                      'Voulez-vous enregistrer la transaction de remboursement ? (oui/non)',
+                      contextOverride: ctx,
                     );
-                    await ref.read(transactionRepositoryProvider).insertTransaction(tx);
-                    if (includeInterest && interestAmount > 0) {
-                      final interestTx = Transaction(
-                        id: '${DateTime.now().microsecondsSinceEpoch}_interest',
-                        amount: interestAmount,
-                        description: 'Intérêts sur ${debtWallet.name}',
+                    if (shouldCreateTx) {
+                      final txType = debtWallet.isCredit
+                          ? TransactionType.income
+                          : TransactionType.expense;
+                      final tx = Transaction(
+                        id: DateTime.now().microsecondsSinceEpoch.toString(),
+                        amount: principalAmount,
+                        description: includeInterest
+                            ? 'Remboursement (capital) de ${debtWallet.name}'
+                            : 'Remboursement de ${debtWallet.name}',
                         type: txType,
                         date: DateTime.now(),
                         walletId: transactionWallet.id,
                         relatedDebtId: debtWallet.id,
-                        categoryId: 'cat_impots_interests',
+                        categoryId: debtWallet.isCredit ? 'cat_dettes_repay_in' : 'cat_dettes_repay_out',
                       );
-                      await ref.read(transactionRepositoryProvider).insertTransaction(interestTx);
+                      await ref.read(transactionRepositoryProvider).insertTransaction(tx);
+                      if (includeInterest && interestAmount > 0) {
+                        final interestTx = Transaction(
+                          id: '${DateTime.now().microsecondsSinceEpoch}_interest',
+                          amount: interestAmount,
+                          description: 'Intérêts sur ${debtWallet.name}',
+                          type: txType,
+                          date: DateTime.now(),
+                          walletId: transactionWallet.id,
+                          relatedDebtId: debtWallet.id,
+                          categoryId: 'cat_impots_interests',
+                        );
+                        await ref.read(transactionRepositoryProvider).insertTransaction(interestTx);
+                      }
+                      if (mounted && ctx.mounted) {
+                        _showOperationSummary(
+                          operation: 'Remboursement',
+                          walletName: transactionWallet.name,
+                          amount: txType == TransactionType.expense
+                              ? -amount
+                              : amount,
+                          date: DateTime.now(),
+                          txType: txType.name,
+                        );
+                      }
+                    } else {
+                      if (mounted && ctx.mounted) {
+                        _showOperationSummary(
+                          operation: 'Remboursement (sans transaction)',
+                          walletName: transactionWallet.name,
+                          amount: debtWallet.isCredit ? amount : -amount,
+                          date: DateTime.now(),
+                          txType: 'aucune',
+                        );
+                      }
                     }
-                    if (mounted) {
-                      _showOperationSummary(
-                        operation: 'Remboursement',
-                        walletName: transactionWallet.name,
-                        amount: txType == TransactionType.expense
-                            ? -amount
-                            : amount,
-                        date: DateTime.now(),
-                        txType: txType.name,
-                      );
-                    }
-                  } else {
-                    if (mounted) {
-                      _showOperationSummary(
-                        operation: 'Remboursement (sans transaction)',
-                        walletName: transactionWallet.name,
-                        amount: debtWallet.isCredit ? amount : -amount,
-                        date: DateTime.now(),
-                        txType: 'aucune',
-                      );
-                    }
-                  }
-                  
-                  if (mounted) {
-                    final updatedRemaining = _getDebtRemainingAmount(updatedWallet);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Remboursement de ${formatAmount(amount)} enregistré. '
-                          'Reste: ${formatAmount(updatedRemaining)}',
+                    
+                    if (mounted && ctx.mounted) {
+                      final updatedRemaining = _getDebtRemainingAmount(updatedWallet);
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Remboursement de ${formatAmount(amount)} enregistré. '
+                            'Reste: ${formatAmount(updatedRemaining)}',
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text('Erreur lors du remboursement: $e')),
+                      );
+                    }
                   }
-                  if (ctx.mounted) Navigator.pop(ctx);
                 },
                 child: const Text('Valider'),
               ),
